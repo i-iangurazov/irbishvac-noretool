@@ -1,0 +1,40 @@
+/* Global typography */
+html, body, .retool-canvas {
+  /* 1rem will be auto-adjusted by the JS above to offset zoom */
+  font-size: 1rem;        /* keep as 1rem */
+  line-height: 1.3;       /* unitless = best “auto” spacing */
+  font-weight: 700;       /* bold */
+  letter-spacing: normal; /* “auto” spacing */
+}
+
+/* Example: app-wide text scale (roughly your 1.2vw target, but zoom-stable) */
+.retool-text,
+.retool-button .buttonText,
+.retool-input ._label,
+.retool-textinput ._label,
+.retool-select ._label,
+.retool-table ._tableHeader,
+.retool-table ._tableCell,
+.retool-container ._headerTitle,
+.retool-tabs ._tabLabel,
+.retool-modal,
+.retool-checkbox ._label,
+.retool-radio-group ._label,
+.retool-multiselect ._label {
+  font-size: 1.125rem; /* ~18px at BASE_REM_PX=16; scales inversely to zoom */
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+/* Extra large version */
+._menuButton_akf1o_109.ant-btn.retool-button {
+    width: 60px !important;
+    height: 60px !important;
+    padding: 24px !important;
+    border-radius: 10px !important;
+}
+
+._menuButton_akf1o_109 .retool-icon {
+    width: 28px !important;
+    height: 28px !important;
+}

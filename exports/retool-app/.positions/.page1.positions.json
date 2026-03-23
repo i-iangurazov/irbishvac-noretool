@@ -1,0 +1,38 @@
+{
+  "button3": {
+    "col": 11,
+    "height": 1,
+    "width": 1
+  },
+  "button4": {
+    "row": 1,
+    "col": 11,
+    "height": 1,
+    "width": 1
+  },
+  "date3": {
+    "row": 0.2,
+    "col": 9,
+    "height": 0.2,
+    "width": 2
+  },
+  "date4": {
+    "col": 9,
+    "height": 0.2,
+    "width": 2
+  },
+  "html6": {
+    "row": 2,
+    "height": 0.2,
+    "width": 12
+  },
+  "image3": {
+    "height": 2,
+    "width": 1
+  },
+  "navigation4": {
+    "col": 1,
+    "height": 2,
+    "width": 8
+  }
+}

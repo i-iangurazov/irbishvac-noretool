@@ -1,0 +1,3350 @@
+{
+  "generatedAt": "2026-03-20T15:47:59.877Z",
+  "appExportUuid": "89a2f672-5e5b-11f0-bc46-d7bee0272baf",
+  "pages": [
+    {
+      "file": "exports/retool-app/src/page1.rsx",
+      "id": "page1",
+      "title": "Service Technician Dashboard (HVAC - SERVICE)",
+      "urlSlug": "",
+      "queries": [
+        {
+          "tag": "RESTQuery",
+          "id": "getToken",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "resourceDisplayName": "ST getToken",
+          "query": "?",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": "true",
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getTechnicianReport",
+          "resourceName": "41a784a8-fde7-4b5d-8355-d94aaab5f3ee",
+          "resourceDisplayName": "getTechnicianReport",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date4.value ",
+          "transformer": "\n      \"// Input shape expected:\\n// { fields: [{name, label",
+          "transformerSummary": "\"// Input shape expected:\\n// { fields: [{name, label",
+          "runWhenPageLoads": "true",
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "query2",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/query2.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// Transformer: getTechnicianReport-compatible (preserves original naming)\\n\\n// --- Additive config (safe to tweak) ---\\nvar COMMISSION_RATE = 0.0;   // e.g., 0.05 for 5%\\nvar HEADSHOTS = {",
+          "transformerSummary": "\"// Transformer: getTechnicianReport-compatible (preserves original naming)\\n\\n// --- Additive config (safe to tweak) ---\\nvar COMMISSION_RATE = 0.0;   // e.g., 0.05 for 5%\\nvar HEADSHOTS = {",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/query2.sql"
+        },
+        {
+          "tag": "JavascriptQuery",
+          "id": "holdForOneMinute",
+          "resourceName": "JavascriptQuery",
+          "resourceDisplayName": null,
+          "query": "include(\"../lib/holdForOneMinute.js\", \"string\")",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": "../lib/holdForOneMinute.js"
+        },
+        {
+          "tag": "JavascriptQuery",
+          "id": "query9",
+          "resourceName": "JavascriptQuery",
+          "resourceDisplayName": null,
+          "query": "include(\"../lib/query9.js\", \"string\")",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": "../lib/query9.js"
+        },
+        {
+          "tag": "RetoolStorageQuery",
+          "id": "query7",
+          "resourceName": "retool_storage",
+          "resourceDisplayName": "retool_storage",
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "connectResource",
+          "id": "query8",
+          "resourceName": null,
+          "resourceDisplayName": null,
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": null
+        }
+      ],
+      "htmlWidgets": [
+        {
+          "id": "html6",
+          "htmlInclude": "../lib/html6.html",
+          "cssInclude": null
+        }
+      ],
+      "components": [
+        {
+          "tag": "Button",
+          "id": "button3",
+          "label": "YTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button4",
+          "label": "MTD"
+        },
+        {
+          "tag": "Date",
+          "id": "date4",
+          "label": ""
+        },
+        {
+          "tag": "Date",
+          "id": "date3",
+          "label": ""
+        },
+        {
+          "tag": "Frame",
+          "id": "$main",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html6",
+          "label": null
+        },
+        {
+          "tag": "Image",
+          "id": "image3",
+          "label": null
+        },
+        {
+          "tag": "Navigation",
+          "id": "navigation4",
+          "label": null
+        },
+        {
+          "tag": "Option",
+          "id": "00030",
+          "label": "Home"
+        },
+        {
+          "tag": "Option",
+          "id": "00031",
+          "label": "Customers"
+        },
+        {
+          "tag": "Option",
+          "id": "00032",
+          "label": "Settings"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button3",
+          "label": "YTD"
+        },
+        {
+          "id": "button4",
+          "label": "MTD"
+        }
+      ],
+      "dateInputs": [
+        {
+          "id": "date4",
+          "defaultValue": ""
+        },
+        {
+          "id": "date3",
+          "defaultValue": ""
+        }
+      ],
+      "serviceTitanEndpoints": [],
+      "secrets": [
+        {
+          "label": "ServiceTitan client ID",
+          "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+        },
+        {
+          "label": "ServiceTitan client secret",
+          "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        }
+      ]
+    },
+    {
+      "file": "exports/retool-app/src/page2.rsx",
+      "id": "page2",
+      "title": "INSTALLER Dashboard - HVAC INSTALL",
+      "urlSlug": "null",
+      "queries": [
+        {
+          "tag": "RESTQuery",
+          "id": "getInstallerReport",
+          "resourceName": "4c8f929d-c471-4c10-b003-70d9ceb15a2a",
+          "resourceDisplayName": "getInstallerReport",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date6.value ",
+          "transformer": "// Transformer: txInstallerReport\n// Input: { fields: [{name,label},...], data: [[...],...], snapshot_time? }\n\nconst F = Object.fromEntries((data.fields || []).map((f, i) => [f.name, i]));\nconst rowsRaw = data.data || [];\n\n// Helpers\nconst num  = v => (v == null || v === '' || Number.isNaN(Number(v))) ? 0 : Number(v);\nconst sumK = (arr, k) => arr.reduce((s, x) => s + num(x[k] || 0), 0);\nconst moneyShort = (n) => {\n  const sign = n < 0 ? '-' : '';\n  const a = Math.abs(num(n));\n  if (a >= 1e9) return `${sign}$${(a/1e9).toFixed(1)}B`;\n  if (a >= 1e6) return `${sign}$${(a/1e6).toFixed(1)}M`;\n  if (a >= 1e3) return `${sign}$${(a/1e3).toFixed(1)}K`;\n  return `${sign}$${a.toFixed(2)}`;\n};\nconst pct = (v) => `${(num(v) * 100).toFixed(1)}%`;\n\n// ----- Rows (one per installer) -----\nconst rows = rowsRaw.map((r) => {\n  const name               = r[F.Name];\n  const installedRevenue   = num(r[F.CompletedRevenue]);   // MAIN METRIC\n  const jobsCompleted      = num(r[F.CompletedJobs]);      // (#opps)\n  const recallsCaused      = num(r[F.RecallsCaused]);\n  const billableEfficiency = num(r[F.BillableEfficiency]); // ratio (1.74 = 174%)\n  const averageInstall     = num(r[F.TotalJobAverage]);\n\n  return {\n    name,\n    installedRevenue,\n    jobsCompleted,\n    recallsCaused,\n    billableEfficiency,      // 1.0 = 100%\n    averageInstall,\n\n    // handy formatted values for UI\n    installedRevenueFormatted:  moneyShort(installedRevenue),\n    billableEfficiencyFormatted: pct(billableEfficiency),\n    averageInstallFormatted:     moneyShort(averageInstall),\n  };\n});\n\n// ----- Ranked copy (by Installed Revenue desc) -----\nconst rows_ranked = rows\n  .slice()\n  .sort((a, b) => b.installedRevenue - a.installedRevenue || String(a.name).localeCompare(String(b.name)))\n  .map((x, i) => ({ ...x, rankByRevenue: i + 1 }));\n\n// ----- Totals (weighted avgs by # jobs) -----\nconst totalInstalledRevenue = sumK(rows, 'installedRevenue');\nconst totalJobsCompleted    = sumK(rows, 'jobsCompleted');\nconst totalRecallsCaused    = sumK(rows, 'recallsCaused');\n\n// Weighted Billable Efficiency by jobs completed\nconst effNumer = rows.reduce((s, x) => s + num(x.billableEfficiency) * num(x.jobsCompleted), 0);\nconst effDenom = totalJobsCompleted;\nconst billableEfficiencyAvg = effDenom > 0\n  ? effNumer / effDenom\n  : (rows.length ? sumK(rows, 'billableEfficiency') / rows.length : 0);\n\n// Weighted Average Install by jobs completed\nconst avgInstallNumer = rows.reduce((s, x) => s + num(x.averageInstall) * num(x.jobsCompleted), 0);\nconst avgInstallDenom = totalJobsCompleted;\nconst averageInstallAll = avgInstallDenom > 0\n  ? avgInstallNumer / avgInstallDenom\n  : (rows.length ? sumK(rows, 'averageInstall') / rows.length : 0);\n\nconst totals = {\n  installedRevenue: totalInstalledRevenue,\n  jobsCompleted: totalJobsCompleted,\n  recallsCaused: totalRecallsCaused,\n  billableEfficiencyAvg: Number(billableEfficiencyAvg.toFixed(3)), // ratio (1.234 = 123.4%)\n  averageInstall: Number(averageInstallAll.toFixed(2)),\n\n  // leader snapshot (by Installed Revenue)\n  leaderName: rows_ranked[0]?.name ?? null,\n  leaderRevenue: rows_ranked[0]?.installedRevenue ?? 0,\n  leaderRevenueFormatted: moneyShort(rows_ranked[0]?.installedRevenue ?? 0),\n};\n\n// ----- Snapshot time passthrough -----\nconst snapshot_time =\n  data.snapshot_time ||\n  (data.meta && data.meta.snapshot_time) ||\n  data.snapshotTime ||\n  null;\n\nreturn { rows, rows_ranked, totals, snapshot_time };",
+          "transformerSummary": "// Transformer: txInstallerReport",
+          "runWhenPageLoads": "true",
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getToken3",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "resourceDisplayName": "ST getToken",
+          "query": "?",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": "true",
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "query4",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/query4.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// Transformer: txInstallerReport (array-aware for your raw_json)\\n\\n// ---------- Helpers ----------\\nconst cleanNum = (v) => {\\n  if (v == null || v === '') return 0;\\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\\n  if (typeof v === 'string') {\\n    // Strip $, %, commas, spaces\\n    const s = v.replace(/[%,$,\\\\s]/g, '');\\n    const n = Number(s);\\n    return Number.isNaN(n) ? 0 : n;\\n  ",
+          "transformerSummary": "\"// Transformer: txInstallerReport (array-aware for your raw_json)\\n\\n// ---------- Helpers ----------\\nconst cleanNum = (v) => {\\n  if (v == null || v === '') return 0;\\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\\n  if (typeof v === 'string') {\\n    // Strip $, %, commas, spaces\\n    const s = v.replace(/[%,$,\\\\s]/g, '');\\n    const n = Number(s);\\n    return Number.isNaN(n) ? 0 : n;\\n",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/query4.sql"
+        },
+        {
+          "tag": "RetoolStorageQuery",
+          "id": "query11",
+          "resourceName": "retool_storage",
+          "resourceDisplayName": "retool_storage",
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        }
+      ],
+      "htmlWidgets": [
+        {
+          "id": "html7",
+          "htmlInclude": "../lib/html7.html",
+          "cssInclude": null
+        }
+      ],
+      "components": [
+        {
+          "tag": "Button",
+          "id": "button5",
+          "label": "YTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button6",
+          "label": "MTD"
+        },
+        {
+          "tag": "Date",
+          "id": "date6",
+          "label": ""
+        },
+        {
+          "tag": "Date",
+          "id": "date5",
+          "label": ""
+        },
+        {
+          "tag": "Frame",
+          "id": "$main2",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html7",
+          "label": null
+        },
+        {
+          "tag": "Image",
+          "id": "image6",
+          "label": null
+        },
+        {
+          "tag": "Navigation",
+          "id": "navigation5",
+          "label": null
+        },
+        {
+          "tag": "Option",
+          "id": "00030",
+          "label": "Home"
+        },
+        {
+          "tag": "Option",
+          "id": "00031",
+          "label": "Customers"
+        },
+        {
+          "tag": "Option",
+          "id": "00032",
+          "label": "Settings"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button5",
+          "label": "YTD"
+        },
+        {
+          "id": "button6",
+          "label": "MTD"
+        }
+      ],
+      "dateInputs": [
+        {
+          "id": "date6",
+          "defaultValue": ""
+        },
+        {
+          "id": "date5",
+          "defaultValue": ""
+        }
+      ],
+      "serviceTitanEndpoints": [],
+      "secrets": [
+        {
+          "label": "ServiceTitan client ID",
+          "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+        },
+        {
+          "label": "ServiceTitan client secret",
+          "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        }
+      ]
+    },
+    {
+      "file": "exports/retool-app/src/page3.rsx",
+      "id": "page3",
+      "title": "Company-wide Dashboard",
+      "urlSlug": "null",
+      "queries": [
+        {
+          "tag": "RESTQuery",
+          "id": "getToken2",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "resourceDisplayName": "ST getToken",
+          "query": "?",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": "true",
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getMarketing",
+          "resourceName": "f0fa09d6-cb30-41b0-bfb8-26eeb11ba190",
+          "resourceDisplayName": "getMarketing",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/898/data",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date8.value && new Date(date8.value).toISOString().slice(0,10) ",
+          "transformer": "\n      \"// txMarketingDonut (labels like \\\"Label - $481.5K\\\")\\n\\nconst fields = data.fields ?? [];\\nconst rows   = data.data   ?? [];\\nconst F = Object.fromEntries(fields.map((f,i)=>[f.name, i]));\\nconst num = v => (v==null || v==='' || Number.isNaN(Number(v))) ? 0 : Number(v);\\n\\n// ---- Config overrides (optional via window) ----\\nconst OVERRIDE_GROUP_BY = (typeof window !== 'undefined' && window.MKTG_GROUP_BY) || null;\\nconst METRIC_FIELD = (typeof window !== 'undefined' && window.MKTG_METRIC) || 'CompletedRevenue';\\nconst TOP_N = (typeof window !== 'undefined' && window.MKTG_TOP_N) || 5;\\n// ------------------------------------------------\\n\\n// Smart default: use 'category' only if a category column exists\\nconst hasCategory = (F.Category != null) || (F['Campaign Category'] != null);\\nconst GROUP_BY = OVERRIDE_GROUP_BY || (hasCategory ? 'category' : 'name');\\n\\n// $ shortener with 1 decimal: K/M/B\\nfunction moneyShort(n){\\n  const sign = n < 0 ? '-' : '';\\n  const a = Math.abs(n);\\n  if (a >= 1e9) return `${sign",
+          "transformerSummary": "\"// txMarketingDonut (labels like \\\"Label - $481.5K\\\")\\n\\nconst fields = data.fields ?? [];\\nconst rows   = data.data   ?? [];\\nconst F = Object.fromEntries(fields.map((f,i)=>[f.name, i]));\\nconst num = v => (v==null || v==='' || Number.isNaN(Number(v))) ? 0 : Number(v);\\n\\n// ---- Config overrides (optional via window) ----\\nconst OVERRIDE_GROUP_BY = (typeof window !== 'undefined' && window.MKTG_GROUP_BY) || null;\\nconst METRIC_FIELD = (typeof window !== 'undefined' && window.MKTG_METRIC) || 'CompletedRevenue';\\nconst TOP_N = (typeof window !== 'undefined' && window.MKTG_TOP_N) || 5;\\n// ------------------------------------------------\\n\\n// Smart default: use 'category' only if a category column exists\\nconst hasCategory = (F.Category != null) || (F['Campaign Category'] != null);\\nconst GROUP_BY = OVERRIDE_GROUP_BY || (hasCategory ? 'category' : 'name');\\n\\n// $ shortener with 1 decimal: K/M/B\\nfunction moneyShort(n){\\n  const sign = n < 0 ? '-' : '';\\n  const a = Math.abs(n);\\n  if (a >= 1e9) return `${sign",
+          "runWhenPageLoads": "true",
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getCapacity",
+          "resourceName": "6b5213e0-698b-403e-b3e6-0e485acd7ea3",
+          "resourceDisplayName": "getCapacity",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ (() => { const t=new Date(); const y=t.getFullYear(); const m=String(t.getMonth()+1).padStart(2,\\'0\\'); const d=String(t.getDate()).padStart(2,\\'0\\'); return `${y",
+          "transformer": "\n      '// Transformer: txCapacityByBU\\n// Input: { fields:[{name,label",
+          "transformerSummary": "'// Transformer: txCapacityByBU\\n// Input: { fields:[{name,label",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getSalesMonthlyPace",
+          "resourceName": "bb251234-d391-440a-8d2c-7a712911492a",
+          "resourceDisplayName": "getSales",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().slice(0,10) ",
+          "transformer": "\n      \"// === Transformer: Monthly Sales Pace (LA tz) with \\\"$1.17M\\\" formatting ===\\n\\n// -------- helpers --------\\nfunction num(v){\\n  if (v == null || v === '') return 0;\\n  const n = Number(String(v).replace(/[$,%\\\\s]/g,''));\\n  return Number.isFinite(n) ? n : 0;\\n",
+          "transformerSummary": "\"// === Transformer: Monthly Sales Pace (LA tz) with \\\"$1.17M\\\" formatting ===\\n\\n// -------- helpers --------\\nfunction num(v){\\n  if (v == null || v === '') return 0;\\n  const n = Number(String(v).replace(/[$,%\\\\s]/g,''));\\n  return Number.isFinite(n) ? n : 0;\\n",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getRevenueMonthlyPace",
+          "resourceName": "18352864-9d03-434e-9809-f496c1b341fc",
+          "resourceDisplayName": "getMonthlyPace",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/111413515/data",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().slice(0,10) ",
+          "transformer": "// Transformer: txRevenueMonthlyPace\n// Input: { fields:[{name,label}...], data:[[...], ...] }\n// Requirement: Use **CurrentMonthlyPace** sum (NOT CompletedRevenue)\n\n// --- setup ---\nconst F = Object.fromEntries((data.fields || []).map((f,i)=>[f.name, i]));\nconst rows = Array.isArray(data.data) ? data.data : [];\nconst num = v => (v==null || v==='' || Number.isNaN(Number(v))) ? 0 : Number(v);\n\n// Money short format with 2 decimals (K/M/B)\nfunction moneyShort(n){\n  const s = n < 0 ? '-' : '';\n  const a = Math.abs(n);\n  if (a >= 1e9) return `${s}$${(a/1e9).toFixed(2)}B`;\n  if (a >= 1e6) return `${s}$${(a/1e6).toFixed(2)}M`;\n  if (a >= 1e3) return `${s}$${(a/1e3).toFixed(2)}K`;\n  return `${s}$${a.toFixed(2)}`;\n}\n\n// --- sum CURRENT MONTHLY PACE (primary) ---\nlet value = 0;\nconst paceIdx = F.CurrentMonthlyPace;\n\n// If the column exists, sum it; otherwise return 0 (or fallback if you want)\nif (paceIdx != null) {\n  for (const r of rows) value += num(r[paceIdx]);\n}\n\n// Output\nreturn {\n  value,\n  formatted: moneyShort(value),\n  meta: {\n    used: paceIdx != null ? 'CurrentMonthlyPace(sum)' : 'none',\n    rows: rows.length\n  }\n};\n",
+          "transformerSummary": "// Transformer: txRevenueMonthlyPace",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getBookingRate",
+          "resourceName": "d2c90bab-f47b-45eb-9585-508f5d01e974",
+          "resourceDisplayName": "getBookingRate",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \\n      \"name\": \"From\",\\n      \"value\": \"{{ (()=>{ \\n        const tz=\\'America/Los_Angeles\\'; \\n        const now=new Date();\\n        return new Intl.DateTimeFormat(\\'en-CA\\',{\\n          timeZone:tz,\\n          year:\\'numeric\\',\\n          month:\\'2-digit\\',\\n          day:\\'2-digit\\'\\n        ",
+          "transformer": "\n      \"// Transformer: txBookedVsLeads\\n// Input: { fields:[{name,label",
+          "transformerSummary": "\"// Transformer: txBookedVsLeads\\n// Input: { fields:[{name,label",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getJobCostingSummary",
+          "resourceName": "25a91f61-1a41-4022-8796-fe680b9a9dab",
+          "resourceDisplayName": "getJobCostingSummary",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().slice(0,10) ",
+          "transformer": "// ===================== CONFIG =====================\nconst GOAL = 500_000; // monthly break-even goal ($)\n\n// ===================== UTILS ======================\nconst toNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return v;\n  const n = Number(String(v).replace(/[^0-9.-]/g, ''));\n  return isNaN(n) ? 0 : n;\n};\n\nconst isDateLike = (v) => {\n  if (v == null || v === '') return false;\n  if (v instanceof Date) return !isNaN(v.getTime());\n  if (typeof v === 'number') {\n    const nowMs = Date.now();\n    const oneYearMs = 365 * 24 * 60 * 60 * 1000;\n    const minMs = Date.UTC(2000, 0, 1);\n    if (v > 1e12) return v >= minMs && v <= (nowMs + oneYearMs); // ms\n    const ms = v * 1000;                                         // sec\n    return ms >= minMs && ms <= (nowMs + oneYearMs);\n  }\n  const d = new Date(v);\n  if (isNaN(d.getTime())) return false;\n  const y = d.getFullYear();\n  return y >= 2000 && y <= 2100;\n};\n\nconst toDate = (v) => {\n  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;\n  if (typeof v === 'number') {\n    const ms = v > 1e12 ? v : v * 1000;\n    return isDateLike(ms) ? new Date(ms) : null;\n  }\n  const d = new Date(v);\n  return isDateLike(d) ? d : null;\n};\n\nconst startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());\nconst sameMonth = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();\n\n// ===================== INPUT NORMALIZATION ======================\nconst rowsRaw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];\nconst fieldDefs = Array.isArray(data?.fields) ? data.fields : [];\nconst fieldNames = fieldDefs.length\n  ? fieldDefs.map((f, i) => (f?.name ?? f?.label ?? String(i)))\n  : (rowsRaw[0] ? Object.keys(rowsRaw[0]) : []);\n\nconst rows = rowsRaw.map(row => {\n  if (Array.isArray(row)) {\n    const obj = {};\n    for (let i = 0; i < fieldNames.length; i++) obj[fieldNames[i]] = row[i];\n    return obj;\n  }\n  const keys = Object.keys(row || {});\n  const looksIndexed = keys.length && keys.every(k => /^\\d+$/.test(k));\n  if (looksIndexed) {\n    const obj = {};\n    for (let i = 0; i < fieldNames.length; i++) obj[fieldNames[i]] = row[i] ?? row[String(i)];\n    return obj;\n  }\n  return row || {};\n});\n\nconst labelToName = {};\nfor (const f of fieldDefs) {\n  if (f?.label && f?.name) labelToName[f.label.toLowerCase()] = f.name;\n}\nconst nameByLabel = (label) => (label && labelToName[label.toLowerCase()]) || null;\n\n// ===================== COLUMN DETECTION ======================\nconst marginNameCandidates = [\n  'GrossMargin','grossMargin','Margin','margin','Gross_Amount','Gross_Profit','GrossProfit'\n];\nconst marginLabelCandidates = [\n  'Jobs Gross Margin','Gross Margin','Gross Profit','Jobs Gross Profit'\n];\nconst resolvedMarginNames = [\n  ...marginNameCandidates,\n  ...marginLabelCandidates.map(nameByLabel).filter(Boolean),\n];\nconst marginKeysTried = Array.from(new Set(resolvedMarginNames.filter(Boolean)));\n\nlet chosenMarginKey = null;\nlet marginKeyNonZeroCount = 0;\nif (rows.length) {\n  const probeCount = Math.min(200, rows.length);\n  for (const k of marginKeysTried) {\n    if (!(k in rows[0])) continue;\n    let cnt = 0;\n    for (let i = 0; i < probeCount; i++) {\n      if (toNum(rows[i]?.[k]) !== 0) cnt++;\n    }\n    if (cnt > marginKeyNonZeroCount) {\n      marginKeyNonZeroCount = cnt;\n      chosenMarginKey = k;\n    }\n  }\n}\n\nconst totalKey = fieldNames.includes('Total') ? 'Total' : (nameByLabel('Jobs Total') || 'Total');\nconst costKey  = fieldNames.includes('TotalCosts') ? 'TotalCosts' : (nameByLabel('Jobs Total Costs') || 'TotalCosts');\nconst laborKey = fieldNames.includes('LaborPay') ? 'LaborPay' : (nameByLabel('Labor Pay') || 'LaborPay');\n\nconst dateNameCandidates = [\n  'Date','date','JobDate','InvoiceDate','StartDate','CompletedDate',\n  'CompletionDate','CreatedAt','ReportDate'\n];\nconst dateLabelCandidates = [\n  'Date','Job Date','Invoice Date','Completed Date','Completion Date','Report Date','Created At'\n];\n\nlet dateKey =\n  (dateLabelCandidates.map(nameByLabel).find(Boolean)) ||\n  (dateNameCandidates.find(k => rows[0] && k in rows[0])) ||\n  null;\n\nconst dateBlacklist = new Set([\n  'Total','TotalCosts','LaborPay','GrossMargin','GrossMarginPercentage',\n  'Amount','Price','Cost','Revenue'\n]);\n\nif (!dateKey && rows.length) {\n  const keys = Object.keys(rows[0] || {}).filter(k => !dateBlacklist.has(k));\n  let bestKey = null, bestHit = 0;\n  const probeCount = Math.min(100, rows.length);\n  for (const k of keys) {\n    let hits = 0;\n    for (let i = 0; i < probeCount; i++) if (isDateLike(rows[i]?.[k])) hits++;\n    if (hits > bestHit) { bestHit = hits; bestKey = k; }\n  }\n  if (bestHit >= Math.ceil(0.1 * Math.min(100, rows.length))) dateKey = bestKey;\n}\n\nif (dateKey) {\n  const probeCount = Math.min(100, rows.length);\n  let hits = 0;\n  for (let i = 0; i < probeCount; i++) if (isDateLike(rows[i]?.[dateKey])) hits++;\n  if (hits < Math.ceil(0.1 * probeCount)) dateKey = null;\n}\n\n// ===================== AGGREGATION ======================\nconst now = new Date();\nconst todayStart = startOfDay(now);\nconst yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);\nconst yesterdayEnd = new Date(todayStart.getTime() - 1);\n\nlet totalGross = 0, mtdGross = 0, yGross = 0;\nlet computedUsed = false;\n\nfor (const r of rows) {\n  let gm;\n  if (chosenMarginKey) {\n    gm = toNum(r?.[chosenMarginKey]);\n  } else {\n    gm = toNum(r?.[totalKey]) - toNum(r?.[costKey]) - toNum(r?.[laborKey]);\n    computedUsed = true;\n  }\n\n  totalGross += gm;\n\n  const d = dateKey ? toDate(r?.[dateKey]) : null;\n  if (d) {\n    if (sameMonth(d, now) && d <= now) mtdGross += gm;\n    if (d >= yesterdayStart && d <= yesterdayEnd) yGross += gm;\n  } else {\n    mtdGross += gm; // no per-row date → treat all as MTD\n  }\n}\n\n// ===================== INPUT ARRAY FOR PROGRESS BARS ======================\nconst input = [\n  {\n    id: 'month_goal',\n    label: 'Monthly Break-even Goal',\n    value: GOAL,\n    max: GOAL,\n    pct: 1,\n    remaining: 0\n  },\n  {\n    id: 'mtd',\n    label: 'MTD Gross Margin',\n    value: mtdGross,\n    max: GOAL,\n    pct: GOAL ? (mtdGross / GOAL) : null,\n    remaining: Math.max(0, GOAL - mtdGross)\n  },\n  {\n    id: 'yesterday',\n    label: 'Yesterday Gross Margin',\n    value: yGross,\n    max: GOAL,\n    pct: GOAL ? (yGross / GOAL) : null,\n    remaining: Math.max(0, GOAL - yGross)\n  }\n];\n\n// ===================== OUTPUT ======================\nreturn {\n  goal: GOAL,\n  input, // <—— bind your Progress components to items in this array\n  summary: {\n    totalGross,\n    mtd: {\n      value: mtdGross,\n      remaining: Math.max(0, GOAL - mtdGross),\n      pctOfGoal: GOAL ? (mtdGross / GOAL) : null\n    },\n    yesterday: {\n      value: yGross,\n      pctOfGoal: GOAL ? (yGross / GOAL) : null\n    }\n  },\n  progressBars: {\n    mtd_value: mtdGross,\n    mtd_max: GOAL,\n    yesterday_value: yGross,\n    yesterday_max: GOAL\n  },\n  meta: {\n    normalized: true,\n    fieldNames,\n    marginKeyUsed: chosenMarginKey || 'COMPUTED_FROM_TOTAL_MINUS_COSTS_MINUS_LABOR',\n    marginKeysTried,\n    marginKeyNonZeroCount,\n    dateKeyUsed: dateKey || null,\n    totalKey,\n    costKey,\n    laborKey,\n    rowCount: rows.length,\n    sampleMappedRow: rows[0] || null,\n    computedMarginFallbackUsed: computedUsed\n  }\n};\n",
+          "transformerSummary": "// ===================== CONFIG =====================",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getGoalTracker",
+          "resourceName": "430cea1f-68db-4534-929a-cdaed4c310d1",
+          "resourceDisplayName": "getGoalTracker",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ new Date(new Date().getFullYear(), 0, 2).toISOString().slice(0,10) ",
+          "transformer": "// ---------- helpers ----------\nconst toNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n  const n = Number(String(v).replace(/[^0-9.-]/g, ''));\n  return Number.isNaN(n) ? 0 : n;\n};\nconst clamp01 = (x) => Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0;\n\n// ---------- normalize ----------\nconst rowsRaw = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);\nconst fields  = Array.isArray(data?.fields) ? data.fields : [];\nconst fieldNames = fields.map(f => f?.name);\n\nconst rows = rowsRaw.map(r => {\n  if (Array.isArray(r)) {\n    const o = {};\n    for (let i = 0; i < fieldNames.length; i++) o[fieldNames[i]] = r[i];\n    return o;\n  }\n  return r || {};\n});\n\n// ---------- per-group ----------\nconst groups = rows.map(r => ({\n  name: String(r?.Name ?? ''),\n  totalRevenue:   toNum(r?.TotalRevenue),\n  totalSales:     toNum(r?.TotalSales),\n  goalDaily:      toNum(r?.GoalDaily),        // in your payload: actually monthly company goal per BU row\n  goalNoWeekends: toNum(r?.GoalNoWeekends),   // same, “no weekends” variant\n  yearlyPace:     toNum(r?.CurrentYearlyPace),\n  monthlyPace:    toNum(r?.CurrentMonthlyPace),\n  combinedRevenue: toNum(r?.TotalRevenue) + toNum(r?.TotalSales)\n}));\n\n// ---------- totals ----------\nconst sum = (arr, key) => arr.reduce((acc, x) => acc + toNum(x?.[key]), 0);\nconst totals = {\n  totalRevenue:    sum(groups, 'totalRevenue'),\n  totalSales:      sum(groups, 'totalSales'),\n  combinedRevenue: sum(groups, 'combinedRevenue'),\n  yearlyPace:      sum(groups, 'yearlyPace'),\n  monthlyPace:     sum(groups, 'monthlyPace'),\n  goalDaily_sum:      sum(groups, 'goalDaily'),\n  goalNoWeekends_sum: sum(groups, 'goalNoWeekends')\n};\n\n// ---------- choose company goal (don’t sum across BUs) ----------\nconst maxNonZero = (arr, key) => arr.reduce((m, x) => {\n  const v = toNum(x?.[key]); return v > m ? v : m;\n}, 0);\nconst companyGoalDaily      = maxNonZero(groups, 'goalDaily');\nconst companyGoalNoWeekends = maxNonZero(groups, 'goalNoWeekends');\n\n// --------- period decision & goals ---------\n// Heuristic: if sum of revenue >> monthly goal, treat revenue as YTD -> use annual gauge.\nconst monthlyGoal = companyGoalNoWeekends || companyGoalDaily || 0;\nconst yearlyGoal  = monthlyGoal * 12;\n\nconst revenueSum = totals.combinedRevenue;\n// if revenueSum is much bigger than one month’s goal, assume YTD data is loaded\nconst looksYTD = monthlyGoal > 0 && revenueSum > monthlyGoal * 1.5;\n\n// Monthly metrics (useful when you truly load monthly data)\nconst monthRevenue = totals.combinedRevenue; // what your query returns; may actually be YTD\nconst pct_month    = monthlyGoal > 0 ? clamp01(monthRevenue / monthlyGoal) : 0;\n\n// Annual metrics\nconst yeartotalrevenue = totals.combinedRevenue;     // treat as YTD if looksYTD=true\nconst pct_year         = yearlyGoal > 0 ? clamp01(yeartotalrevenue / yearlyGoal) : 0;\n\n// Forecast: prefer an explicit yearly pace if present; else scale monthly pace * 12.\nconst forecastedYear = Math.max(toNum(totals.yearlyPace), toNum(totals.monthlyPace) * 12);\nconst pacingPercent  = yearlyGoal > 0 ? (forecastedYear / yearlyGoal) : 0; // 0..1\n\n// ---- expose a single pct for the gauge (what your HTML expects) ----\nconst pct = looksYTD ? pct_year : pct_month;\n\n// ---------- input array (for quick binding/debug) ----------\nconst input = [\n  { id: 'looksYTD',    label: 'Looks like YTD?', value: looksYTD },\n  { id: 'pct',         label: 'Gauge pct (0..1)', value: pct },\n  { id: 'pct_month',   label: 'Monthly pct (0..1)', value: pct_month },\n  { id: 'pct_year',    label: 'Yearly pct (0..1)', value: pct_year },\n  { id: 'forecasted',  label: 'Forecasted Year', value: forecastedYear },\n  { id: 'pacingPct',   label: 'Pacing % (0..1)', value: pacingPercent },\n  { id: 'monthlyGoal', label: 'Monthly Goal', value: monthlyGoal },\n  { id: 'yearlyGoal',  label: 'Yearly Goal', value: yearlyGoal }\n];\n\n// ---------- return ----------\nreturn {\n  raw: data,\n  groups,\n  totals: {\n    totalRevenue: totals.totalRevenue,\n    totalSales: totals.totalSales,\n    combinedRevenue: totals.combinedRevenue,\n    yearlyPace: totals.yearlyPace,\n    monthlyPace: totals.monthlyPace,\n    companyGoalDaily,\n    companyGoalNoWeekends,\n    monthlyGoal,\n    yearlyGoal\n  },\n\n  // expose both views\n  monthtotalrevenue: monthRevenue,\n  monthlygoal: monthlyGoal,\n  monthlypace: totals.monthlyPace,\n  pct_month,\n\n  yeartotalrevenue,\n  yearlygoal: yearlyGoal,\n  yearlypace: totals.yearlyPace,\n  pct_year,\n\n  // new unified values for the widget\n  pct,                       // <= what your HTML uses\n  forecastedYear,\n  pacingPercent,             // 0..1\n\n  input,\n  meta: {\n    note: 'Gauge pct auto-switches: if revenue >> monthly goal, treat as YTD and use annual ratio.',\n    rows: rows.length\n  }\n};\n",
+          "transformerSummary": "// ---------- helpers ----------",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "query19",
+          "resourceName": "661d2044-9754-4297-8c64-b3717fcd192e",
+          "resourceDisplayName": "getTrending",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date8.value && new Date(date8.value).toISOString().slice(0,10) ",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getSales2",
+          "resourceName": "bb251234-d391-440a-8d2c-7a712911492a",
+          "resourceDisplayName": "getSales",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    {\\n      \"name\": \"From\",\\n      \"value\": \"{{ moment().tz(\\'America/Los_Angeles\\').subtract(1, \\'day\\').format(\\'YYYY-MM-DD\\') ",
+          "transformer": "// ---------- helpers ----------\nconst toNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return v;\n  const n = Number(String(v).replace(/[^0-9.-]/g, ''));\n  return isNaN(n) ? 0 : n;\n};\n\n// ---------- normalize rows from positional arrays using fields[] ----------\nconst rowsRaw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];\nconst fields = Array.isArray(data?.fields) ? data.fields : [];\nconst names = fields.map(f => f?.name);\n\nconst rows = rowsRaw.map(r => {\n  if (Array.isArray(r)) {\n    const o = {};\n    for (let i = 0; i < names.length; i++) o[names[i]] = r[i];\n    return o;\n  }\n  return r || {};\n});\n\n// ---------- map & derive per group ----------\nconst groups = rows.map(r => {\n  const name = String(r?.Name ?? '');\n  const totalSales = toNum(r?.TotalSales);\n  const closedAvgSale = toNum(r?.ClosedAverageSale);\n  const closeRate = toNum(r?.CloseRate); // fraction 0..1\n  const opp = toNum(r?.SalesOpportunity);\n  const optionsPerOpp = toNum(r?.OptionsPerOpportunity);\n  const adjRevenue = toNum(r?.AdjustmentRevenue);\n  const totalRevenue = toNum(r?.TotalRevenue);\n  const nonJobRevenue = toNum(r?.NonJobRevenue);\n\n  const closedCount = opp * closeRate;                     // inferred\n  const expectedRevenue = opp * closeRate * closedAvgSale; // per group expected\n\n  return {\n    name,\n    totalSales,\n    closedAvgSale,\n    closeRate,\n    opp,\n    optionsPerOpp,\n    adjRevenue,\n    totalRevenue,\n    nonJobRevenue,\n    closedCount,\n    expectedRevenue\n  };\n});\n\n// ---------- totals, weighted KPIs ----------\nconst sum = (arr, key) => arr.reduce((a, x) => a + toNum(x?.[key]), 0);\n\nconst totals = {\n  totalSales: sum(groups, 'totalSales'),\n  totalRevenue: sum(groups, 'totalRevenue'),\n  nonJobRevenue: sum(groups, 'nonJobRevenue'),\n  adjRevenue: sum(groups, 'adjRevenue'),\n  opp: sum(groups, 'opp'),\n  closedCount: sum(groups, 'closedCount'),\n  expectedRevenue: sum(groups, 'expectedRevenue'),\n};\n\n// weighted averages\nconst w = {\n  byOpp: totals.opp > 0 ? totals.opp : 1,\n  byClosed: totals.closedCount > 0 ? totals.closedCount : 1\n};\n\nconst weightedCloseRate = totals.opp > 0\n  ? groups.reduce((a, g) => a + (g.closeRate * g.opp), 0) / totals.opp\n  : 0;\n\nconst weightedOptionsPerOpp = totals.opp > 0\n  ? groups.reduce((a, g) => a + (g.optionsPerOpp * g.opp), 0) / totals.opp\n  : 0;\n\nconst weightedClosedAvgSale = totals.closedCount > 0\n  ? groups.reduce((a, g) => a + (g.closedAvgSale * g.closedCount), 0) / totals.closedCount\n  : 0;\n\n// ---------- gauge values ----------\nconst value = totals.totalRevenue;           // actual (YTD/period revenue in payload)\nconst max = Math.max(totals.expectedRevenue, 0); // goal/expected\nconst pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;\n\n// ---------- input array for generic binding (optional) ----------\nconst input = [\n  { id: 'revenue', label: 'Total Revenue', value },\n  { id: 'expected', label: 'Expected Revenue', value: max },\n  { id: 'pct', label: 'Progress %', value: pct },\n  { id: 'close_rate', label: 'Close Rate (weighted)', value: weightedCloseRate },\n  { id: 'options_per_opp', label: 'Options / Opp (weighted)', value: weightedOptionsPerOpp },\n  { id: 'closed_avg_sale', label: 'Closed Avg Sale (weighted)', value: weightedClosedAvgSale },\n  { id: 'opportunities', label: 'Opportunities', value: totals.opp },\n  { id: 'closed_count', label: 'Closed (inferred)', value: totals.closedCount },\n  { id: 'non_job_revenue', label: 'Non-Job Revenue', value: totals.nonJobRevenue },\n  { id: 'adjustment_revenue', label: 'Adjustment Revenue', value: totals.adjRevenue }\n];\n\n// ---------- return for {{ getGoalTracker.data }} ----------\nreturn {\n  raw: data,\n  groups,\n  totals: {\n    ...totals,\n    weightedCloseRate,\n    weightedOptionsPerOpp,\n    weightedClosedAvgSale\n  },\n  // gauge contract\n  value,            // = totalRevenue\n  max,              // = expectedRevenue\n  pct,              // 0..1\n  expectedRevenue: totals.expectedRevenue,\n  totalRevenue: totals.totalRevenue,\n  input\n};",
+          "transformerSummary": "// ---------- helpers ----------",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getSales",
+          "resourceName": "bb251234-d391-440a-8d2c-7a712911492a",
+          "resourceDisplayName": "getSales",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    {\\n      \"name\": \"From\",\\n      \"value\": \"{{ moment(date8.value).tz(\\'America/Los_Angeles\\').format(\\'YYYY-MM-DD\\') ",
+          "transformer": "// ---------- helpers ----------\nconst toNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return v;\n  const n = Number(String(v).replace(/[^0-9.-]/g, ''));\n  return isNaN(n) ? 0 : n;\n};\n\n// ---------- normalize rows from positional arrays using fields[] ----------\nconst rowsRaw = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];\nconst fields = Array.isArray(data?.fields) ? data.fields : [];\nconst names = fields.map(f => f?.name);\n\nconst rows = rowsRaw.map(r => {\n  if (Array.isArray(r)) {\n    const o = {};\n    for (let i = 0; i < names.length; i++) o[names[i]] = r[i];\n    return o;\n  }\n  return r || {};\n});\n\n// ---------- map & derive per group ----------\nconst groups = rows.map(r => {\n  const name = String(r?.Name ?? '');\n  const totalSales = toNum(r?.TotalSales);\n  const closedAvgSale = toNum(r?.ClosedAverageSale);\n  const closeRate = toNum(r?.CloseRate); // fraction 0..1\n  const opp = toNum(r?.SalesOpportunity);\n  const optionsPerOpp = toNum(r?.OptionsPerOpportunity);\n  const adjRevenue = toNum(r?.AdjustmentRevenue);\n  const totalRevenue = toNum(r?.TotalRevenue);\n  const nonJobRevenue = toNum(r?.NonJobRevenue);\n\n  const closedCount = opp * closeRate;                     // inferred\n  const expectedRevenue = opp * closeRate * closedAvgSale; // per group expected\n\n  return {\n    name,\n    totalSales,\n    closedAvgSale,\n    closeRate,\n    opp,\n    optionsPerOpp,\n    adjRevenue,\n    totalRevenue,\n    nonJobRevenue,\n    closedCount,\n    expectedRevenue\n  };\n});\n\n// ---------- totals, weighted KPIs ----------\nconst sum = (arr, key) => arr.reduce((a, x) => a + toNum(x?.[key]), 0);\n\nconst totals = {\n  totalSales: sum(groups, 'totalSales'),\n  totalRevenue: sum(groups, 'totalRevenue'),\n  nonJobRevenue: sum(groups, 'nonJobRevenue'),\n  adjRevenue: sum(groups, 'adjRevenue'),\n  opp: sum(groups, 'opp'),\n  closedCount: sum(groups, 'closedCount'),\n  expectedRevenue: sum(groups, 'expectedRevenue'),\n};\n\n// weighted averages\nconst w = {\n  byOpp: totals.opp > 0 ? totals.opp : 1,\n  byClosed: totals.closedCount > 0 ? totals.closedCount : 1\n};\n\nconst weightedCloseRate = totals.opp > 0\n  ? groups.reduce((a, g) => a + (g.closeRate * g.opp), 0) / totals.opp\n  : 0;\n\nconst weightedOptionsPerOpp = totals.opp > 0\n  ? groups.reduce((a, g) => a + (g.optionsPerOpp * g.opp), 0) / totals.opp\n  : 0;\n\nconst weightedClosedAvgSale = totals.closedCount > 0\n  ? groups.reduce((a, g) => a + (g.closedAvgSale * g.closedCount), 0) / totals.closedCount\n  : 0;\n\n// ---------- gauge values ----------\nconst value = totals.totalRevenue;           // actual (YTD/period revenue in payload)\nconst max = Math.max(totals.expectedRevenue, 0); // goal/expected\nconst pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;\n\n// ---------- input array for generic binding (optional) ----------\nconst input = [\n  { id: 'revenue', label: 'Total Revenue', value },\n  { id: 'expected', label: 'Expected Revenue', value: max },\n  { id: 'pct', label: 'Progress %', value: pct },\n  { id: 'close_rate', label: 'Close Rate (weighted)', value: weightedCloseRate },\n  { id: 'options_per_opp', label: 'Options / Opp (weighted)', value: weightedOptionsPerOpp },\n  { id: 'closed_avg_sale', label: 'Closed Avg Sale (weighted)', value: weightedClosedAvgSale },\n  { id: 'opportunities', label: 'Opportunities', value: totals.opp },\n  { id: 'closed_count', label: 'Closed (inferred)', value: totals.closedCount },\n  { id: 'non_job_revenue', label: 'Non-Job Revenue', value: totals.nonJobRevenue },\n  { id: 'adjustment_revenue', label: 'Adjustment Revenue', value: totals.adjRevenue }\n];\n\n// ---------- return for {{ getGoalTracker.data }} ----------\nreturn {\n  raw: data,\n  groups,\n  totals: {\n    ...totals,\n    weightedCloseRate,\n    weightedOptionsPerOpp,\n    weightedClosedAvgSale\n  },\n  // gauge contract\n  value,            // = totalRevenue\n  max,              // = expectedRevenue\n  pct,              // 0..1\n  expectedRevenue: totals.expectedRevenue,\n  totalRevenue: totals.totalRevenue,\n  input\n};",
+          "transformerSummary": "// ---------- helpers ----------",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getTrending",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getTrending.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"let root = (() => {\\n  if (Array.isArray(data)) return data[0] || {",
+          "transformerSummary": "\"let root = (() => {\\n  if (Array.isArray(data)) return data[0] || {",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getTrending.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "goalTrackerDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/goalTrackerDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": "../lib/goalTrackerDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getGoalTrackerDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getGoalTrackerDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": "../lib/getGoalTrackerDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getSalesDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getSalesDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "// ---------- helpers ----------\nconst toNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return v;\n  const n = Number(String(v).replace(/[^0-9.-]/g, ''));\n  return isNaN(n) ? 0 : n;\n};\n\n// ---------- normalize rows from positional arrays using fields[] ----------\nconst rowsRaw = Array.isArray(data?.raw_json[0].data) ? data.raw_json[0].data : Array.isArray(data) ? data : [];\nconst fields = Array.isArray(data?.raw_json[0].fields) ? data.raw_json[0].fields : [];\nconst names = fields.map(f => f?.name);\n\nconst rows = rowsRaw.map(r => {\n  if (Array.isArray(r)) {\n    const o = {};\n    for (let i = 0; i < names.length; i++) o[names[i]] = r[i];\n    return o;\n  }\n  return r || {};\n});\n\n// ---------- map & derive per group ----------\nconst groups = rows.map(r => {\n  const name = String(r?.Name ?? '');\n  const totalSales = toNum(r?.TotalSales);\n  const closedAvgSale = toNum(r?.ClosedAverageSale);\n  const closeRate = toNum(r?.CloseRate); // fraction 0..1\n  const opp = toNum(r?.SalesOpportunity);\n  const optionsPerOpp = toNum(r?.OptionsPerOpportunity);\n  const adjRevenue = toNum(r?.AdjustmentRevenue);\n  const totalRevenue = toNum(r?.TotalRevenue);\n  const nonJobRevenue = toNum(r?.NonJobRevenue);\n\n  const closedCount = opp * closeRate;                     // inferred\n  const expectedRevenue = opp * closeRate * closedAvgSale; // per group expected\n\n  return {\n    name,\n    totalSales,\n    closedAvgSale,\n    closeRate,\n    opp,\n    optionsPerOpp,\n    adjRevenue,\n    totalRevenue,\n    nonJobRevenue,\n    closedCount,\n    expectedRevenue\n  };\n});\n\n// ---------- totals, weighted KPIs ----------\nconst sum = (arr, key) => arr.reduce((a, x) => a + toNum(x?.[key]), 0);\n\nconst totals = {\n  totalSales: sum(groups, 'totalSales'),\n  totalRevenue: sum(groups, 'totalRevenue'),\n  nonJobRevenue: sum(groups, 'nonJobRevenue'),\n  adjRevenue: sum(groups, 'adjRevenue'),\n  opp: sum(groups, 'opp'),\n  closedCount: sum(groups, 'closedCount'),\n  expectedRevenue: sum(groups, 'expectedRevenue'),\n};\n\n// weighted averages\nconst w = {\n  byOpp: totals.opp > 0 ? totals.opp : 1,\n  byClosed: totals.closedCount > 0 ? totals.closedCount : 1\n};\n\nconst weightedCloseRate = totals.opp > 0\n  ? groups.reduce((a, g) => a + (g.closeRate * g.opp), 0) / totals.opp\n  : 0;\n\nconst weightedOptionsPerOpp = totals.opp > 0\n  ? groups.reduce((a, g) => a + (g.optionsPerOpp * g.opp), 0) / totals.opp\n  : 0;\n\nconst weightedClosedAvgSale = totals.closedCount > 0\n  ? groups.reduce((a, g) => a + (g.closedAvgSale * g.closedCount), 0) / totals.closedCount\n  : 0;\n\n// ---------- gauge values ----------\nconst value = totals.totalRevenue;           // actual (YTD/period revenue in payload)\nconst max = Math.max(totals.expectedRevenue, 0); // goal/expected\nconst pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;\n\n// ---------- input array for generic binding (optional) ----------\nconst input = [\n  { id: 'revenue', label: 'Total Revenue', value },\n  { id: 'expected', label: 'Expected Revenue', value: max },\n  { id: 'pct', label: 'Progress %', value: pct },\n  { id: 'close_rate', label: 'Close Rate (weighted)', value: weightedCloseRate },\n  { id: 'options_per_opp', label: 'Options / Opp (weighted)', value: weightedOptionsPerOpp },\n  { id: 'closed_avg_sale', label: 'Closed Avg Sale (weighted)', value: weightedClosedAvgSale },\n  { id: 'opportunities', label: 'Opportunities', value: totals.opp },\n  { id: 'closed_count', label: 'Closed (inferred)', value: totals.closedCount },\n  { id: 'non_job_revenue', label: 'Non-Job Revenue', value: totals.nonJobRevenue },\n  { id: 'adjustment_revenue', label: 'Adjustment Revenue', value: totals.adjRevenue }\n];\n\n// ---------- return for {{ getGoalTracker.data }} ----------\nreturn {\n  raw: data,\n  groups,\n  totals: {\n    ...totals,\n    weightedCloseRate,\n    weightedOptionsPerOpp,\n    weightedClosedAvgSale\n  },\n  // gauge contract\n  value,            // = totalRevenue\n  max,              // = expectedRevenue\n  pct,              // 0..1\n  expectedRevenue: totals.expectedRevenue,\n  totalRevenue: totals.totalRevenue,\n  input\n};",
+          "transformerSummary": "// ---------- helpers ----------",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getSalesDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getSalesDB2",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getSalesDB2.sql\", \"string\")",
+          "body": "",
+          "transformer": "// ---------- helpers ----------\nconst toNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return v;\n  const n = Number(String(v).replace(/[^0-9.-]/g, ''));\n  return isNaN(n) ? 0 : n;\n};\n\n// ---------- normalize rows from positional arrays using fields[] ----------\nconst rowsRaw = Array.isArray(data?.raw_json[0].data) ? data.raw_json[0].data : Array.isArray(data) ? data : [];\nconst fields = Array.isArray(data?.raw_json[0].fields) ? data.raw_json[0].fields : [];\nconst names = fields.map(f => f?.name);\n\nconst rows = rowsRaw.map(r => {\n  if (Array.isArray(r)) {\n    const o = {};\n    for (let i = 0; i < names.length; i++) o[names[i]] = r[i];\n    return o;\n  }\n  return r || {};\n});\n\n// ---------- map & derive per group ----------\nconst groups = rows.map(r => {\n  const name = String(r?.Name ?? '');\n  const totalSales = toNum(r?.TotalSales);\n  const closedAvgSale = toNum(r?.ClosedAverageSale);\n  const closeRate = toNum(r?.CloseRate); // fraction 0..1\n  const opp = toNum(r?.SalesOpportunity);\n  const optionsPerOpp = toNum(r?.OptionsPerOpportunity);\n  const adjRevenue = toNum(r?.AdjustmentRevenue);\n  const totalRevenue = toNum(r?.TotalRevenue);\n  const nonJobRevenue = toNum(r?.NonJobRevenue);\n\n  const closedCount = opp * closeRate;                     // inferred\n  const expectedRevenue = opp * closeRate * closedAvgSale; // per group expected\n\n  return {\n    name,\n    totalSales,\n    closedAvgSale,\n    closeRate,\n    opp,\n    optionsPerOpp,\n    adjRevenue,\n    totalRevenue,\n    nonJobRevenue,\n    closedCount,\n    expectedRevenue\n  };\n});\n\n// ---------- totals, weighted KPIs ----------\nconst sum = (arr, key) => arr.reduce((a, x) => a + toNum(x?.[key]), 0);\n\nconst totals = {\n  totalSales: sum(groups, 'totalSales'),\n  totalRevenue: sum(groups, 'totalRevenue'),\n  nonJobRevenue: sum(groups, 'nonJobRevenue'),\n  adjRevenue: sum(groups, 'adjRevenue'),\n  opp: sum(groups, 'opp'),\n  closedCount: sum(groups, 'closedCount'),\n  expectedRevenue: sum(groups, 'expectedRevenue'),\n};\n\n// weighted averages\nconst w = {\n  byOpp: totals.opp > 0 ? totals.opp : 1,\n  byClosed: totals.closedCount > 0 ? totals.closedCount : 1\n};\n\nconst weightedCloseRate = totals.opp > 0\n  ? groups.reduce((a, g) => a + (g.closeRate * g.opp), 0) / totals.opp\n  : 0;\n\nconst weightedOptionsPerOpp = totals.opp > 0\n  ? groups.reduce((a, g) => a + (g.optionsPerOpp * g.opp), 0) / totals.opp\n  : 0;\n\nconst weightedClosedAvgSale = totals.closedCount > 0\n  ? groups.reduce((a, g) => a + (g.closedAvgSale * g.closedCount), 0) / totals.closedCount\n  : 0;\n\n// ---------- gauge values ----------\nconst value = totals.totalRevenue;           // actual (YTD/period revenue in payload)\nconst max = Math.max(totals.expectedRevenue, 0); // goal/expected\nconst pct = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0;\n\n// ---------- input array for generic binding (optional) ----------\nconst input = [\n  { id: 'revenue', label: 'Total Revenue', value },\n  { id: 'expected', label: 'Expected Revenue', value: max },\n  { id: 'pct', label: 'Progress %', value: pct },\n  { id: 'close_rate', label: 'Close Rate (weighted)', value: weightedCloseRate },\n  { id: 'options_per_opp', label: 'Options / Opp (weighted)', value: weightedOptionsPerOpp },\n  { id: 'closed_avg_sale', label: 'Closed Avg Sale (weighted)', value: weightedClosedAvgSale },\n  { id: 'opportunities', label: 'Opportunities', value: totals.opp },\n  { id: 'closed_count', label: 'Closed (inferred)', value: totals.closedCount },\n  { id: 'non_job_revenue', label: 'Non-Job Revenue', value: totals.nonJobRevenue },\n  { id: 'adjustment_revenue', label: 'Adjustment Revenue', value: totals.adjRevenue }\n];\n\n// ---------- return for {{ getGoalTracker.data }} ----------\nreturn {\n  raw: data,\n  groups,\n  totals: {\n    ...totals,\n    weightedCloseRate,\n    weightedOptionsPerOpp,\n    weightedClosedAvgSale\n  },\n  // gauge contract\n  value,            // = totalRevenue\n  max,              // = expectedRevenue\n  pct,              // 0..1\n  expectedRevenue: totals.expectedRevenue,\n  totalRevenue: totals.totalRevenue,\n  input\n};",
+          "transformerSummary": "// ---------- helpers ----------",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getSalesDB2.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getJobCostingSummaryDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getJobCostingSummaryDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "// ===================== CONFIG =====================\nconst GOAL = 500_000; // monthly break-even goal ($)\n\n// ===================== UTILS ======================\nconst toNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return v;\n  const n = Number(String(v).replace(/[^0-9.-]/g, ''));\n  return isNaN(n) ? 0 : n;\n};\n\nconst isDateLike = (v) => {\n  if (v == null || v === '') return false;\n  if (v instanceof Date) return !isNaN(v.getTime());\n  if (typeof v === 'number') {\n    const nowMs = Date.now();\n    const oneYearMs = 365 * 24 * 60 * 60 * 1000;\n    const minMs = Date.UTC(2000, 0, 1);\n    if (v > 1e12) return v >= minMs && v <= (nowMs + oneYearMs); // ms\n    const ms = v * 1000;                                         // sec\n    return ms >= minMs && ms <= (nowMs + oneYearMs);\n  }\n  const d = new Date(v);\n  if (isNaN(d.getTime())) return false;\n  const y = d.getFullYear();\n  return y >= 2000 && y <= 2100;\n};\n\nconst toDate = (v) => {\n  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;\n  if (typeof v === 'number') {\n    const ms = v > 1e12 ? v : v * 1000;\n    return isDateLike(ms) ? new Date(ms) : null;\n  }\n  const d = new Date(v);\n  return isDateLike(d) ? d : null;\n};\n\nconst startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());\nconst sameMonth = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();\n\n// ===================== INPUT NORMALIZATION ======================\nconst rowsRaw = Array.isArray(data?.raw_json[0].data) ? data.raw_json[0].data : Array.isArray(data) ? data : [];\nconst fieldDefs = Array.isArray(data?.raw_json[0].fields) ? data.raw_json[0].fields : [];\nconst fieldNames = fieldDefs.length\n  ? fieldDefs.map((f, i) => (f?.name ?? f?.label ?? String(i)))\n  : (rowsRaw[0] ? Object.keys(rowsRaw[0]) : []);\n\nconst rows = rowsRaw.map(row => {\n  if (Array.isArray(row)) {\n    const obj = {};\n    for (let i = 0; i < fieldNames.length; i++) obj[fieldNames[i]] = row[i];\n    return obj;\n  }\n  const keys = Object.keys(row || {});\n  const looksIndexed = keys.length && keys.every(k => /^\\d+$/.test(k));\n  if (looksIndexed) {\n    const obj = {};\n    for (let i = 0; i < fieldNames.length; i++) obj[fieldNames[i]] = row[i] ?? row[String(i)];\n    return obj;\n  }\n  return row || {};\n});\n\nconst labelToName = {};\nfor (const f of fieldDefs) {\n  if (f?.label && f?.name) labelToName[f.label.toLowerCase()] = f.name;\n}\nconst nameByLabel = (label) => (label && labelToName[label.toLowerCase()]) || null;\n\n// ===================== COLUMN DETECTION ======================\nconst marginNameCandidates = [\n  'GrossMargin','grossMargin','Margin','margin','Gross_Amount','Gross_Profit','GrossProfit'\n];\nconst marginLabelCandidates = [\n  'Jobs Gross Margin','Gross Margin','Gross Profit','Jobs Gross Profit'\n];\nconst resolvedMarginNames = [\n  ...marginNameCandidates,\n  ...marginLabelCandidates.map(nameByLabel).filter(Boolean),\n];\nconst marginKeysTried = Array.from(new Set(resolvedMarginNames.filter(Boolean)));\n\nlet chosenMarginKey = null;\nlet marginKeyNonZeroCount = 0;\nif (rows.length) {\n  const probeCount = Math.min(200, rows.length);\n  for (const k of marginKeysTried) {\n    if (!(k in rows[0])) continue;\n    let cnt = 0;\n    for (let i = 0; i < probeCount; i++) {\n      if (toNum(rows[i]?.[k]) !== 0) cnt++;\n    }\n    if (cnt > marginKeyNonZeroCount) {\n      marginKeyNonZeroCount = cnt;\n      chosenMarginKey = k;\n    }\n  }\n}\n\nconst totalKey = fieldNames.includes('Total') ? 'Total' : (nameByLabel('Jobs Total') || 'Total');\nconst costKey  = fieldNames.includes('TotalCosts') ? 'TotalCosts' : (nameByLabel('Jobs Total Costs') || 'TotalCosts');\nconst laborKey = fieldNames.includes('LaborPay') ? 'LaborPay' : (nameByLabel('Labor Pay') || 'LaborPay');\n\nconst dateNameCandidates = [\n  'Date','date','JobDate','InvoiceDate','StartDate','CompletedDate',\n  'CompletionDate','CreatedAt','ReportDate'\n];\nconst dateLabelCandidates = [\n  'Date','Job Date','Invoice Date','Completed Date','Completion Date','Report Date','Created At'\n];\n\nlet dateKey =\n  (dateLabelCandidates.map(nameByLabel).find(Boolean)) ||\n  (dateNameCandidates.find(k => rows[0] && k in rows[0])) ||\n  null;\n\nconst dateBlacklist = new Set([\n  'Total','TotalCosts','LaborPay','GrossMargin','GrossMarginPercentage',\n  'Amount','Price','Cost','Revenue'\n]);\n\nif (!dateKey && rows.length) {\n  const keys = Object.keys(rows[0] || {}).filter(k => !dateBlacklist.has(k));\n  let bestKey = null, bestHit = 0;\n  const probeCount = Math.min(100, rows.length);\n  for (const k of keys) {\n    let hits = 0;\n    for (let i = 0; i < probeCount; i++) if (isDateLike(rows[i]?.[k])) hits++;\n    if (hits > bestHit) { bestHit = hits; bestKey = k; }\n  }\n  if (bestHit >= Math.ceil(0.1 * Math.min(100, rows.length))) dateKey = bestKey;\n}\n\nif (dateKey) {\n  const probeCount = Math.min(100, rows.length);\n  let hits = 0;\n  for (let i = 0; i < probeCount; i++) if (isDateLike(rows[i]?.[dateKey])) hits++;\n  if (hits < Math.ceil(0.1 * probeCount)) dateKey = null;\n}\n\n// ===================== AGGREGATION ======================\nconst now = new Date();\nconst todayStart = startOfDay(now);\nconst yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);\nconst yesterdayEnd = new Date(todayStart.getTime() - 1);\n\nlet totalGross = 0, mtdGross = 0, yGross = 0;\nlet computedUsed = false;\n\nfor (const r of rows) {\n  let gm;\n  if (chosenMarginKey) {\n    gm = toNum(r?.[chosenMarginKey]);\n  } else {\n    gm = toNum(r?.[totalKey]) - toNum(r?.[costKey]) - toNum(r?.[laborKey]);\n    computedUsed = true;\n  }\n\n  totalGross += gm;\n\n  const d = dateKey ? toDate(r?.[dateKey]) : null;\n  if (d) {\n    if (sameMonth(d, now) && d <= now) mtdGross += gm;\n    if (d >= yesterdayStart && d <= yesterdayEnd) yGross += gm;\n  } else {\n    mtdGross += gm; // no per-row date → treat all as MTD\n  }\n}\n\n// ===================== INPUT ARRAY FOR PROGRESS BARS ======================\nconst input = [\n  {\n    id: 'month_goal',\n    label: 'Monthly Break-even Goal',\n    value: GOAL,\n    max: GOAL,\n    pct: 1,\n    remaining: 0\n  },\n  {\n    id: 'mtd',\n    label: 'MTD Gross Margin',\n    value: mtdGross,\n    max: GOAL,\n    pct: GOAL ? (mtdGross / GOAL) : null,\n    remaining: Math.max(0, GOAL - mtdGross)\n  },\n  {\n    id: 'yesterday',\n    label: 'Yesterday Gross Margin',\n    value: yGross,\n    max: GOAL,\n    pct: GOAL ? (yGross / GOAL) : null,\n    remaining: Math.max(0, GOAL - yGross)\n  }\n];\n\n// ===================== OUTPUT ======================\nreturn {\n  goal: GOAL,\n  input, // <—— bind your Progress components to items in this array\n  summary: {\n    totalGross,\n    mtd: {\n      value: mtdGross,\n      remaining: Math.max(0, GOAL - mtdGross),\n      pctOfGoal: GOAL ? (mtdGross / GOAL) : null\n    },\n    yesterday: {\n      value: yGross,\n      pctOfGoal: GOAL ? (yGross / GOAL) : null\n    }\n  },\n  progressBars: {\n    mtd_value: mtdGross,\n    mtd_max: GOAL,\n    yesterday_value: yGross,\n    yesterday_max: GOAL\n  },\n  meta: {\n    normalized: true,\n    fieldNames,\n    marginKeyUsed: chosenMarginKey || 'COMPUTED_FROM_TOTAL_MINUS_COSTS_MINUS_LABOR',\n    marginKeysTried,\n    marginKeyNonZeroCount,\n    dateKeyUsed: dateKey || null,\n    totalKey,\n    costKey,\n    laborKey,\n    rowCount: rows.length,\n    sampleMappedRow: rows[0] || null,\n    computedMarginFallbackUsed: computedUsed\n  }\n};\n",
+          "transformerSummary": "// ===================== CONFIG =====================",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getJobCostingSummaryDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getRevenueMonthlyPaceDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getRevenueMonthlyPaceDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "// Transformer: txRevenueMonthlyPace\n// Input: { fields:[{name,label}...], data:[[...], ...] }\n// Requirement: Use **CurrentMonthlyPace** sum (NOT CompletedRevenue)\n\n// --- setup ---\nconst F = Object.fromEntries((data.raw_json[0].fields || []).map((f,i)=>[f.name, i]));\nconst rows = data.raw_json[0].data;\nconst num = v => (v==null || v==='' || Number.isNaN(Number(v))) ? 0 : Number(v);\n\n// Money short format with 2 decimals (K/M/B)\nfunction moneyShort(n){\n  const s = n < 0 ? '-' : '';\n  const a = Math.abs(n);\n  if (a >= 1e9) return `${s}$${(a/1e9).toFixed(2)}B`;\n  if (a >= 1e6) return `${s}$${(a/1e6).toFixed(2)}M`;\n  if (a >= 1e3) return `${s}$${(a/1e3).toFixed(2)}K`;\n  return `${s}$${a.toFixed(2)}`;\n}\n\n// --- sum CURRENT MONTHLY PACE (primary) ---\nlet value = 0;\nconst paceIdx = F.CurrentMonthlyPace;\n\n// If the column exists, sum it; otherwise return 0 (or fallback if you want)\nif (paceIdx != null) {\n  for (const r of rows) value += num(r[paceIdx]);\n}\n\n// Output\nreturn {\n  value,\n  formatted: moneyShort(value),\n  meta: {\n    used: paceIdx != null ? 'CurrentMonthlyPace(sum)' : 'none',\n    rows: rows.length\n  }\n};\n",
+          "transformerSummary": "// Transformer: txRevenueMonthlyPace",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getRevenueMonthlyPaceDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getSalesMonthlyPaceDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getSalesMonthlyPaceDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"  // ---------- config ----------\\n  const LA_TZ = 'America/Los_Angeles';\\n  const FROM_DAY = 1;         // start counting on the 2nd (LA)\\n  const MIN_DAYS_PAST = 1;    // require at least 3 LA days before projecting\\n  const MULTIPLIER_CAP = null; // e.g., 8 to cap at 8×; null = no cap\\n\\n  // ---------- helpers ----------\\n  function num(v){\\n    if (v == null || v === '') return 0;\\n    const n = Number(String(v).replace(/[$,%\\\\s]/g,''));\\n    return Number.isFinite(n) ? n : 0;\\n  ",
+          "transformerSummary": "\"  // ---------- config ----------\\n  const LA_TZ = 'America/Los_Angeles';\\n  const FROM_DAY = 1;         // start counting on the 2nd (LA)\\n  const MIN_DAYS_PAST = 1;    // require at least 3 LA days before projecting\\n  const MULTIPLIER_CAP = null; // e.g., 8 to cap at 8×; null = no cap\\n\\n  // ---------- helpers ----------\\n  function num(v){\\n    if (v == null || v === '') return 0;\\n    const n = Number(String(v).replace(/[$,%\\\\s]/g,''));\\n    return Number.isFinite(n) ? n : 0;\\n",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getSalesMonthlyPaceDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getCapacityDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getCapacityDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// Transformer: txCapacityByBU - DAILY VERSION\\n// Input: { fields:[{name,label",
+          "transformerSummary": "\"// Transformer: txCapacityByBU - DAILY VERSION\\n// Input: { fields:[{name,label",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getCapacityDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getBookingRateDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getBookingRateDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// Transformer: txBookedVsLeads\\n// Input: { fields:[{name,label",
+          "transformerSummary": "\"// Transformer: txBookedVsLeads\\n// Input: { fields:[{name,label",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getBookingRateDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getRevenueDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getRevenueDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "// ---------- helpers ----------\nconst toNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n  const n = Number(String(v).replace(/[^0-9.-]/g, ''));\n  return Number.isNaN(n) ? 0 : n;\n};\nconst clamp01 = (x) => Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0;\n\n// ---------- normalize ----------\nconst rowsRaw = Array.isArray(data?.raw_json[0].data) ? data.raw_json[0].data : (Array.isArray(data) ? data : []);\nconst fields  = Array.isArray(data?.raw_json[0].fields) ? data.raw_json[0].fields : [];\nconst fieldNames = fields.map(f => f?.name);\n\nconst rows = rowsRaw.map(r => {\n  if (Array.isArray(r)) {\n    const o = {};\n    for (let i = 0; i < fieldNames.length; i++) o[fieldNames[i]] = r[i];\n    return o;\n  }\n  return r || {};\n});\n\n// ---------- per-group ----------\nconst groups = rows.map(r => ({\n  name: String(r?.Name ?? ''),\n  totalRevenue:   toNum(r?.TotalRevenue),\n  totalSales:     toNum(r?.TotalSales),\n  goalDaily:      toNum(r?.GoalDaily),        // in your payload: actually monthly company goal per BU row\n  goalNoWeekends: toNum(r?.GoalNoWeekends),   // same, “no weekends” variant\n  yearlyPace:     toNum(r?.CurrentYearlyPace),\n  monthlyPace:    toNum(r?.CurrentMonthlyPace),\n  combinedRevenue: toNum(r?.TotalRevenue) + toNum(r?.TotalSales)\n}));\n\n// ---------- totals ----------\nconst sum = (arr, key) => arr.reduce((acc, x) => acc + toNum(x?.[key]), 0);\nconst totals = {\n  totalRevenue:    sum(groups, 'totalRevenue'),\n  totalSales:      sum(groups, 'totalSales'),\n  combinedRevenue: sum(groups, 'combinedRevenue'),\n  yearlyPace:      sum(groups, 'yearlyPace'),\n  monthlyPace:     sum(groups, 'monthlyPace'),\n  goalDaily_sum:      sum(groups, 'goalDaily'),\n  goalNoWeekends_sum: sum(groups, 'goalNoWeekends')\n};\n\n// ---------- choose company goal (don’t sum across BUs) ----------\nconst maxNonZero = (arr, key) => arr.reduce((m, x) => {\n  const v = toNum(x?.[key]); return v > m ? v : m;\n}, 0);\nconst companyGoalDaily      = maxNonZero(groups, 'goalDaily');\nconst companyGoalNoWeekends = maxNonZero(groups, 'goalNoWeekends');\n\n// --------- period decision & goals ---------\n// Heuristic: if sum of revenue >> monthly goal, treat revenue as YTD -> use annual gauge.\nconst monthlyGoal = companyGoalNoWeekends || companyGoalDaily || 0;\nconst yearlyGoal  = monthlyGoal * 12;\n\nconst revenueSum = totals.combinedRevenue;\n// if revenueSum is much bigger than one month’s goal, assume YTD data is loaded\nconst looksYTD = monthlyGoal > 0 && revenueSum > monthlyGoal * 1.5;\n\n// Monthly metrics (useful when you truly load monthly data)\nconst monthRevenue = totals.combinedRevenue; // what your query returns; may actually be YTD\nconst pct_month    = monthlyGoal > 0 ? clamp01(monthRevenue / monthlyGoal) : 0;\n\n// Annual metrics\nconst yeartotalrevenue = totals.totalRevenue;     // treat as YTD if looksYTD=true\nconst pct_year         = yearlyGoal > 0 ? clamp01(yeartotalrevenue / yearlyGoal) : 0;\n\n// Forecast: prefer an explicit yearly pace if present; else scale monthly pace * 12.\nconst forecastedYear = Math.max(toNum(totals.yearlyPace), toNum(totals.monthlyPace) * 12);\nconst pacingPercent  = yearlyGoal > 0 ? (forecastedYear / yearlyGoal) : 0; // 0..1\n\n// ---- expose a single pct for the gauge (what your HTML expects) ----\nconst pct = looksYTD ? pct_year : pct_month;\n\n// ---------- input array (for quick binding/debug) ----------\nconst input = [\n  { id: 'looksYTD',    label: 'Looks like YTD?', value: looksYTD },\n  { id: 'pct',         label: 'Gauge pct (0..1)', value: pct },\n  { id: 'pct_month',   label: 'Monthly pct (0..1)', value: pct_month },\n  { id: 'pct_year',    label: 'Yearly pct (0..1)', value: pct_year },\n  { id: 'forecasted',  label: 'Forecasted Year', value: forecastedYear },\n  { id: 'pacingPct',   label: 'Pacing % (0..1)', value: pacingPercent },\n  { id: 'monthlyGoal', label: 'Monthly Goal', value: monthlyGoal },\n  { id: 'yearlyGoal',  label: 'Yearly Goal', value: yearlyGoal }\n];\n\n// ---------- return ----------\nreturn {\n  raw: data,\n  groups,\n  totals: {\n    totalRevenue: totals.totalRevenue,\n    totalSales: totals.totalSales,\n    combinedRevenue: totals.combinedRevenue,\n    yearlyPace: totals.yearlyPace,\n    monthlyPace: totals.monthlyPace,\n    companyGoalDaily,\n    companyGoalNoWeekends,\n    monthlyGoal,\n    yearlyGoal\n  },\n\n  // expose both views\n  monthtotalrevenue: monthRevenue,\n  monthlygoal: monthlyGoal,\n  monthlypace: totals.monthlyPace,\n  pct_month,\n\n  yeartotalrevenue,\n  yearlygoal: yearlyGoal,\n  yearlypace: totals.yearlyPace,\n  pct_year,\n\n  // new unified values for the widget\n  pct,                       // <= what your HTML uses\n  forecastedYear,\n  pacingPercent,             // 0..1\n\n  input,\n  meta: {\n    note: 'Gauge pct auto-switches: if revenue >> monthly goal, treat as YTD and use annual ratio.',\n    rows: rows.length\n  }\n};\n",
+          "transformerSummary": "// ---------- helpers ----------",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getRevenueDB.sql"
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getMarketingDB",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getMarketingDB.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// txMarketingDonut (labels like \\\"Label - $481.5K\\\")\\n\\nconst fields = data.raw_json[0].fields ?? [];\\nconst rows   = data.raw_json[0].data   ?? [];\\nconst F = Object.fromEntries(fields.map((f,i)=>[f.name, i]));\\nconst num = v => (v==null || v==='' || Number.isNaN(Number(v))) ? 0 : Number(v);\\n\\n// ---- Config overrides (optional via window) ----\\nconst OVERRIDE_GROUP_BY = (typeof window !== 'undefined' && window.MKTG_GROUP_BY) || null;\\nconst METRIC_FIELD = (typeof window !== 'undefined' && window.MKTG_METRIC) || 'CompletedRevenue';\\nconst TOP_N = (typeof window !== 'undefined' && window.MKTG_TOP_N) || 5;\\n// ------------------------------------------------\\n\\n// Smart default: use 'category' only if a category column exists\\nconst hasCategory = (F.Category != null) || (F['Campaign Category'] != null);\\nconst GROUP_BY = OVERRIDE_GROUP_BY || (hasCategory ? 'category' : 'name');\\n\\n// $ shortener with 1 decimal: K/M/B\\nfunction moneyShort(n){\\n  const sign = n < 0 ? '-' : '';\\n  const a = Math.abs(n);\\n  if (a >= 1e9) return `${sign",
+          "transformerSummary": "\"// txMarketingDonut (labels like \\\"Label - $481.5K\\\")\\n\\nconst fields = data.raw_json[0].fields ?? [];\\nconst rows   = data.raw_json[0].data   ?? [];\\nconst F = Object.fromEntries(fields.map((f,i)=>[f.name, i]));\\nconst num = v => (v==null || v==='' || Number.isNaN(Number(v))) ? 0 : Number(v);\\n\\n// ---- Config overrides (optional via window) ----\\nconst OVERRIDE_GROUP_BY = (typeof window !== 'undefined' && window.MKTG_GROUP_BY) || null;\\nconst METRIC_FIELD = (typeof window !== 'undefined' && window.MKTG_METRIC) || 'CompletedRevenue';\\nconst TOP_N = (typeof window !== 'undefined' && window.MKTG_TOP_N) || 5;\\n// ------------------------------------------------\\n\\n// Smart default: use 'category' only if a category column exists\\nconst hasCategory = (F.Category != null) || (F['Campaign Category'] != null);\\nconst GROUP_BY = OVERRIDE_GROUP_BY || (hasCategory ? 'category' : 'name');\\n\\n// $ shortener with 1 decimal: K/M/B\\nfunction moneyShort(n){\\n  const sign = n < 0 ? '-' : '';\\n  const a = Math.abs(n);\\n  if (a >= 1e9) return `${sign",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getMarketingDB.sql"
+        },
+        {
+          "tag": "JavascriptQuery",
+          "id": "query12",
+          "resourceName": "JavascriptQuery",
+          "resourceDisplayName": null,
+          "query": "include(\"../lib/query12.js\", \"string\")",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": "../lib/query12.js"
+        },
+        {
+          "tag": "JavascriptQuery",
+          "id": "monthMap",
+          "resourceName": "JavascriptQuery",
+          "resourceDisplayName": null,
+          "query": "include(\"../lib/monthMap.js\", \"string\")",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": "../lib/monthMap.js"
+        },
+        {
+          "tag": "WorkflowRun",
+          "id": "query6",
+          "resourceName": "WorkflowRun",
+          "resourceDisplayName": null,
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "connectResource",
+          "id": "query10",
+          "resourceName": null,
+          "resourceDisplayName": null,
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "connectResource",
+          "id": "query20",
+          "resourceName": null,
+          "resourceDisplayName": null,
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": null
+        }
+      ],
+      "htmlWidgets": [
+        {
+          "id": "html1",
+          "htmlInclude": "../lib/html1.html",
+          "cssInclude": null
+        },
+        {
+          "id": "html5",
+          "htmlInclude": "../lib/html5.html",
+          "cssInclude": null
+        },
+        {
+          "id": "html3",
+          "htmlInclude": "../lib/html3.html",
+          "cssInclude": null
+        },
+        {
+          "id": "html4",
+          "htmlInclude": "../lib/html4.html",
+          "cssInclude": null
+        }
+      ],
+      "components": [
+        {
+          "tag": "Button",
+          "id": "button9",
+          "label": "YTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button8",
+          "label": "MTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button26",
+          "label": "Goal Insert"
+        },
+        {
+          "tag": "Chart",
+          "id": "pieChart1",
+          "label": null
+        },
+        {
+          "tag": "Container",
+          "id": "container38",
+          "label": null
+        },
+        {
+          "tag": "Container",
+          "id": "container39",
+          "label": null
+        },
+        {
+          "tag": "Container",
+          "id": "container9",
+          "label": null
+        },
+        {
+          "tag": "Date",
+          "id": "date8",
+          "label": ""
+        },
+        {
+          "tag": "Date",
+          "id": "date7",
+          "label": ""
+        },
+        {
+          "tag": "Frame",
+          "id": "$main3",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html1",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html5",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html3",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html4",
+          "label": null
+        },
+        {
+          "tag": "Image",
+          "id": "image4",
+          "label": null
+        },
+        {
+          "tag": "Navigation",
+          "id": "navigation3",
+          "label": null
+        },
+        {
+          "tag": "Option",
+          "id": "00030",
+          "label": "Home"
+        },
+        {
+          "tag": "Option",
+          "id": "00031",
+          "label": "Customers"
+        },
+        {
+          "tag": "Option",
+          "id": "00032",
+          "label": "Settings"
+        },
+        {
+          "tag": "Text",
+          "id": "text31",
+          "label": "## TRENDING"
+        },
+        {
+          "tag": "Text",
+          "id": "containerTitle20",
+          "label": "#### Container title"
+        },
+        {
+          "tag": "Text",
+          "id": "text15",
+          "label": "## MARKETING"
+        },
+        {
+          "tag": "Text",
+          "id": "containerTitle21",
+          "label": "#### Container title"
+        },
+        {
+          "tag": "Text",
+          "id": "text30",
+          "label": "## CAPACITY"
+        },
+        {
+          "tag": "Text",
+          "id": "containerTitle5",
+          "label": null
+        },
+        {
+          "tag": "Text",
+          "id": "text13",
+          "label": "###### {{ item.businessUnit }}"
+        },
+        {
+          "tag": "Include",
+          "id": null,
+          "label": null
+        },
+        {
+          "tag": "Include",
+          "id": null,
+          "label": null
+        },
+        {
+          "tag": "Include",
+          "id": null,
+          "label": null
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button9",
+          "label": "YTD"
+        },
+        {
+          "id": "button8",
+          "label": "MTD"
+        },
+        {
+          "id": "button26",
+          "label": "Goal Insert"
+        }
+      ],
+      "dateInputs": [
+        {
+          "id": "date8",
+          "defaultValue": ""
+        },
+        {
+          "id": "date7",
+          "defaultValue": ""
+        }
+      ],
+      "serviceTitanEndpoints": [
+        {
+          "tenantId": "686965608",
+          "category": "marketing",
+          "reportId": "898",
+          "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/898/data"
+        },
+        {
+          "tenantId": "686965608",
+          "category": "operations",
+          "reportId": "111413515",
+          "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/111413515/data"
+        }
+      ],
+      "secrets": [
+        {
+          "label": "ServiceTitan client ID",
+          "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+        },
+        {
+          "label": "ServiceTitan client secret",
+          "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        },
+        {
+          "label": "ServiceTitan tenant ID",
+          "value": "686965608"
+        },
+        {
+          "label": "ServiceTitan tenant ID",
+          "value": "686965608"
+        }
+      ]
+    },
+    {
+      "file": "exports/retool-app/src/page4.rsx",
+      "id": "page4",
+      "title": "Comfort Advisors Board",
+      "urlSlug": "null",
+      "queries": [
+        {
+          "tag": "RESTQuery",
+          "id": "getAdvisorsData",
+          "resourceName": "82be2663-1a60-42b6-a314-f4465537812c",
+          "resourceDisplayName": "getAdvisors",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date9.value ",
+          "transformer": "// Transformer: salesPerfBoard_final (for fields you shared; ranks by Total Sales)\n\n// ---------- Helpers ----------\nconst cleanNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n  if (typeof v === 'string') {\n    const s = v.replace(/[%,$,\\s]/g, '');\n    const n = Number(s);\n    return Number.isNaN(n) ? 0 : n;\n  }\n  const n = Number(v);\n  return Number.isNaN(n) ? 0 : n;\n};\nconst toRatio = (v) => {\n  if (typeof v === 'string' && v.includes('%')) return cleanNum(v) / 100;\n  const n = cleanNum(v);\n  return n > 10 ? n / 100 : n; // accept whole-number percents too\n};\nconst sumK = (arr, k) => arr.reduce((s, x) => s + cleanNum(x[k] || 0), 0);\n\n// ---------- Normalize inputs ----------\nconst hasTop = Array.isArray(data?.fields) && Array.isArray(data?.data);\nconst raw = (Array.isArray(data?.raw_json) ? data.raw_json[0] : data?.raw_json) || {};\n\nconst rowsRaw =\n  (hasTop && data.data) ||\n  (Array.isArray(raw?.data) ? raw.data : null) ||\n  (Array.isArray(data) ? data : null) ||\n  (Array.isArray(raw) ? raw : null) ||\n  [];\n\nconst fieldsArr = (hasTop ? data.fields : raw.fields) || [];\nconst F = Object.fromEntries(fieldsArr.map((f, i) => [f.name, i]));\n\n// Accessor for array-rows; falls back to object-row if ever needed\nconst at = (row, key) => {\n  if (!Array.isArray(row)) return row?.[key];\n  const idx = F[key];\n  return (typeof idx === 'number') ? row[idx] : undefined;\n};\n\n// ---------- Build minimal rows ----------\nconst rows = (rowsRaw || []).map((r) => {\n  const name = String(at(r, 'Name') ?? '');\n  return {\n    // Metrics Needed On a Performance Board:\n    name,\n    totalSales:             cleanNum(at(r, 'TotalSales')),\n    closedAverageSale:      cleanNum(at(r, 'ClosedAverageSale')),\n    closeRateRolling:       toRatio(at(r, 'CloseRateRolling')),        // 0..1\n    salesOpportunitiesCount:cleanNum(at(r, 'SalesOpportunity')),\n  };\n}).filter(x =>\n  x.name !== '' ||\n  x.totalSales || x.closedAverageSale || x.closeRateRolling || x.salesOpportunitiesCount\n);\n\n// ---------- Ranked copy (leader = highest Total Sales) ----------\nconst rows_ranked = rows\n  .slice()\n  .sort((a, b) => {\n    if (b.totalSales !== a.totalSales) return b.totalSales - a.totalSales;\n    if (b.closedAverageSale !== a.closedAverageSale) return b.closedAverageSale - a.closedAverageSale;\n    return String(a.name).localeCompare(String(b.name));\n  })\n  .map((x, i) => ({ ...x, rankByTotalSales: i + 1 }));\n\nconst leader = rows_ranked[0] || null;\n\n// ---------- Totals ----------\nconst totals = {\n  totalSales: sumK(rows, 'totalSales'),\n  avgClosedAverageSale: rows.length ? sumK(rows, 'closedAverageSale') / rows.length : 0,\n  avgCloseRateRolling: rows.length ? rows.reduce((s, x) => s + (Number(x.closeRateRolling) || 0), 0) / rows.length : 0,\n  sumSalesOpportunities: sumK(rows, 'salesOpportunitiesCount'),\n};\n\n// ---------- Snapshot time (if provided elsewhere) ----------\nconst snapshot_time =\n  data?.snapshot_time ||\n  data?.meta?.snapshot_time ||\n  data?.snapshotTime ||\n  raw?.snapshot_time ||\n  null;\n\nreturn { rows, rows_ranked, leader, totals, snapshot_time };\n",
+          "transformerSummary": "// Transformer: salesPerfBoard_final (for fields you shared; ranks by Total Sales)",
+          "runWhenPageLoads": "true",
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getToken4",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "resourceDisplayName": "ST getToken",
+          "query": "?",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": "true",
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getAdvisors",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getAdvisors.sql\", \"string\")",
+          "body": "",
+          "transformer": "// Transformer: salesPerfBoard_final (for fields you shared; ranks by Total Sales)\n\n// ---------- Helpers ----------\nconst cleanNum = (v) => {\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n  if (typeof v === 'string') {\n    const s = v.replace(/[%,$,\\s]/g, '');\n    const n = Number(s);\n    return Number.isNaN(n) ? 0 : n;\n  }\n  const n = Number(v);\n  return Number.isNaN(n) ? 0 : n;\n};\nconst toRatio = (v) => {\n  if (typeof v === 'string' && v.includes('%')) return cleanNum(v) / 100;\n  const n = cleanNum(v);\n  return n > 10 ? n / 100 : n; // accept whole-number percents too\n};\nconst sumK = (arr, k) => arr.reduce((s, x) => s + cleanNum(x[k] || 0), 0);\n\n// ---------- Normalize inputs ----------\nconst hasTop = Array.isArray(data?.fields) && Array.isArray(data?.data);\nconst raw = (Array.isArray(data?.raw_json) ? data.raw_json[0] : data?.raw_json) || {};\n\nconst rowsRaw =\n  (hasTop && data.data) ||\n  (Array.isArray(raw?.data) ? raw.data : null) ||\n  (Array.isArray(data) ? data : null) ||\n  (Array.isArray(raw) ? raw : null) ||\n  [];\n\nconst fieldsArr = (hasTop ? data.fields : raw.fields) || [];\nconst F = Object.fromEntries(fieldsArr.map((f, i) => [f.name, i]));\n\n// Accessor for array-rows; falls back to object-row if ever needed\nconst at = (row, key) => {\n  if (!Array.isArray(row)) return row?.[key];\n  const idx = F[key];\n  return (typeof idx === 'number') ? row[idx] : undefined;\n};\n\n// ---------- Build minimal rows ----------\nconst rows = (rowsRaw || []).map((r) => {\n  const name = String(at(r, 'Name') ?? '');\n  return {\n    // Metrics Needed On a Performance Board:\n    name,\n    totalSales:             cleanNum(at(r, 'TotalSales')),\n    closedAverageSale:      cleanNum(at(r, 'ClosedAverageSale')),\n    closeRateRolling:       toRatio(at(r, 'CloseRateRolling')),        // 0..1\n    salesOpportunitiesCount:cleanNum(at(r, 'SalesOpportunity')),\n  };\n}).filter(x =>\n  x.name !== '' ||\n  x.totalSales || x.closedAverageSale || x.closeRateRolling || x.salesOpportunitiesCount\n);\n\n// ---------- Ranked copy (leader = highest Total Sales) ----------\nconst rows_ranked = rows\n  .slice()\n  .sort((a, b) => {\n    if (b.totalSales !== a.totalSales) return b.totalSales - a.totalSales;\n    if (b.closedAverageSale !== a.closedAverageSale) return b.closedAverageSale - a.closedAverageSale;\n    return String(a.name).localeCompare(String(b.name));\n  })\n  .map((x, i) => ({ ...x, rankByTotalSales: i + 1 }));\n\nconst leader = rows_ranked[0] || null;\n\n// ---------- Totals ----------\nconst totals = {\n  totalSales: sumK(rows, 'totalSales'),\n  avgClosedAverageSale: rows.length ? sumK(rows, 'closedAverageSale') / rows.length : 0,\n  avgCloseRateRolling: rows.length ? rows.reduce((s, x) => s + (Number(x.closeRateRolling) || 0), 0) / rows.length : 0,\n  sumSalesOpportunities: sumK(rows, 'salesOpportunitiesCount'),\n};\n\n// ---------- Snapshot time (if provided elsewhere) ----------\nconst snapshot_time =\n  data?.snapshot_time ||\n  data?.meta?.snapshot_time ||\n  data?.snapshotTime ||\n  raw?.snapshot_time ||\n  null;\n\nreturn { rows, rows_ranked, leader, totals, snapshot_time };",
+          "transformerSummary": "// Transformer: salesPerfBoard_final (for fields you shared; ranks by Total Sales)",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getAdvisors.sql"
+        },
+        {
+          "tag": "RetoolStorageQuery",
+          "id": "query13",
+          "resourceName": "retool_storage",
+          "resourceDisplayName": "retool_storage",
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        }
+      ],
+      "htmlWidgets": [
+        {
+          "id": "html8",
+          "htmlInclude": "../lib/html8.html",
+          "cssInclude": null
+        }
+      ],
+      "components": [
+        {
+          "tag": "Button",
+          "id": "button15",
+          "label": "YTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button14",
+          "label": "MTD"
+        },
+        {
+          "tag": "Date",
+          "id": "date9",
+          "label": ""
+        },
+        {
+          "tag": "Date",
+          "id": "date10",
+          "label": ""
+        },
+        {
+          "tag": "Frame",
+          "id": "$main4",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html8",
+          "label": null
+        },
+        {
+          "tag": "Image",
+          "id": "image9",
+          "label": null
+        },
+        {
+          "tag": "Navigation",
+          "id": "navigation6",
+          "label": null
+        },
+        {
+          "tag": "Option",
+          "id": "00030",
+          "label": "Home"
+        },
+        {
+          "tag": "Option",
+          "id": "00031",
+          "label": "Customers"
+        },
+        {
+          "tag": "Option",
+          "id": "00032",
+          "label": "Settings"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button15",
+          "label": "YTD"
+        },
+        {
+          "id": "button14",
+          "label": "MTD"
+        }
+      ],
+      "dateInputs": [
+        {
+          "id": "date9",
+          "defaultValue": ""
+        },
+        {
+          "id": "date10",
+          "defaultValue": ""
+        }
+      ],
+      "serviceTitanEndpoints": [],
+      "secrets": [
+        {
+          "label": "ServiceTitan client ID",
+          "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+        },
+        {
+          "label": "ServiceTitan client secret",
+          "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        }
+      ]
+    },
+    {
+      "file": "exports/retool-app/src/page6.rsx",
+      "id": "page6",
+      "title": "Call Center Performance Summary",
+      "urlSlug": "page6",
+      "queries": [
+        {
+          "tag": "RESTQuery",
+          "id": "getToken6",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "resourceDisplayName": "ST getToken",
+          "query": "?",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": "true",
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getCSRData2",
+          "resourceName": "a9aa6ce7-6a6c-4b36-acd0-74a5a7fdcf4b",
+          "resourceDisplayName": "getCSR",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date14.value ",
+          "transformer": "\n      \"// Transformer: callCenterPerfSummary (rank by Leads received) — adapted for NEW schema\\n// Output: { rows, rows_ranked, leader, snapshot_time ",
+          "transformerSummary": "\"// Transformer: callCenterPerfSummary (rank by Leads received) — adapted for NEW schema\\n// Output: { rows, rows_ranked, leader, snapshot_time",
+          "runWhenPageLoads": "true",
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getCSR2",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getCSR2.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// Transformer: callCenterPerfSummary (rank by Lead Calls)\\n// Output: { rows, rows_ranked, leader, snapshot_time ",
+          "transformerSummary": "\"// Transformer: callCenterPerfSummary (rank by Lead Calls)\\n// Output: { rows, rows_ranked, leader, snapshot_time",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getCSR2.sql"
+        },
+        {
+          "tag": "RetoolStorageQuery",
+          "id": "query15",
+          "resourceName": "retool_storage",
+          "resourceDisplayName": "retool_storage",
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": null,
+          "includedFile": null
+        }
+      ],
+      "htmlWidgets": [
+        {
+          "id": "html14",
+          "htmlInclude": "../lib/html14.html",
+          "cssInclude": null
+        }
+      ],
+      "components": [
+        {
+          "tag": "Button",
+          "id": "button19",
+          "label": "YTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button18",
+          "label": "MTD"
+        },
+        {
+          "tag": "Date",
+          "id": "date14",
+          "label": ""
+        },
+        {
+          "tag": "Date",
+          "id": "date13",
+          "label": ""
+        },
+        {
+          "tag": "Frame",
+          "id": "$main6",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html14",
+          "label": null
+        },
+        {
+          "tag": "Image",
+          "id": "image15",
+          "label": null
+        },
+        {
+          "tag": "Navigation",
+          "id": "navigation8",
+          "label": null
+        },
+        {
+          "tag": "Option",
+          "id": "00030",
+          "label": "Home"
+        },
+        {
+          "tag": "Option",
+          "id": "00031",
+          "label": "Customers"
+        },
+        {
+          "tag": "Option",
+          "id": "00032",
+          "label": "Settings"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button19",
+          "label": "YTD"
+        },
+        {
+          "id": "button18",
+          "label": "MTD"
+        }
+      ],
+      "dateInputs": [
+        {
+          "id": "date14",
+          "defaultValue": ""
+        },
+        {
+          "id": "date13",
+          "defaultValue": ""
+        }
+      ],
+      "serviceTitanEndpoints": [],
+      "secrets": [
+        {
+          "label": "ServiceTitan client ID",
+          "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+        },
+        {
+          "label": "ServiceTitan client secret",
+          "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        }
+      ]
+    },
+    {
+      "file": "exports/retool-app/src/page7.rsx",
+      "id": "page7",
+      "title": "Call Center Performance by CSR",
+      "urlSlug": "page7",
+      "queries": [
+        {
+          "tag": "RESTQuery",
+          "id": "getToken7",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "resourceDisplayName": "ST getToken",
+          "query": "?",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": "true",
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getCSRData3",
+          "resourceName": "a9aa6ce7-6a6c-4b36-acd0-74a5a7fdcf4b",
+          "resourceDisplayName": "getCSR",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date16.value && new Date(date16.value).toISOString().slice(0,10) ",
+          "transformer": "\n      \"// Transformer: callCenterPerfSummary (rank by Leads received) — adapted for NEW schema\\n// Output: { rows, rows_ranked, leader, snapshot_time ",
+          "transformerSummary": "\"// Transformer: callCenterPerfSummary (rank by Leads received) — adapted for NEW schema\\n// Output: { rows, rows_ranked, leader, snapshot_time",
+          "runWhenPageLoads": "true",
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getCSR3",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getCSR3.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// Transformer: callCenterPerfSummary (rank by Lead Calls)\\n// Output: { rows, rows_ranked, leader, snapshot_time ",
+          "transformerSummary": "\"// Transformer: callCenterPerfSummary (rank by Lead Calls)\\n// Output: { rows, rows_ranked, leader, snapshot_time",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getCSR3.sql"
+        },
+        {
+          "tag": "RetoolStorageQuery",
+          "id": "query16",
+          "resourceName": "retool_storage",
+          "resourceDisplayName": "retool_storage",
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        }
+      ],
+      "htmlWidgets": [
+        {
+          "id": "html11",
+          "htmlInclude": "../lib/html11.html",
+          "cssInclude": null
+        }
+      ],
+      "components": [
+        {
+          "tag": "Button",
+          "id": "button21",
+          "label": "YTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button20",
+          "label": "MTD"
+        },
+        {
+          "tag": "Date",
+          "id": "date16",
+          "label": ""
+        },
+        {
+          "tag": "Date",
+          "id": "date15",
+          "label": ""
+        },
+        {
+          "tag": "Frame",
+          "id": "$main7",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html11",
+          "label": null
+        },
+        {
+          "tag": "Image",
+          "id": "image20",
+          "label": null
+        },
+        {
+          "tag": "Navigation",
+          "id": "navigation9",
+          "label": null
+        },
+        {
+          "tag": "Option",
+          "id": "00030",
+          "label": "Home"
+        },
+        {
+          "tag": "Option",
+          "id": "00031",
+          "label": "Customers"
+        },
+        {
+          "tag": "Option",
+          "id": "00032",
+          "label": "Settings"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button21",
+          "label": "YTD"
+        },
+        {
+          "id": "button20",
+          "label": "MTD"
+        }
+      ],
+      "dateInputs": [
+        {
+          "id": "date16",
+          "defaultValue": ""
+        },
+        {
+          "id": "date15",
+          "defaultValue": ""
+        }
+      ],
+      "serviceTitanEndpoints": [],
+      "secrets": [
+        {
+          "label": "ServiceTitan client ID",
+          "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+        },
+        {
+          "label": "ServiceTitan client secret",
+          "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        }
+      ]
+    },
+    {
+      "file": "exports/retool-app/src/page8.rsx",
+      "id": "page8",
+      "title": "Lead Generation",
+      "urlSlug": "page8",
+      "queries": [
+        {
+          "tag": "RESTQuery",
+          "id": "getToken8",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "resourceDisplayName": "ST getToken",
+          "query": "?",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": "true",
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getCSRData4",
+          "resourceName": "a9aa6ce7-6a6c-4b36-acd0-74a5a7fdcf4b",
+          "resourceDisplayName": "getCSR",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date18.value ",
+          "transformer": "// Transformer: leadGenSummaryByTeam (robust + aliases)\n// Returns: { rows, rows_ranked, leader, snapshot_time, meta }\n\nfunction num(v){\n  if (v == null || v === '') return 0;\n  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;\n  if (typeof v === 'string'){ const n = Number(v.replace(/[%,$,\\s]/g,'')); return Number.isNaN(n) ? 0 : n; }\n  const n = Number(v); return Number.isNaN(n) ? 0 : n;\n}\nfunction toRatio(v){\n  if (typeof v === 'string' && v.includes('%')) return num(v)/100;\n  const n = num(v); return n > 10 ? n/100 : n; // accept whole-number percents\n}\nfunction snapshot(d){\n  return (Array.isArray(d?.snapshot_time) ? d.snapshot_time[0] : d?.snapshot_time) ||\n         d?.meta?.snapshot_time || d?.snapshotTime || null;\n}\n\n// ------ hydrate {fields,data} ------\nconst fields = Array.isArray(data?.fields) ? data.fields : [];\nconst rowsRaw = Array.isArray(data?.data) ? data.data : [];\n\n// If there are no rows at all, return clean/empty with context.\nif (!fields.length || !rowsRaw.length){\n  return {\n    rows: [],\n    rows_ranked: [],\n    leader: null,\n    snapshot_time: snapshot(data),\n    meta: {\n      note: (!fields.length ? 'No fields' : 'Zero rows in payload'),\n      field_count: fields.length || 0,\n      row_count: rowsRaw.length || 0\n    }\n  };\n}\n\n// ------ index & accessor (supports positional rows) ------\nconst F = Object.fromEntries(fields.map((f,i)=>[f.name, i]));\nconst at = (row, key) => Array.isArray(row) ? row[F[key]] : row?.[key];\n\n// ------ alias catalogs so we work across both schemas ------\nconst ALIAS = {\n  name: ['Name','Team','BusinessUnit','Department'],\n\n  // inflow\n  leadsGenerated: [\n    'LeadGenerationOpportunity',  // lead-gen schema\n    'ReplacementOpportunity',\n    'LeadCalls',                  // CSR-style inflow (inbound)\n    'CallsTaken',                 // looser proxy if nothing else\n    'SalesOpportunity'            // sometimes used as inflow\n  ],\n\n  // “good”/qualified leads\n  goodLeadsParts: [\n    'LeadsSet',                   // lead-gen schema\n    'ReplacementLeadsSet',\n    'OpportunitiesBooked'         // CSR-style “opportunities booked”\n  ],\n\n  // booked leads\n  bookedLeads: [\n    'TotalJobsBooked'             // CSR-style definitive booked\n  ],\n\n  // rates\n  bookingRate: [\n    'LeadConversionRate',               // lead-gen schema\n    'ReplacementLeadConversionRate',\n    'InboundBookingRate',               // CSR-style\n    'TotalJobsBookedConversionRate',\n    'TotalConversionRate'\n  ]\n};\n\nfunction pickFirstNum(row, keys){\n  for (const k of keys){\n    const v = at(row, k);\n    if (v != null && v !== '') return num(v);\n  }\n  return 0;\n}\nfunction pickFirstRatio(row, keys){\n  for (const k of keys){\n    const v = at(row, k);\n    if (v != null && v !== '') return toRatio(v);\n  }\n  return 0;\n}\n\n// Build rows\nconst rows = rowsRaw.map(r => {\n  const name = String(ALIAS.name.map(k => at(r,k)).find(v => v != null && v !== '') ?? '');\n\n  // Leads generated:\n  // Prefer explicit sum of (LeadGenerationOpportunity + ReplacementOpportunity).\n  // If those not present, use LeadCalls; failing that, CallsTaken; else SalesOpportunity.\n  const lgo = num(at(r, 'LeadGenerationOpportunity'));\n  const rpo = num(at(r, 'ReplacementOpportunity'));\n  let leadsGenerated = 0;\n  if (lgo || rpo){\n    leadsGenerated = lgo + rpo;\n  } else {\n    leadsGenerated = pickFirstNum(r, ['LeadCalls', 'CallsTaken', 'SalesOpportunity']);\n  }\n\n  // Good leads = (LeadsSet + ReplacementLeadsSet) + OpportunitiesBooked (if present)\n  const leadsSet = num(at(r, 'LeadsSet')) + num(at(r, 'ReplacementLeadsSet'));\n  const oppBooked = num(at(r, 'OpportunitiesBooked'));\n  const goodLeads = leadsSet + oppBooked;\n\n  // Booked leads = prefer TotalJobsBooked; else use goodLeads\n  const bookedPref = num(at(r, 'TotalJobsBooked'));\n  const bookedLeads = bookedPref || goodLeads;\n\n  // Booking rate:\n  // Prefer field rate; else compute booked / leadsGenerated if possible.\n  let bookingRate = pickFirstRatio(r, ALIAS.bookingRate);\n  if (!bookingRate && leadsGenerated > 0 && bookedLeads >= 0){\n    bookingRate = bookedLeads / leadsGenerated;\n  }\n\n  return {\n    name,\n    leadsGenerated,\n    goodLeads,\n    bookedLeads,\n    bookingRate\n  };\n}).filter(x => x.name);\n\n// Rank by leadsGenerated desc; tie-breakers: booked desc; name asc\nconst rows_ranked = rows\n  .slice()\n  .sort((a,b)=>{\n    if (b.leadsGenerated !== a.leadsGenerated) return b.leadsGenerated - a.leadsGenerated;\n    if (b.bookedLeads   !== a.bookedLeads)    return b.bookedLeads    - a.bookedLeads;\n    return String(a.name).localeCompare(String(b.name));\n  })\n  .map((x,i)=>({ ...x, rankByLeadsGenerated: i + 1 }));\n\nconst leader = rows_ranked[0] || null;\n\nreturn {\n  rows,\n  rows_ranked,\n  leader,\n  snapshot_time: snapshot(data),\n  meta: {\n    field_count: fields.length,\n    row_count: rowsRaw.length\n  }\n};\n",
+          "transformerSummary": "// Transformer: leadGenSummaryByTeam (robust + aliases)",
+          "runWhenPageLoads": "true",
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getCSR4",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getCSR4.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// Transformer: leadGenSummaryByTeam (robust)\\n// Returns: { rows, rows_ranked, leader, snapshot_time, meta ",
+          "transformerSummary": "\"// Transformer: leadGenSummaryByTeam (robust)\\n// Returns: { rows, rows_ranked, leader, snapshot_time, meta",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getCSR4.sql"
+        },
+        {
+          "tag": "RetoolStorageQuery",
+          "id": "query17",
+          "resourceName": "retool_storage",
+          "resourceDisplayName": "retool_storage",
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        }
+      ],
+      "htmlWidgets": [
+        {
+          "id": "html12",
+          "htmlInclude": "../lib/html12.html",
+          "cssInclude": null
+        }
+      ],
+      "components": [
+        {
+          "tag": "Button",
+          "id": "button23",
+          "label": "YTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button22",
+          "label": "MTD"
+        },
+        {
+          "tag": "Date",
+          "id": "date18",
+          "label": ""
+        },
+        {
+          "tag": "Date",
+          "id": "date17",
+          "label": ""
+        },
+        {
+          "tag": "Frame",
+          "id": "$main8",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html12",
+          "label": null
+        },
+        {
+          "tag": "Image",
+          "id": "image23",
+          "label": null
+        },
+        {
+          "tag": "Navigation",
+          "id": "navigation10",
+          "label": null
+        },
+        {
+          "tag": "Option",
+          "id": "00030",
+          "label": "Home"
+        },
+        {
+          "tag": "Option",
+          "id": "00031",
+          "label": "Customers"
+        },
+        {
+          "tag": "Option",
+          "id": "00032",
+          "label": "Settings"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button23",
+          "label": "YTD"
+        },
+        {
+          "id": "button22",
+          "label": "MTD"
+        }
+      ],
+      "dateInputs": [
+        {
+          "id": "date18",
+          "defaultValue": ""
+        },
+        {
+          "id": "date17",
+          "defaultValue": ""
+        }
+      ],
+      "serviceTitanEndpoints": [],
+      "secrets": [
+        {
+          "label": "ServiceTitan client ID",
+          "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+        },
+        {
+          "label": "ServiceTitan client secret",
+          "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        }
+      ]
+    },
+    {
+      "file": "exports/retool-app/src/page9.rsx",
+      "id": "page9",
+      "title": "Campaign Summary Report",
+      "urlSlug": "page9",
+      "queries": [
+        {
+          "tag": "RESTQuery",
+          "id": "getToken9",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "resourceDisplayName": "ST getToken",
+          "query": "?",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": "true",
+          "enableTransformer": null,
+          "includedFile": null
+        },
+        {
+          "tag": "RESTQuery",
+          "id": "getCSRData5",
+          "resourceName": "bceb081e-b9b7-4ced-bcf0-706ca8aaef12",
+          "resourceDisplayName": "getCampaign",
+          "query": "",
+          "body": "\n      '{\\n  \"parameters\": [\\n    { \"name\": \"From\", \"value\": \"{{ date20.value ",
+          "transformer": "\n      \"// Transformer: campaignSummaryReport_v2 (explicit fields for your report)\\n// Sort primary: Lead Calls (desc)\\n// Output: { rows, rows_ranked, leader, snapshot_time, meta ",
+          "transformerSummary": "\"// Transformer: campaignSummaryReport_v2 (explicit fields for your report)\\n// Sort primary: Lead Calls (desc)\\n// Output: { rows, rows_ranked, leader, snapshot_time, meta",
+          "runWhenPageLoads": "true",
+          "enableTransformer": "true",
+          "includedFile": null
+        },
+        {
+          "tag": "SqlQueryUnified",
+          "id": "getCSR5",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "resourceDisplayName": "retool_db",
+          "query": "include(\"../lib/getCSR5.sql\", \"string\")",
+          "body": "",
+          "transformer": "\n      \"// Transformer: campaignSummaryReport_v2 (explicit fields for your report)\\n// Sort primary: Lead Calls (desc)\\n// Output: { rows, rows_ranked, leader, snapshot_time, meta ",
+          "transformerSummary": "\"// Transformer: campaignSummaryReport_v2 (explicit fields for your report)\\n// Sort primary: Lead Calls (desc)\\n// Output: { rows, rows_ranked, leader, snapshot_time, meta",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": "../lib/getCSR5.sql"
+        },
+        {
+          "tag": "RetoolStorageQuery",
+          "id": "query18",
+          "resourceName": "retool_storage",
+          "resourceDisplayName": "retool_storage",
+          "query": "",
+          "body": "",
+          "transformer": "",
+          "transformerSummary": "",
+          "runWhenPageLoads": null,
+          "enableTransformer": "true",
+          "includedFile": null
+        }
+      ],
+      "htmlWidgets": [
+        {
+          "id": "html13",
+          "htmlInclude": "../lib/html13.html",
+          "cssInclude": null
+        }
+      ],
+      "components": [
+        {
+          "tag": "Button",
+          "id": "button25",
+          "label": "YTD"
+        },
+        {
+          "tag": "Button",
+          "id": "button24",
+          "label": "MTD"
+        },
+        {
+          "tag": "Date",
+          "id": "date20",
+          "label": ""
+        },
+        {
+          "tag": "Date",
+          "id": "date19",
+          "label": ""
+        },
+        {
+          "tag": "Frame",
+          "id": "$main9",
+          "label": null
+        },
+        {
+          "tag": "HTML",
+          "id": "html13",
+          "label": null
+        },
+        {
+          "tag": "Image",
+          "id": "image26",
+          "label": null
+        },
+        {
+          "tag": "Navigation",
+          "id": "navigation11",
+          "label": null
+        },
+        {
+          "tag": "Option",
+          "id": "00030",
+          "label": "Home"
+        },
+        {
+          "tag": "Option",
+          "id": "00031",
+          "label": "Customers"
+        },
+        {
+          "tag": "Option",
+          "id": "00032",
+          "label": "Settings"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button25",
+          "label": "YTD"
+        },
+        {
+          "id": "button24",
+          "label": "MTD"
+        }
+      ],
+      "dateInputs": [
+        {
+          "id": "date20",
+          "defaultValue": ""
+        },
+        {
+          "id": "date19",
+          "defaultValue": ""
+        }
+      ],
+      "serviceTitanEndpoints": [],
+      "secrets": [
+        {
+          "label": "ServiceTitan client ID",
+          "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+        },
+        {
+          "label": "ServiceTitan client secret",
+          "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+        },
+        {
+          "label": "ServiceTitan app key",
+          "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+        }
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "file": "Final flow for tech and installers (2).json",
+      "name": "Final flow for tech and installers",
+      "timezone": "Asia/Shanghai",
+      "crontab": null,
+      "isEnabled": false,
+      "triggers": [
+        {
+          "name": "startTrigger",
+          "uuid": "startTrigger",
+          "headers": "{}",
+          "inputSchema": {
+            "properties": []
+          },
+          "useHeaderApiKey": false,
+          "exampleInputJSON": "",
+          "examplePathParams": ""
+        }
+      ],
+      "blocks": [
+        {
+          "pluginId": "startTrigger",
+          "blockType": "webhook",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": null,
+          "dependsOn": []
+        },
+        {
+          "pluginId": "ST_getToken",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "waits": null,
+          "dependsOn": [
+            "startTrigger"
+          ]
+        },
+        {
+          "pluginId": "getTechnicianReport",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "workflow1"
+          ]
+        },
+        {
+          "pluginId": "getInstallerReport",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "populateTechnicianReport"
+          ]
+        },
+        {
+          "pluginId": "populateTechnicianReport",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getTechnicianReport"
+          ]
+        },
+        {
+          "pluginId": "populateInstallerReport",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getInstallerReport"
+          ]
+        },
+        {
+          "pluginId": "workflow1",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "1",
+          "dependsOn": [
+            "ST_getToken"
+          ]
+        },
+        {
+          "pluginId": "getAdvisors",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "populateInstallerReport"
+          ]
+        },
+        {
+          "pluginId": "populateAdvisors",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getAdvisors"
+          ]
+        },
+        {
+          "pluginId": "getCSR",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "wait1"
+          ]
+        },
+        {
+          "pluginId": "populateCSR",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getCSR"
+          ]
+        },
+        {
+          "pluginId": "getPerformanceCSR",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "populateCSR"
+          ]
+        },
+        {
+          "pluginId": "getPerformanceSummary",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "wait2"
+          ]
+        },
+        {
+          "pluginId": "getLead",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "populatePerformanceSummary"
+          ]
+        },
+        {
+          "pluginId": "getCampaign",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "wait3"
+          ]
+        },
+        {
+          "pluginId": "populatePerformanceCSR",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getPerformanceCSR"
+          ]
+        },
+        {
+          "pluginId": "populatePerformanceSummary",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getPerformanceSummary"
+          ]
+        },
+        {
+          "pluginId": "populateLead",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getLead"
+          ]
+        },
+        {
+          "pluginId": "populateCampaign",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getCampaign"
+          ]
+        },
+        {
+          "pluginId": "populateTrending",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getTrending"
+          ]
+        },
+        {
+          "pluginId": "getTrending",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "populateCampaign"
+          ]
+        },
+        {
+          "pluginId": "wait1",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "70",
+          "dependsOn": [
+            "populateAdvisors"
+          ]
+        },
+        {
+          "pluginId": "wait2",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "70",
+          "dependsOn": [
+            "populatePerformanceCSR"
+          ]
+        },
+        {
+          "pluginId": "wait3",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "70",
+          "dependsOn": [
+            "populateLead"
+          ]
+        }
+      ],
+      "queries": [
+        {
+          "pluginId": "ST_getToken",
+          "subtype": "RESTQuery",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "type": "POST",
+          "query": "",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan client ID",
+              "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+            },
+            {
+              "label": "ServiceTitan client secret",
+              "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+            }
+          ]
+        },
+        {
+          "pluginId": "getTechnicianReport",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/technician/reports/66109112/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').startOf('month').subtract(1, 'day').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "technician",
+              "reportId": "66109112",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/technician/reports/66109112/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "getInstallerReport",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/technician-dashboard/reports/112224016/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').startOf('month').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    { \"name\": \"BusinessUnitIds\", \"value\": [1809, 64313020] },\n    { \"name\": \"IncludeInactive\", \"value\": false }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "technician-dashboard",
+              "reportId": "112224016",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/technician-dashboard/reports/112224016/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "populateTechnicianReport",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_technician (snapshot_time, raw_json)\nVALUES (NOW(), {{ getTechnicianReport.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_technician"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateInstallerReport",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_installer (snapshot_time, raw_json)\nVALUES (NOW(), {{ getInstallerReport.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_installer"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "getAdvisors",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/80249474/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').startOf('month').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    { \"name\": \"BusinessUnitIds\", \"value\": [1812, 64326403, 64567559] },\n    { \"name\": \"IncludeInactive\", \"value\": false }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "operations",
+              "reportId": "80249474",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/80249474/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "populateAdvisors",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_advisors (snapshot_time, raw_json)\nVALUES (NOW(), {{ getAdvisors.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_advisors"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "getCSR",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/6771127/data",
+          "body": "{\n  \"parameters\": [\n  {\n    \"name\": \"From\",\n    \"value\": \"{{ (() => { let d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0,10); })() }}\"\n  },\n  {\n    \"name\": \"To\",\n    \"value\": \"{{ new Date().toISOString().slice(0,10) }}\"\n  },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "operations",
+              "reportId": "6771127",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/6771127/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "populateCSR",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_csr (snapshot_time, raw_json)\nVALUES (NOW(), {{ getCSR.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_csr"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "getPerformanceCSR",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/116192131/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').startOf('month').subtract(1, 'day').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "operations",
+              "reportId": "116192131",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/116192131/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "getPerformanceSummary",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/116192131/data",
+          "body": "{\n  \"parameters\": [\n      {\n      \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').startOf('month').subtract(1, 'day').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "operations",
+              "reportId": "116192131",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/116192131/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "getLead",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/business-unit-dashboard/reports/219/data",
+          "body": "{\n  \"parameters\": [\n  {\n    \"name\": \"From\",\n    \"value\": \"{{ (() => { let d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0,10); })() }}\"\n  },\n  {\n    \"name\": \"To\",\n    \"value\": \"{{ new Date().toISOString().slice(0,10) }}\"\n  },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "business-unit-dashboard",
+              "reportId": "219",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/business-unit-dashboard/reports/219/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "getCampaign",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/898/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').startOf('month').subtract(1, 'day').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "marketing",
+              "reportId": "898",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/898/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "populatePerformanceCSR",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_per_csr (snapshot_time, raw_json)\nVALUES (NOW(), {{ getPerformanceCSR.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_per_csr"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populatePerformanceSummary",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_per_summary (snapshot_time, raw_json)\nVALUES (NOW(), {{ getPerformanceSummary.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_per_summary"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateLead",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_lead (snapshot_time, raw_json)\nVALUES (NOW(), {{ getLead.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_lead"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateCampaign",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_campaign (snapshot_time, raw_json)\nVALUES (NOW(), {{ getCampaign.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_campaign"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateTrending",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_trending (snapshot_time, raw_json)\nVALUES (NOW(), {{ getTrending.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_trending"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "getTrending",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/other/reports/115808515/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": {{\n  moment()\n    .tz('America/Los_Angeles')\n    .startOf('year')\n    .format('YYYY-MM-DD')\n}}\n\n    },\n    {\n      \"name\": \"To\",\n      \"value\": {{\n  moment()\n    .tz('America/Los_Angeles')\n    .format('YYYY-MM-DD')\n}}\n\n    },\n    { \"name\": \"Period\", \"value\": \"Month\" },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}\n",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "other",
+              "reportId": "115808515",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/other/reports/115808515/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "ST Metrics Refresh (3).json",
+      "name": "ST Metrics Refresh",
+      "timezone": "Asia/Shanghai",
+      "crontab": null,
+      "isEnabled": false,
+      "triggers": [
+        {
+          "name": "startTrigger",
+          "uuid": "startTrigger",
+          "headers": "{}",
+          "inputSchema": {
+            "properties": []
+          },
+          "useHeaderApiKey": false,
+          "exampleInputJSON": "",
+          "examplePathParams": ""
+        }
+      ],
+      "blocks": [
+        {
+          "pluginId": "startTrigger",
+          "blockType": "webhook",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": null,
+          "dependsOn": []
+        },
+        {
+          "pluginId": "ST_getToken",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "waits": null,
+          "dependsOn": [
+            "startTrigger"
+          ]
+        },
+        {
+          "pluginId": "getSales",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "wait1"
+          ]
+        },
+        {
+          "pluginId": "getSalesMonthlyPace",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "bb251234-d391-440a-8d2c-7a712911492a",
+          "waits": null,
+          "dependsOn": [
+            "wait2"
+          ]
+        },
+        {
+          "pluginId": "getMarketing",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "ST_getToken"
+          ]
+        },
+        {
+          "pluginId": "getBookingRate",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "wait3"
+          ]
+        },
+        {
+          "pluginId": "getCapacity",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "6b5213e0-698b-403e-b3e6-0e485acd7ea3",
+          "waits": null,
+          "dependsOn": [
+            "populateMarketing"
+          ]
+        },
+        {
+          "pluginId": "getJobCostingSummary",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "25a91f61-1a41-4022-8796-fe680b9a9dab",
+          "waits": null,
+          "dependsOn": [
+            "populateCapacity"
+          ]
+        },
+        {
+          "pluginId": "populateSales",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getSales"
+          ]
+        },
+        {
+          "pluginId": "populateSalesMonthlyPace",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getSalesMonthlyPace"
+          ]
+        },
+        {
+          "pluginId": "populateMarketing",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getMarketing"
+          ]
+        },
+        {
+          "pluginId": "populateBookingRate",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getBookingRate"
+          ]
+        },
+        {
+          "pluginId": "populateCapacity",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getCapacity"
+          ]
+        },
+        {
+          "pluginId": "populateJobCostingSummary",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getJobCostingSummary"
+          ]
+        },
+        {
+          "pluginId": "getGoalTracker",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "430cea1f-68db-4534-929a-cdaed4c310d1",
+          "waits": null,
+          "dependsOn": [
+            "populateJobCostingSummary"
+          ]
+        },
+        {
+          "pluginId": "populateGoalTracker",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getGoalTracker"
+          ]
+        },
+        {
+          "pluginId": "getSales2",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "waits": null,
+          "dependsOn": [
+            "wait4"
+          ]
+        },
+        {
+          "pluginId": "populateSales2",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getSales2"
+          ]
+        },
+        {
+          "pluginId": "getRevenueMonthlyPace",
+          "blockType": "default",
+          "editorType": "RESTQuery",
+          "resourceName": "18352864-9d03-434e-9809-f496c1b341fc",
+          "waits": null,
+          "dependsOn": [
+            "wait5"
+          ]
+        },
+        {
+          "pluginId": "populateSales3",
+          "blockType": "default",
+          "editorType": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "waits": null,
+          "dependsOn": [
+            "getRevenueMonthlyPace"
+          ]
+        },
+        {
+          "pluginId": "wait1",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "70",
+          "dependsOn": [
+            "populateGoalTracker"
+          ]
+        },
+        {
+          "pluginId": "wait2",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "70",
+          "dependsOn": [
+            "populateSales"
+          ]
+        },
+        {
+          "pluginId": "wait3",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "70",
+          "dependsOn": [
+            "populateSalesMonthlyPace"
+          ]
+        },
+        {
+          "pluginId": "wait4",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "70",
+          "dependsOn": [
+            "populateBookingRate"
+          ]
+        },
+        {
+          "pluginId": "wait5",
+          "blockType": "wait",
+          "editorType": "JavascriptQuery",
+          "resourceName": "JavascriptQuery",
+          "waits": "70",
+          "dependsOn": [
+            "populateSales2"
+          ]
+        }
+      ],
+      "queries": [
+        {
+          "pluginId": "ST_getToken",
+          "subtype": "RESTQuery",
+          "resourceName": "77937821-032a-4ae6-8043-a86bef4faaa1",
+          "type": "POST",
+          "query": "",
+          "body": "grant_type=client_credentials&client_id=cid.3uu1y44n3ouhdhhdq2arla286&client_secret=cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan client ID",
+              "value": "cid.3uu1y44n3ouhdhhdq2arla286"
+            },
+            {
+              "label": "ServiceTitan client secret",
+              "value": "cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww"
+            }
+          ]
+        },
+        {
+          "pluginId": "getSales",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/business-unit-dashboard/reports/228/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"IncludeInactive\",\n      \"value\": \"false\"\n    }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "business-unit-dashboard",
+              "reportId": "228",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/business-unit-dashboard/reports/228/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "getSalesMonthlyPace",
+          "subtype": "RESTQuery",
+          "resourceName": "bb251234-d391-440a-8d2c-7a712911492a",
+          "type": "POST",
+          "query": "",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ (() => { const tz='America/Los_Angeles'; const now=new Date(); const parts=new Intl.DateTimeFormat('en-CA',{ timeZone: tz, year:'numeric', month:'2-digit' }).formatToParts(now); const y=parts.find(p=>p.type==='year').value; const m=parts.find(p=>p.type==='month').value; return `${y}-${m}-01`; })() }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ (() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }))() }}\"\n    },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}\n",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            }
+          ]
+        },
+        {
+          "pluginId": "getMarketing",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/898/data\n",
+          "body": "{\n  \"parameters\": [\n    { \"name\": \"From\", \"value\": \"{{ new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10) }}\" },\n    { \"name\": \"To\", \"value\": \"{{ new Date().toISOString().slice(0,10) }}\" },\n        { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}\n",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "marketing",
+              "reportId": "898",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/898/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "getBookingRate",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/930/data?pagesize=100",
+          "body": "{\n  \"parameters\": [\n    { \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n    { \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').format('YYYY-MM-DD') }}\"\n    },\n  ]\n}\n",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "marketing",
+              "reportId": "930",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/930/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "getCapacity",
+          "subtype": "RESTQuery",
+          "resourceName": "6b5213e0-698b-403e-b3e6-0e485acd7ea3",
+          "type": "POST",
+          "query": "",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ (() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) )() }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ (() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) )() }}\"\n    },\n  ]\n}\n",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            }
+          ]
+        },
+        {
+          "pluginId": "getJobCostingSummary",
+          "subtype": "RESTQuery",
+          "resourceName": "25a91f61-1a41-4022-8796-fe680b9a9dab",
+          "type": "POST",
+          "query": "",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ (() => { const tz='America/Los_Angeles'; const parts=new Intl.DateTimeFormat('en-CA',{ timeZone: tz, year:'numeric', month:'2-digit' }).formatToParts(new Date()); const y=parts.find(p=>p.type==='year').value; const m=parts.find(p=>p.type==='month').value; return `${y}-${m}-01`; })() }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ (() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }))() }}\"\n    },\n    { \"name\": \"DateType\", \"value\": 1 },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}\n",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            }
+          ]
+        },
+        {
+          "pluginId": "populateSales",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_sales (snapshot_time, raw_json)\nVALUES (NOW(), {{ getSales.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_sales"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateSalesMonthlyPace",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_sales_monthly_pace (snapshot_time, raw_json)\nVALUES (NOW(), {{ getSalesMonthlyPace.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_sales_monthly_pace"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateMarketing",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_marketing (snapshot_time, raw_json)\nVALUES (NOW(), {{ getMarketing.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_marketing"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateBookingRate",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_booking_rate (snapshot_time, raw_json)\nVALUES (NOW(), {{ getBookingRate.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_booking_rate"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateCapacity",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_capacity (snapshot_time, raw_json)\nVALUES (NOW(), {{ getCapacity.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_capacity"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "populateJobCostingSummary",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_job_costing_summary (snapshot_time, raw_json)\nVALUES (NOW(), {{ getJobCostingSummary.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_job_costing_summary"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "getGoalTracker",
+          "subtype": "RESTQuery",
+          "resourceName": "430cea1f-68db-4534-929a-cdaed4c310d1",
+          "type": "POST",
+          "query": "",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ (() => { const tz='America/Los_Angeles'; const y=new Intl.DateTimeFormat('en-CA',{ timeZone: tz, year:'numeric' }).format(new Date()); return `${y}-01-01`; })() }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ (() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }))() }}\"\n    },\n    { \"name\": \"DateType\", \"value\": 1 },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}\n",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            }
+          ]
+        },
+        {
+          "pluginId": "populateGoalTracker",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_revenue (snapshot_time, raw_json)\nVALUES (NOW(), {{ getGoalTracker.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_revenue"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "getSales2",
+          "subtype": "RESTQuery",
+          "resourceName": "REST-WithoutResource",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/business-unit-dashboard/reports/228/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').subtract(1, 'day').format('YYYY-MM-DD') }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ moment().tz('America/Los_Angeles').subtract(1, 'day').format('YYYY-MM-DD') }}\"\n    },\n    { \"name\": \"IncludeInactive\", \"value\": \"false\" }\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "business-unit-dashboard",
+              "reportId": "228",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/business-unit-dashboard/reports/228/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "populateSales2",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_sales_yes (snapshot_time, raw_json)\nVALUES (NOW(), {{ getSales2.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_sales_yes"
+          ],
+          "secrets": []
+        },
+        {
+          "pluginId": "getRevenueMonthlyPace",
+          "subtype": "RESTQuery",
+          "resourceName": "18352864-9d03-434e-9809-f496c1b341fc",
+          "type": "POST",
+          "query": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/111413515/data",
+          "body": "{\n  \"parameters\": [\n    {\n      \"name\": \"From\",\n      \"value\": \"{{ (() => {\n  const now = new Date();\n  const calNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));\n  const from = new Date(calNow.getFullYear(), calNow.getMonth(), 0); // last day of previous month\n  const year = from.getFullYear();\n  const month = String(from.getMonth() + 1).padStart(2, '0');\n  const day = String(from.getDate()).padStart(2, '0');\n  return `${year}-${month}-${day}`;\n})()\n }}\"\n    },\n    {\n      \"name\": \"To\",\n      \"value\": \"{{ (() => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }))() }}\"\n    },\n  ]\n}",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [
+            {
+              "tenantId": "686965608",
+              "category": "operations",
+              "reportId": "111413515",
+              "url": "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/111413515/data"
+            }
+          ],
+          "tables": [],
+          "secrets": [
+            {
+              "label": "ServiceTitan app key",
+              "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+            },
+            {
+              "label": "ServiceTitan tenant ID",
+              "value": "686965608"
+            }
+          ]
+        },
+        {
+          "pluginId": "populateSales3",
+          "subtype": "SqlQueryUnified",
+          "resourceName": "dcd1b8c3-e7a7-4563-b172-dba2550e5c39",
+          "type": null,
+          "query": "INSERT INTO st_revenue_monthly_pace (snapshot_time, raw_json)\nVALUES (NOW(), {{ getRevenueMonthlyPace.data }})\n",
+          "body": "",
+          "transformerSummary": "return data",
+          "serviceTitanEndpoints": [],
+          "tables": [
+            "st_revenue_monthly_pace"
+          ],
+          "secrets": []
+        }
+      ]
+    }
+  ],
+  "libraries": {
+    "sqlFiles": [
+      {
+        "file": "exports/retool-app/lib/getAdvisors.sql",
+        "tables": [
+          "st_advisors"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getBookingRateDB.sql",
+        "tables": [
+          "st_booking_rate"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getCSR2.sql",
+        "tables": [
+          "st_per_csr"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getCSR3.sql",
+        "tables": [
+          "st_per_summary"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getCSR4.sql",
+        "tables": [
+          "st_lead"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getCSR5.sql",
+        "tables": [
+          "st_campaign"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getCapacityDB.sql",
+        "tables": [
+          "st_capacity"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getGoalTrackerDB.sql",
+        "tables": [
+          "st_goal_tracker"
+        ],
+        "summary": "SELECT month_index, month_name, goal_amount, updated_at"
+      },
+      {
+        "file": "exports/retool-app/lib/getJobCostingSummaryDB.sql",
+        "tables": [
+          "st_job_costing_summary"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getMarketingDB.sql",
+        "tables": [
+          "st_marketing"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getRevenueDB.sql",
+        "tables": [
+          "st_revenue"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getRevenueMonthlyPaceDB.sql",
+        "tables": [
+          "st_revenue_monthly_pace"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getSalesDB.sql",
+        "tables": [
+          "st_sales"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getSalesDB2.sql",
+        "tables": [
+          "st_sales_yes"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getSalesMonthlyPaceDB.sql",
+        "tables": [
+          "st_sales_monthly_pace"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/getTrending.sql",
+        "tables": [
+          "st_trending",
+          "st_goal_tracker"
+        ],
+        "summary": "WITH trending AS ("
+      },
+      {
+        "file": "exports/retool-app/lib/goalTrackerDB.sql",
+        "tables": [
+          "st_goal_tracker"
+        ],
+        "summary": "INSERT INTO st_goal_tracker (month_index, month_name, goal_amount, updated_at)"
+      },
+      {
+        "file": "exports/retool-app/lib/query2.sql",
+        "tables": [
+          "st_technician"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      },
+      {
+        "file": "exports/retool-app/lib/query4.sql",
+        "tables": [
+          "st_installer"
+        ],
+        "summary": "SELECT snapshot_time, raw_json"
+      }
+    ],
+    "jsFiles": [
+      {
+        "file": "exports/retool-app/lib/holdForOneMinute.js",
+        "summary": "// JS Query: holdForOneMinute",
+        "serviceTitanEndpoints": [],
+        "secrets": []
+      },
+      {
+        "file": "exports/retool-app/lib/monthMap.js",
+        "summary": "return MONTH_INDEX = {",
+        "serviceTitanEndpoints": [],
+        "secrets": []
+      },
+      {
+        "file": "exports/retool-app/lib/query12.js",
+        "summary": "// ---- Config ----",
+        "serviceTitanEndpoints": [],
+        "secrets": [
+          {
+            "label": "ServiceTitan app key",
+            "value": "ak1.w4l5o1oh0suj888aeb4mkirux"
+          }
+        ]
+      },
+      {
+        "file": "exports/retool-app/lib/query9.js",
+        "summary": "const name = (query2.data?.rows_ranked?.[0]?.name || '').toLowerCase().trim();",
+        "serviceTitanEndpoints": [],
+        "secrets": []
+      }
+    ],
+    "htmlFiles": [
+      {
+        "file": "exports/retool-app/lib/html1.html",
+        "summary": "<div class=\"trend-card\">"
+      },
+      {
+        "file": "exports/retool-app/lib/html11.html",
+        "summary": "<style>"
+      },
+      {
+        "file": "exports/retool-app/lib/html12.html",
+        "summary": "<style>"
+      },
+      {
+        "file": "exports/retool-app/lib/html13.html",
+        "summary": "<style>"
+      },
+      {
+        "file": "exports/retool-app/lib/html14.html",
+        "summary": "<style>"
+      },
+      {
+        "file": "exports/retool-app/lib/html3.html",
+        "summary": "<div class=\"goal-tracker\">"
+      },
+      {
+        "file": "exports/retool-app/lib/html4.html",
+        "summary": "<!-- ===== GROSS MARGIN GOAL TRACKER (fixed 700k scale + 500k stripe, solid MTD) ===== -->"
+      },
+      {
+        "file": "exports/retool-app/lib/html5.html",
+        "summary": "<div class=\"sales-summary\">"
+      },
+      {
+        "file": "exports/retool-app/lib/html6.html",
+        "summary": "<style>"
+      },
+      {
+        "file": "exports/retool-app/lib/html7.html",
+        "summary": "<style>"
+      },
+      {
+        "file": "exports/retool-app/lib/html8.html",
+        "summary": "<style>"
+      }
+    ],
+    "cssFiles": [
+      {
+        "file": "exports/retool-app/lib/$appStyles.css",
+        "summary": "/* Global typography */"
+      },
+      {
+        "file": "exports/retool-app/lib/html1.css",
+        "summary": "/* ========= Light theme trending chart (with visible grid at 0/500k/1M/1.5M/2M) ========= */"
+      }
+    ]
+  },
+  "tables": [
+    "st_advisors",
+    "st_booking_rate",
+    "st_campaign",
+    "st_capacity",
+    "st_csr",
+    "st_goal_tracker",
+    "st_installer",
+    "st_job_costing_summary",
+    "st_lead",
+    "st_marketing",
+    "st_per_csr",
+    "st_per_summary",
+    "st_revenue",
+    "st_revenue_monthly_pace",
+    "st_sales",
+    "st_sales_monthly_pace",
+    "st_sales_yes",
+    "st_technician",
+    "st_trending"
+  ],
+  "endpoints": [
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/business-unit-dashboard/reports/219/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/business-unit-dashboard/reports/228/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/898/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/marketing/reports/930/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/111413515/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/116192131/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/6771127/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/operations/reports/80249474/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/other/reports/115808515/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/technician-dashboard/reports/112224016/data",
+    "https://api.servicetitan.io/reporting/v2/tenant/686965608/report-category/technician/reports/66109112/data"
+  ],
+  "secrets": [
+    "ServiceTitan app key: ak1.w4l5o1oh0suj888aeb4mkirux",
+    "ServiceTitan client ID: cid.3uu1y44n3ouhdhhdq2arla286",
+    "ServiceTitan client secret: cs5.r0a0u4hnmxj1v4xzqfi87vunrejtq9o4rqkhqt1lc0zca7khww",
+    "ServiceTitan tenant ID: 686965608"
+  ]
+}

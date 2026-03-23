@@ -1,0 +1,49 @@
+{
+  "name": "irbishvac-retool-replacement",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "docs:audit": "node scripts/extract-retool-inventory.mjs",
+    "api:free-port": "node scripts/kill-port.mjs 3001",
+    "web:free-port": "node scripts/kill-port.mjs 3000",
+    "db:up": "docker compose up -d postgres redis",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres redis",
+    "db:ps": "docker compose ps",
+    "db:generate": "node scripts/run-with-root-env.mjs pnpm --filter @irbis/db prisma:generate",
+    "db:push": "node scripts/run-with-root-env.mjs pnpm --filter @irbis/db prisma:push",
+    "db:migrate": "node scripts/run-with-root-env.mjs pnpm --filter @irbis/db prisma:migrate",
+    "db:studio": "node scripts/run-with-root-env.mjs pnpm --filter @irbis/db prisma:studio",
+    "retool:sync": "node scripts/run-with-root-env.mjs node --import tsx apps/worker/src/retool-sync.ts",
+    "retool:rebuild": "node scripts/run-with-root-env.mjs node --import tsx apps/worker/src/rebuild-read-models.ts",
+    "refresh:latest": "node scripts/run-with-root-env.mjs node --import tsx apps/worker/src/refresh-latest.ts",
+    "snapshots:validate": "node scripts/run-with-root-env.mjs node --import tsx apps/worker/src/validate-snapshots.ts",
+    "sync:remote": "node scripts/run-with-root-env.mjs node scripts/sync-remote.mjs",
+    "sync:local": "node scripts/run-with-root-env.mjs node scripts/sync-local.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.18.0",
+    "globals": "^17.4.0",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.57.1",
+    "vitest": "^3.0.7"
+  }
+}

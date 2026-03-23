@@ -1,0 +1,155 @@
+<style>
+  .csr-summary-card {
+    background: #ffffff;
+    border-radius: 1vw;
+    padding: 1.5vw;
+    box-shadow: 0 0.3vw 1vw rgba(0,0,0,0.08);
+    border: 1px solid #f1f1f1;
+  }
+
+  .csr-title {
+    font-size: 2vw;
+    font-weight: 700;
+    margin-bottom: 2vw;
+    text-align: center;
+    color: #333;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1vw;
+  }
+
+  .metric-box {
+    background: #fafafa;
+    padding: 1.5vw;
+    border-radius: 0.8vw;
+    text-align: center;
+    border: 1px solid #eee;
+  }
+
+  .metric-label {
+    font-size: 1vw;
+    color: #555;
+    font-weight: 600;
+    margin-bottom: 0.7vw;
+  }
+
+  .metric-value {
+    font-size: 1.8vw;
+    font-weight: 700;
+    color: #222;
+  }
+
+  .metric-value.percent {
+    color: #0066cc;
+  }
+
+  .metric-value.number {
+    color: #222;
+  }
+
+  /* Responsive */
+  @media (max-width: 1000px) {
+    .metrics-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 600px) {
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+    .csr-title {
+      font-size: 6vw;
+    }
+    .metric-value {
+      font-size: 6vw;
+    }
+  }
+</style>
+
+<div class="csr-summary-container">
+  <div class="csr-summary-card">
+    <div class="csr-title">Call Center Performance Summary</div>
+
+    {{(function(){
+
+      const rows = getCSRData2.data?.rows || getCSR2.data.rows || [];
+      if (!rows.length) return `<div>No CSR data available</div>`;
+
+      // Filter only CSR roles
+      const csr = rows.filter(r => String(r.name).toLowerCase() !== "abandoned");
+
+      if (!csr.length) return `<div>No CSR employees found</div>`;
+
+      // SUM metrics
+      const sum = (field) => csr.reduce((acc, x) => acc + (Number(x[field]) || 0), 0);
+
+      // AVG metrics
+      const avg = (field) => {
+        const vals = csr
+          .map(x => Number(x[field]))
+          .filter(v => !isNaN(v) && v !== 0);
+      
+        if (!vals.length) return 0;
+      
+        return vals.reduce((a,b) => a+b, 0) / vals.length;
+      };
+
+      const leadCalls       = sum("leadsReceived");
+      const inboundBooked   = sum("inboundCallsBooked");
+      const manualBooked    = sum("manualCallsBooked");
+      const totalJobs       = sum("totalJobsBooked");
+      const cancelled       = sum("cancelledBeforeDispatch");
+
+      const bookingRate     = avg("callBookingRate") * 100;
+      const cancellationPct = avg("cancellationRate") * 100;
+
+      const fmt = (n) => new Intl.NumberFormat("en-US").format(n);
+      const fmtPct = (n) => n.toFixed(1) + "%";
+
+      return `
+        <div class="metrics-grid">
+
+          <div class="metric-box">
+            <div class="metric-label">Lead Calls</div>
+            <div class="metric-value number">${fmt(leadCalls)}</div>
+          </div>
+
+          <div class="metric-box">
+            <div class="metric-label">Inbound Calls Booked</div>
+            <div class="metric-value number">${fmt(inboundBooked)}</div>
+          </div>
+
+          <div class="metric-box">
+            <div class="metric-label">Call Booking Rate</div>
+            <div class="metric-value percent">${fmtPct(bookingRate)}</div>
+          </div>
+
+          <div class="metric-box">
+            <div class="metric-label">Manual Calls Booked</div>
+            <div class="metric-value number">${fmt(manualBooked)}</div>
+          </div>
+
+          <div class="metric-box">
+            <div class="metric-label">Total Jobs Booked</div>
+            <div class="metric-value number">${fmt(totalJobs)}</div>
+          </div>
+
+          <div class="metric-box">
+            <div class="metric-label">Cancelled Before Dispatch</div>
+            <div class="metric-value number">${fmt(cancelled)}</div>
+          </div>
+
+          <div class="metric-box">
+            <div class="metric-label">Cancellation %</div>
+            <div class="metric-value percent">${fmtPct(cancellationPct)}</div>
+          </div>
+
+        </div>
+      `;
+    })()}}
+
+  </div>
+</div>

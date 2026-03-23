@@ -1,0 +1,380 @@
+<style>
+  .technician-cards-container {
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* === 4-column grid; Top1 spans two rows in column 1 ===
+   Resulting placement by source order:
+   Row1: [Top1][Top2][Top3][Top4]
+   Row2: [Top1][Top5][Top6][Top7]
+   Row3: [Top8][Top9][Top10][Top11] */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 even columns */
+  gap: 0.3vw;
+  width: 100%;
+  grid-auto-flow: row; /* keep natural order */
+}
+
+/* Pin and highlight Top1 */
+.cards-grid > .tech-card:first-child {
+  grid-column: 1;
+  grid-row: 1 / span 3; /* shows in Row1 + Row2, Column 1 */
+  position: relative;
+  border: 0.104167vw solid transparent;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, #FA6E18, #ffb26b) border-box;
+  box-shadow: 0 0.3125vw 1.25vw rgba(250,110,24,0.25);
+  transform: translateY(-0.052083vw);
+  font-size: 1em;
+}
+
+.cards-grid > .tech-card:first-child {
+  font-size: 1vw;
+  font-weight: bold;
+  line-height: 1vw;
+}
+
+.cards-grid > .tech-card:first-child .tech-image {
+  width: 15vw; height: auto;
+}
+
+.cards-grid > .tech-card:first-child div.image-placeholder {
+  width: 15vw; height: 15vw;
+}
+
+.cards-grid > .tech-card:first-child .card-content {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.cards-grid > .tech-card:first-child .card-content p {
+  font-size: 1.2vw;
+  font-weight: bold;
+  line-height: 1.2vw;
+}
+
+.cards-grid > .tech-card .card-content p {
+  font-size: 1vw;
+  font-weight: bold;
+  line-height: 1vw;
+}
+
+.cards-grid > .tech-card:first-child .metric-label {
+    font-size: 0.9vw;
+  line-height: 0.9vw;
+}
+
+.cards-grid > .tech-card:first-child .metric-value {
+    font-size: 0.9vw;
+  line-height: 0.9vw;
+}
+
+/* Card base */
+.tech-card {
+  background: white;
+  border-radius: 0.625vw;
+  box-shadow: 0 0.104167vw 0.416667vw rgba(0,0,0,0.1);
+  padding: 0.741667vw;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 0.052083vw solid #e9ecef;
+  break-inside: avoid;
+}
+
+.tech-card:hover {
+  transform: translateY(-0.104167vw);
+  box-shadow: 0 0.208333vw 0.833333vw rgba(0,0,0,0.15);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.833333vw;
+  gap: 0.625vw;
+}
+
+.tech-info { flex: 1; min-width: 0; }
+
+h3.tech-name {
+  font-size: 1vw;
+  line-height: 1vw;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.208333vw 0;
+  word-wrap: break-word;
+}
+
+p.tech-bu {
+  font-size: 0.8vw;
+  line-height: 0.9vw; 
+  color: #6c757d; 
+  margin: 0; 
+  font-weight: 500; 
+}
+
+.tech-rank {
+  background: #FA6E18;
+  color: white;
+  padding: 0.260417vw;
+  border-radius: 1.041667vw;
+  font-weight: 700;
+  font-size: 0.8vw;
+  line-height: 0.9vw;
+  min-width: 2.083333vw;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.card-content { display: flex; gap: 0.833333vw; margin-bottom: 1.041667vw;align-items: center; }
+
+.tech-image {
+  width: 4vw; height: 4vw;
+  border-radius: 0.416667vw; object-fit: cover;
+  border: 0.104167vw solid #e9ecef; flex-shrink: 0;
+}
+
+div.image-placeholder {
+  font-size: 0.8vw;
+  line-height: 0.9vw;
+  width: 4vw; height: 4vw; border-radius: 0.416667vw;
+  background: #00363E; display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 600; font-size: 1.5em;
+  border: 0.104167vw solid #e9ecef; flex-shrink: 0;
+}
+
+.revenue-section { flex: 1; min-width: 0; align-items: center; }
+
+p.revenue-label {
+  font-size: 0.7vw;
+  line-height: 0.8vw; 
+  color: #000; 
+  margin: 0 0 0.208333vw 0; 
+  font-weight: 700; 
+}
+
+p.revenue-amount { 
+  font-size: 0.7vw;
+  line-height: 0.8vw;  
+  font-weight: 700; 
+  color: #1e7e34; 
+  margin: 0;  
+}
+
+.metrics-grid { display: grid; grid-template-columns: 1fr; gap: 0.125vw; }
+
+.metric-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.416667vw 0; border-bottom: 0.052083vw solid #f1f3f4;
+}
+
+.metric-row:last-child { border-bottom: none; }
+
+span.metric-label { 
+  font-size: 0.8vw;
+  line-height: 0.5vw;  
+  color: #000; 
+  font-weight: 500; 
+  flex: 1; 
+  margin-right: 0.625vw;  
+}
+
+span.metric-value { 
+  font-size: 0.8vw;
+  line-height: 0.5vw; 
+  font-weight: 600; 
+  color: #000; 
+  text-align: right; 
+  flex-shrink: 0; 
+  white-space: nowrap; 
+}
+.metric-value.money {
+  color: #1e7e34; /* darker green */
+}
+
+.metric-value.percent {
+  color: #0056b3; /* darker blue */
+}
+
+.metric-value.number {
+  color: #343a40; /* darker gray */
+}
+
+.no-data { text-align: center; padding: 2.083333vw; color: #6c757d; font-size: 1.1em; }
+
+/* === Responsive: relax the spanning on smaller screens === */
+@media (max-width: 1200px) {
+  .cards-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* .cards-grid > .tech-card:first-child { grid-row: auto; grid-column: 1; } /* avoid tall column on tighter layouts */ */
+}
+
+/* @media (max-width: 768px) {
+  .cards-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tech-card { padding: 0.833333vw; }
+  .card-content { flex-direction: column; align-items: center; text-align: center; gap: 0.625vw; }
+  .revenue-section { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .technician-cards-container { padding: 0.416667vw; }
+  .tech-card { padding: 0.625vw; }
+  .metric-label { font-size: 0.8em; }
+  .metric-value { font-size: 0.85em; }
+} */
+
+/* Custom scrollbar */
+.technician-cards-container::-webkit-scrollbar { width: 0.3125vw; }
+.technician-cards-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 0.15625vw; }
+.technician-cards-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 0.15625vw; }
+.technician-cards-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+</style>
+
+<div class="technician-cards-container">
+  <div class="cards-grid">
+    {{(function() {
+      // Determine which data source to use
+      const primaryData = getInstallerReport.data?.rows_ranked || getInstallerReport.data?.rows;
+      const fallbackData = query4.data?.rows_ranked || query4.data?.rows;
+      
+      const dataSource = primaryData && primaryData.length > 0 ? primaryData : fallbackData;
+      
+      if (!dataSource || dataSource.length === 0) {
+        return `<div class="no-data">No technician data available</div>`;
+      }
+      
+      return dataSource.slice(0, 10).map((item, index) => {
+        const imageUrl = (() => {
+          const name = (item.name || '').toLowerCase().trim();
+          const files = Array.isArray(query11.data)
+            ? query11.data
+            : Object.values(query11.data || {});
+          const f = files.find(x =>
+            (x.name || '')
+              .toLowerCase()
+              .replace(/\.(png|jpe?g|webp)$/,'')
+              .trim() === name
+          );
+          return f?.url || '';
+        })();
+        
+        const metrics = (() => {
+          const PERCENT_DECIMALS = 1;
+          
+          const cleanNum = (v) => {
+            if (v == null || v === '') return null;
+            if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+            if (typeof v === 'string') {
+              const isParenNeg = /^\s*\(.*\)\s*$/.test(v);
+              const s = v
+                .replace(/[^\d.\-]/g, '')
+                .replace(/(.*)-$/, '-$1');
+              const n = Number(s);
+              if (Number.isNaN(n)) return null;
+              return isParenNeg ? -n : n;
+            }
+            const n = Number(v);
+            return Number.isNaN(n) ? null : n;
+          };
+
+          const toRatio = (v) => {
+            if (v == null) return null;
+            if (typeof v === 'string' && v.includes('%')) {
+              const n = cleanNum(v);
+              return n == null ? null : n / 100; // if string like "45%", treat as percent text
+            }
+            const n = cleanNum(v);
+            if (n == null) return null;
+            // ✅ Do NOT divide large values; assume already ratio form (e.g. 2.1 means 210%)
+            return n;
+          };
+
+
+          const fmtInt = (n) =>
+            new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n);
+
+          const fmtMoneyEndDollar = (v) => {
+            const n = cleanNum(v);
+            if (n == null) return null;
+            return fmtInt(n) + '$';
+          };
+
+          const fmtPercentDP = (v, dp = PERCENT_DECIMALS) => {
+            const r = toRatio(v);
+            if (r == null) return null;
+            return (r * 100).toFixed(dp) + '%';
+          };
+
+          // Use the exact labels and types you specifie
+
+            const items = [
+    { label: 'Jobs Completed',                 value: item.jobsCompleted,               type: 'number'   },
+    { label: 'Recalls Caused',                 value: item.recallsCaused,               type: 'number'   },
+    { label: 'Billable Efficiency',            value: item.billableEfficiency,     type: 'percent'  },
+    { label: 'Average Install',                value: item.averageInstall, type: 'money' },
+  ]
+
+          return items.map(s => {
+            let formattedValue;
+            if (s.type === 'percent') {
+              formattedValue = fmtPercentDP(s.value);
+            } else if (s.type === 'money') {
+              formattedValue = fmtMoneyEndDollar(s.value);
+            } else {
+              const n = cleanNum(s.value);
+              formattedValue = n == null ? null : fmtInt(n);
+            }
+            
+            return { 
+              label: s.label, 
+              type: s.type, 
+              value: formattedValue,
+              cssClass: s.type
+            };
+          })
+          .filter(s => s.value !== null);
+        })();
+        
+        const initials = item.name ? item.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
+        
+        return `
+          <div class="tech-card">
+            <div class="card-header">
+              <div class="tech-info">
+                <h3 class="tech-name">${item.name || 'Unknown'}</h3>
+                <p class="tech-bu">${item.businessUnit || ''}</p>
+              </div>
+              <div class="tech-rank">#${index + 1}</div>
+            </div>
+            
+            <div class="card-content">
+              ${imageUrl ? 
+                `<img class="tech-image" src="${imageUrl}" alt="${item.name}" />` : 
+                `<div class="image-placeholder">${initials}</div>`
+              }
+              <div class="revenue-section">
+                <p class="revenue-label">Total Revenue</p>
+                <p class="revenue-amount">
+                  ${Number(item.installedRevenue || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}$
+                </p>
+              </div>
+            </div>
+            
+            <div class="metrics-grid">
+              ${metrics.map(metric => `
+                <div class="metric-row">
+                  <span class="metric-label">${metric.label}</span>
+                  <span class="metric-value ${metric.cssClass}">${metric.value}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    })()}}
+  </div>
+</div>

@@ -1,0 +1,72 @@
+name: Refresh Snapshots
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+concurrency:
+  group: refresh-snapshots
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      APP_TIMEZONE: ${{ vars.APP_TIMEZONE }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      RETOOL_DATABASE_URL: ${{ secrets.RETOOL_DATABASE_URL }}
+      AUTH_COOKIE_SECRET: ${{ secrets.AUTH_COOKIE_SECRET }}
+      AUTH_DEFAULT_ADMIN_EMAIL: ${{ secrets.AUTH_DEFAULT_ADMIN_EMAIL }}
+      AUTH_DEFAULT_ADMIN_PASSWORD: ${{ secrets.AUTH_DEFAULT_ADMIN_PASSWORD }}
+      NEXT_PUBLIC_APP_NAME: ${{ vars.NEXT_PUBLIC_APP_NAME }}
+      NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+      SERVICETITAN_CLIENT_ID: ${{ secrets.SERVICETITAN_CLIENT_ID }}
+      SERVICETITAN_CLIENT_SECRET: ${{ secrets.SERVICETITAN_CLIENT_SECRET }}
+      SERVICETITAN_APP_KEY: ${{ secrets.SERVICETITAN_APP_KEY }}
+      SERVICETITAN_TENANT_ID: ${{ secrets.SERVICETITAN_TENANT_ID }}
+      ST_REPORT_TECHNICIANS: ${{ vars.ST_REPORT_TECHNICIANS }}
+      ST_REPORT_INSTALLERS: ${{ vars.ST_REPORT_INSTALLERS }}
+      ST_REPORT_ADVISORS: ${{ vars.ST_REPORT_ADVISORS }}
+      ST_REPORT_CALL_CENTER_SOURCE: ${{ vars.ST_REPORT_CALL_CENTER_SOURCE }}
+      ST_REPORT_CALL_CENTER_PERFORMANCE: ${{ vars.ST_REPORT_CALL_CENTER_PERFORMANCE }}
+      ST_REPORT_LEADS: ${{ vars.ST_REPORT_LEADS }}
+      ST_REPORT_CAMPAIGNS: ${{ vars.ST_REPORT_CAMPAIGNS }}
+      ST_REPORT_BOOKING_RATE: ${{ vars.ST_REPORT_BOOKING_RATE }}
+      ST_REPORT_TRENDING: ${{ vars.ST_REPORT_TRENDING }}
+      ST_REPORT_SALES: ${{ vars.ST_REPORT_SALES }}
+      ST_REPORT_REVENUE_MONTHLY_PACE: ${{ vars.ST_REPORT_REVENUE_MONTHLY_PACE }}
+      ST_REPORT_CAPACITY_CATEGORY: ${{ vars.ST_REPORT_CAPACITY_CATEGORY }}
+      ST_REPORT_CAPACITY_ID: ${{ vars.ST_REPORT_CAPACITY_ID }}
+      ST_REPORT_JOB_COSTING_CATEGORY: ${{ vars.ST_REPORT_JOB_COSTING_CATEGORY }}
+      ST_REPORT_JOB_COSTING_ID: ${{ vars.ST_REPORT_JOB_COSTING_ID }}
+      ST_REPORT_REVENUE_GOALS_CATEGORY: ${{ vars.ST_REPORT_REVENUE_GOALS_CATEGORY }}
+      ST_REPORT_REVENUE_GOALS_ID: ${{ vars.ST_REPORT_REVENUE_GOALS_ID }}
+      ST_BU_INSTALLERS: ${{ vars.ST_BU_INSTALLERS }}
+      ST_BU_ADVISORS: ${{ vars.ST_BU_ADVISORS }}
+      ST_BU_COMPANY: ${{ vars.ST_BU_COMPANY }}
+      ASSET_FOLDER_TECHNICIAN_PHOTOS: ${{ vars.ASSET_FOLDER_TECHNICIAN_PHOTOS }}
+      ASSET_FOLDER_LOGOS: ${{ vars.ASSET_FOLDER_LOGOS }}
+      R2_PUBLIC_BASE_URL: ${{ vars.R2_PUBLIC_BASE_URL }}
+      R2_TECHNICIAN_PHOTO_EXT: ${{ vars.R2_TECHNICIAN_PHOTO_EXT }}
+      R2_TECHNICIAN_PHOTO_NAME_STYLE: ${{ vars.R2_TECHNICIAN_PHOTO_NAME_STYLE }}
+      R2_LOGO_KEY: ${{ vars.R2_LOGO_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+      - run: pnpm sync:remote

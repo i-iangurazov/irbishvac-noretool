@@ -1,0 +1,15 @@
+node_modules
+.turbo
+.next
+dist
+coverage
+.pnpm-store
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+generated/*.tmp.json
+packages/db/generated
+packages/db/prisma/migrations
+playwright-report
+test-results

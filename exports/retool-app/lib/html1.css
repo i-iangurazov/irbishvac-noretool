@@ -1,0 +1,144 @@
+/* ========= Light theme trending chart (with visible grid at 0/500k/1M/1.5M/2M) ========= */
+.trend-card{
+  --text:#1b2832; --muted:#6a7a88; --axis:#6b7280;
+  --grid:#d7dee9;            /* more contrast than before */
+  --grid-strong:#bcc6d6;     /* midline */
+  --tooltip-bg:#111111; --tooltip-fg:#ffffff;
+  background:#fff; color:var(--text);
+  border-radius:16px; padding:14px 16px 18px;
+  box-shadow:0 6px 22px rgba(16,24,40,.08);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  position:relative; z-index:0;
+}
+
+/* Legend (optional) */
+.trend-legend{ display:flex; flex-wrap:wrap; gap:10px 12px; margin:0 0 10px; }
+.legend-chip{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.05); }
+.legend-chip.past{ background:#f7f8fb; color:#7f8b98; opacity:.8; filter:saturate(.85) brightness(.98); }
+.legend-chip.curr{ background:#eef8f6; color:#2a6f68; opacity:.98; filter:saturate(1.15) contrast(1.06); }
+.chip-swatch{ width:14px; height:6px; border-radius:999px; display:inline-block; }
+
+/* Layout */
+.trend-body{ display:grid; grid-template-columns:56px 1fr; gap:12px; min-height:280px; }
+.y-axis{ display:flex; flex-direction:column; justify-content: space-around; }
+.y-axis span{ color:var(--axis); font-size:12px; text-align:right; }
+
+/* Plot panel */
+.plot{
+  position:relative; padding:10px; border-radius:16px;
+  background:#f7f9fc; box-shadow: inset 0 0 0 1px rgba(0,0,0,.04);
+  overflow:visible; z-index:0;
+}
+
+/* ===== GRID: 5 lines (Top=2M → Bottom=0) ===== */
+.grid{
+  width: 100%;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+  position:absolute; /* leave room for labels */
+  display:flex; flex-direction:column; justify-content: space-around;
+  pointer-events:none;
+  z-index:0; /* above bars, below tooltips */
+}
+.grid > div{ height:1px; background:var(--grid); }
+.grid > div:nth-child(3){ background:var(--grid-strong); } /* 1M midline */
+.grid > div:first-child,
+.grid > div:last-child{ opacity:.95; } /* top & baseline a touch stronger */
+
+/* Months lane */
+.months{
+  display:grid; grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:18px; align-items:end; height:260px; overflow:visible;
+  transform: translateY(8px);
+}
+.month{ display:flex; flex-direction:column; align-items:center; gap:5px; padding:0 2px; }
+.bars{
+  display:grid; grid-auto-flow:column; grid-auto-columns:14px;
+  gap:5px; align-items:end; width:100%; height:220px; overflow:visible; position:relative;
+}
+
+/* Bars (container + ink) */
+.bar{
+  position:relative;
+  height: calc(var(--h) + 2px);   /* transformer sets --h using a FIXED 2,000,000 scale */
+  width:100%;
+  z-index:0;          /* raised on hover */
+}
+.bar .ink{
+  position:absolute; inset:0;
+  background: currentColor;
+  border-radius:10px;            /* rounder bars look crisper over grid */
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.12);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease, opacity .15s ease;
+  z-index:1;                     /* below tooltip, above panel */
+}
+.bar:hover{ z-index:2000; }
+.bar:hover .ink{
+  transform: translateY(-2px);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.1), 0 8px 16px rgba(0,0,0,.18);
+}
+
+/* Fade past year, boost current (ink only so tooltip remains crisp) */
+.bar.y2024 .ink{ opacity:.35; filter:saturate(.75) brightness(.98); }
+.bar.y2025 .ink{ opacity:1;    filter:saturate(1.2) contrast(1.06); }
+
+/* X labels */
+.x{ color:#6b7280; font-weight:800; font-size:12px; letter-spacing:.3px; text-transform:uppercase; }
+
+/* Tooltips (on bar container; above grid/bars) */
+.bar[data-tip]::after{
+  content: attr(data-tip);
+  position:absolute; left:50%; bottom:100%;
+  transform: translate(-50%, -8px);
+  background: var(--tooltip-bg); color: var(--tooltip-fg);
+  font-size:11px; font-weight:800; line-height:1;
+  padding:6px 8px; border-radius:6px; white-space:nowrap;
+  box-shadow:0 8px 18px rgba(0,0,0,.25);
+  opacity:0; pointer-events:none; transition:opacity .12s ease, transform .12s ease;
+  z-index:2500;
+}
+.bar[data-tip]::before{
+  content:""; position:absolute; left:50%; bottom:100%;
+  transform: translate(-50%, -2px);
+  border:6px solid transparent; border-top-color: var(--tooltip-bg);
+  opacity:0; transition: opacity .12s ease; z-index:2499;
+}
+.bar[data-tip]:hover::after{ opacity:1; transform: translate(-50%, -10px); }
+.bar[data-tip]:hover::before{ opacity:1; }
+
+.goal-line{
+  position:absolute;
+  left:-4px; right:-4px;          /* bleed a tiny bit for visibility */
+  height:4px;
+  background:#34C924;             /* light green */
+  box-shadow:0 0 0px 0px rgba(0,0,0,.9), 0 1px 3px rgba(0,0,0,.12);
+  bottom: calc(var(--y) - 5px);               /* --y set in transformer as a % of scale */
+  z-index:250;                   /* above bars, below tooltip */
+  border-radius:2px;
+  border: 1px solid #0A5F38;
+}
+
+/* Tooltip for goal line (reuse the same tooltip pattern) */
+.goal-line[data-tip]::after{
+  content: attr(data-tip);
+  position:absolute; left:50%; bottom:100%;
+  transform: translate(-50%, -8px);
+  background: var(--tooltip-bg); color: var(--tooltip-fg);
+  font-size:11px; font-weight:800; line-height:1;
+  padding:6px 8px; border-radius:6px; white-space:nowrap;
+  box-shadow:0 8px 18px rgba(0,0,0,.25);
+  opacity:0; pointer-events:none; transition:opacity .12s ease, transform .12s ease;
+}
+.goal-line[data-tip]::before{
+  content:""; position:absolute; left:50%; bottom:100%;
+  transform: translate(-50%, -2px);
+  border:6px solid transparent; border-top-color: var(--tooltip-bg);
+  opacity:0; transition:opacity .12s ease;
+}
+.goal-line:hover::after{ opacity:1; transform: translate(-50%, -10px); }
+.goal-line:hover::before{ opacity:1; }
+
+/* Responsive tweaks */
+@media (max-width:10000px){ .bars{ grid-auto-columns:12px; gap:5px; } .months{ gap:12px; } }
+@media (max-width:10000px){ .trend-body{ grid-template-columns:44px 1fr; } .bars{ grid-auto-columns:10px; gap:4px; } .months{ gap:10px; } }

@@ -1,0 +1,402 @@
+{
+  "button26": {
+    "row": 2,
+    "col": 7,
+    "height": 1,
+    "width": 1
+  },
+  "button27": {
+    "subcontainer": "drawerFrame1",
+    "row": 3.6,
+    "col": 7,
+    "height": 1,
+    "width": 5
+  },
+  "button8": {
+    "row": 1,
+    "col": 11,
+    "height": 1,
+    "width": 1
+  },
+  "button9": {
+    "col": 11,
+    "height": 1,
+    "width": 1
+  },
+  "container38": {
+    "row": 3.2,
+    "height": 0.2,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "container39": {
+    "row": 3.2,
+    "col": 5,
+    "height": 0.2,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "container40": {
+    "row": 3.6,
+    "col": 8,
+    "height": 0.2,
+    "width": 4,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "container41": {
+    "row": 3.2,
+    "col": 3,
+    "height": 0.2,
+    "width": 2,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "container9": {
+    "container": "listView9",
+    "height": 1,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "containerTitle20": {
+    "container": "container38",
+    "rowGroup": "header",
+    "height": 0.6,
+    "width": 12
+  },
+  "containerTitle21": {
+    "container": "container39",
+    "rowGroup": "header",
+    "height": 0.6,
+    "width": 12
+  },
+  "containerTitle23": {
+    "container": "container40",
+    "rowGroup": "header",
+    "height": 0.6,
+    "width": 12
+  },
+  "containerTitle24": {
+    "container": "container41",
+    "rowGroup": "header",
+    "height": 0.6,
+    "width": 12
+  },
+  "containerTitle5": {
+    "container": "container9",
+    "rowGroup": "header",
+    "height": 0.6,
+    "width": 12
+  },
+  "date7": {
+    "row": 0.2,
+    "col": 9,
+    "height": 0.2,
+    "width": 2
+  },
+  "date8": {
+    "col": 9,
+    "height": 0.2,
+    "width": 2
+  },
+  "drawerCloseButton1": {
+    "rowGroup": "header",
+    "subcontainer": "drawerFrame1",
+    "col": 9,
+    "height": 1
+  },
+  "drawerTitle1": {
+    "rowGroup": "header",
+    "subcontainer": "drawerFrame1",
+    "height": 0.6,
+    "width": 9
+  },
+  "html1": {
+    "row": 3,
+    "height": 0.2,
+    "width": 8
+  },
+  "html3": {
+    "row": 3.2,
+    "col": 8,
+    "height": 0.2,
+    "width": 4
+  },
+  "html4": {
+    "row": 3.4,
+    "col": 8,
+    "height": 0.2,
+    "width": 4
+  },
+  "html5": {
+    "row": 3,
+    "col": 8,
+    "height": 0.2,
+    "width": 4
+  },
+  "image4": {
+    "height": 2,
+    "width": 1
+  },
+  "listView9": {
+    "container": "container39",
+    "subcontainer": "00030",
+    "row": 0.6,
+    "height": 1,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 1,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "navigation3": {
+    "col": 1,
+    "height": 2,
+    "width": 8
+  },
+  "numberInput1": {
+    "subcontainer": "drawerFrame1",
+    "row": 1.8,
+    "height": 0.2,
+    "width": 12
+  },
+  "pieChart1": {
+    "container": "container38",
+    "subcontainer": "00030",
+    "row": 0.6,
+    "height": 6.8,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "progressBar1": {
+    "type": "stack",
+    "container": "container9",
+    "subcontainer": "00030",
+    "row": 0.6,
+    "height": 0.4,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 329,
+        "height": 40
+      }
+    }
+  },
+  "progressCircle1": {
+    "container": "container41",
+    "subcontainer": "00030",
+    "row": 0.6,
+    "height": 4.2,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "select1": {
+    "subcontainer": "drawerFrame1",
+    "height": 0.2,
+    "width": 12
+  },
+  "text13": {
+    "type": "stack",
+    "container": "container9",
+    "subcontainer": "00030",
+    "height": 0.6,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 1,
+        "widthType": "fixed",
+        "width": 330,
+        "height": 48
+      }
+    }
+  },
+  "text15": {
+    "container": "container38",
+    "subcontainer": "00030",
+    "height": 0.6,
+    "width": 11,
+    "stackPosition": {
+      "object": {
+        "ordinal": 1,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "text17": {
+    "container": "container40",
+    "subcontainer": "00030",
+    "row": 0,
+    "height": 0.6,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "text18": {
+    "container": "container40",
+    "subcontainer": "00030",
+    "row": 1.2,
+    "height": 0.6,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 1,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "text19": {
+    "container": "container40",
+    "subcontainer": "00030",
+    "row": 0.6,
+    "height": 0.6,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 2,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "text20": {
+    "container": "container40",
+    "subcontainer": "00030",
+    "row": 1.8,
+    "height": 0.6,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 3,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "text21": {
+    "container": "container41",
+    "subcontainer": "00030",
+    "row": 4.8,
+    "height": 0.6,
+    "width": 6,
+    "stackPosition": {
+      "object": {
+        "ordinal": 2,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "text22": {
+    "container": "container41",
+    "subcontainer": "00030",
+    "row": 4.8,
+    "col": 6,
+    "height": 0.6,
+    "width": 6,
+    "stackPosition": {
+      "object": {
+        "ordinal": 3,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "text30": {
+    "container": "container39",
+    "subcontainer": "00030",
+    "height": 0.6,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 0,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  },
+  "text31": {
+    "row": 2,
+    "height": 0.6,
+    "width": 2
+  },
+  "text68": {
+    "container": "container41",
+    "subcontainer": "00030",
+    "height": 0.6,
+    "width": 12,
+    "stackPosition": {
+      "object": {
+        "ordinal": 1,
+        "widthType": "fixed",
+        "width": 0,
+        "height": 0
+      }
+    }
+  }
+}

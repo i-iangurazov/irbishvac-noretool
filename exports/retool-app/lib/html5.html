@@ -1,0 +1,93 @@
+<div class="sales-summary">
+  <div class="header">SALES</div>
+
+  <!-- 4 sums only: Today & Yesterday -->
+  <div class="rows">
+    <!-- Today -->
+    <div class="panel">
+      <div class="panel-title">Today</div>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">Total Sales</div>
+          <div class="kpi-value">
+            ${{
+              new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+                .format(getSalesDB.data?.totals?.totalSales ?? 0)
+            }}
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value kpi-accent">
+            {{
+              new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+                .format(getSalesDB.data?.totals?.totalRevenue ?? 0)
+            }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Yesterday -->
+    <div class="panel">
+      <div class="panel-title">Yesterday</div>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">Total Sales</div>
+          <div class="kpi-value">
+            ${{
+              new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+                .format(getSalesDB2.data?.totals?.totalSales ?? 0)
+            }}
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Total Revenue</div>
+          <div class="kpi-value kpi-accent">
+            {{
+              new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+                .format(getSalesDB2.data?.totals?.totalRevenue ?? 0)
+            }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .sales-summary{
+    --bg:#fff; --text:#1b2832; --muted:#6a7a88; --accent:#FF6200;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 6px 22px rgba(16,24,40,0.08);
+  }
+
+  .header{
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  .rows{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .panel{ background:#f9fbfd; border-radius:12px; padding:12px; }
+  .panel-title{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px; font-weight: bolder; text-align: center; }
+
+  .kpis{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .kpi{ display:flex; flex-direction:column; gap:4px; }
+  .kpi-label{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px; }
+  .kpi-value{ font-weight:800; font-size:18px; }
+  .kpi-accent{ color: var(--accent); }
+
+  .foot{ margin-top:8px; font-size:12px; color:var(--muted); }
+
+  @media (max-width:420px){
+    .rows{ grid-template-columns: 1fr; }
+    .kpi-value{ font-size:16px; }
+  }
+</style>

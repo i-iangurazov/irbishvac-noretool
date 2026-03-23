@@ -1,0 +1,23 @@
+<div class="trend-card">
+  <!-- Legend -->
+  <div class="trend-legend">
+    <span class="legend-chip past"><i class="chip-swatch" style="background:#8B4513"></i>2024 Sales</span>
+    <span class="legend-chip past"><i class="chip-swatch" style="background:#4a90e2"></i>2024 Revenue</span>
+    <span class="legend-chip curr"><i class="chip-swatch" style="background:#ff6b35"></i>2025 Sales</span>
+    <span class="legend-chip curr"><i class="chip-swatch" style="background:#20b2aa"></i>2025 Revenue</span>
+  </div>
+
+  <div class="trend-body">
+    <div class="y-axis">
+      {{ getTrending.data.yLabels }}
+    </div>
+
+    <div class="plot">
+      <div class="grid"><div></div><div></div><div></div><div></div><div></div></div>
+
+      <div class="months">
+        {{ getTrending.data.html }}
+      </div>
+    </div>
+  </div>
+</div>

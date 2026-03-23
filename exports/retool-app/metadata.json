@@ -1,0 +1,41 @@
+{
+  "toolscriptVersion": "1.0.0",
+  "version": "43.0.9",
+  "pageUuid": "89a2f672-5e5b-11f0-bc46-d7bee0272baf",
+  "appTemplate": {
+    "appMaxWidth": "100%",
+    "appThemeId": "custom",
+    "preloadedAppJavaScript": "",
+    "pageCodeFolders": {
+      "object": {
+        "page2": {
+          "array": []
+        },
+        "page3": {
+          "array": []
+        },
+        "page1": {
+          "array": []
+        },
+        "page4": {
+          "array": []
+        },
+        "page6": {
+          "array": []
+        },
+        "page7": {
+          "array": []
+        },
+        "page8": {
+          "array": []
+        },
+        "page9": {
+          "array": []
+        }
+      }
+    },
+    "rootScreen": "page1",
+    "appThemeName": "Custom app theme",
+    "version": "3.321.0"
+  }
+}

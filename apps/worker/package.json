@@ -1,0 +1,22 @@
+{
+  "name": "@irbis/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@irbis/config": "workspace:*",
+    "@irbis/db": "workspace:*",
+    "@irbis/domain": "workspace:*",
+    "@irbis/integrations": "workspace:*",
+    "@irbis/utils": "workspace:*",
+    "bullmq": "^5.41.5",
+    "ioredis": "^5.4.2"
+  }
+}
