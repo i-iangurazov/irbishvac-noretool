@@ -2,11 +2,13 @@
   "name": "@irbis/api",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "dev": "tsx watch src/main.ts",
-    "start": "node dist/main.js",
+    "start:source": "tsx --tsconfig tsconfig.json src/main.ts",
+    "start": "node dist/apps/api/src/main.js",
+    "start:prod": "node dist/apps/api/src/main.js",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
