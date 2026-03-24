@@ -112,8 +112,10 @@ export class HealthService {
       this.checkSnapshots()
     ]);
 
+    const dependenciesOk = database.ok && redis.ok;
     const payload = {
-      ok: database.ok && redis.ok && snapshots.ok,
+      ok: dependenciesOk,
+      degraded: dependenciesOk && !snapshots.ok,
       timestamp: new Date().toISOString(),
       checks: {
         database,
@@ -122,7 +124,7 @@ export class HealthService {
       }
     };
 
-    if (!payload.ok) {
+    if (!dependenciesOk) {
       throw new ServiceUnavailableException(payload);
     }
 
