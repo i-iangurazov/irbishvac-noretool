@@ -8,6 +8,11 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        "3xl": "1800px",
+        "4xl": "2200px",
+        "5xl": "3000px"
+      },
       fontFamily: {
         sans: ["var(--font-montserrat)"]
       }

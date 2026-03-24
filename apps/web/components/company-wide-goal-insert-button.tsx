@@ -103,7 +103,7 @@ export function CompanyWideGoalInsertButton({
   return (
     <>
       <button
-        className="inline-flex items-center rounded-[0.8rem] bg-[#0c4d5b] px-4 py-2 text-[0.85rem] font-bold text-white shadow-[0_10px_20px_rgba(12,77,91,0.18)] transition hover:bg-[#0a4250]"
+        className="company-goal-insert-button inline-flex items-center rounded-[0.8rem] bg-[#0c4d5b] px-4 py-2 text-[0.85rem] font-bold text-white shadow-[0_10px_20px_rgba(12,77,91,0.18)] transition hover:bg-[#0a4250]"
         onClick={() => setOpen(true)}
         type="button"
       >

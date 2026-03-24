@@ -7,3 +7,6 @@ export * from "./components/filter-bar";
 export * from "./components/goal-tracker-card";
 export * from "./components/kpi-card";
 export * from "./components/leaderboard-card";
+export * from "./components/tv-fullscreen-button";
+export * from "./components/tv-rotation-runtime";
+export * from "./components/tv-settings-modal";
