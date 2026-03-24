@@ -3,7 +3,13 @@ import { GoalsService, type GoalTrackerDto } from "./goals.service";
 
 @Controller("dashboard/goals")
 export class GoalsController {
-  constructor(private readonly goalsService: GoalsService) {}
+  private readonly goalsService: GoalsService;
+
+  constructor(goalsService: GoalsService) {
+    this.goalsService = goalsService;
+    this.list = this.list.bind(this);
+    this.upsert = this.upsert.bind(this);
+  }
 
   @Get()
   async list(@Query("year") year?: string): Promise<GoalTrackerDto[]> {

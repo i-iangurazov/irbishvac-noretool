@@ -3,7 +3,13 @@ import { HealthService } from "./health.service";
 
 @Controller("health")
 export class HealthController {
-  constructor(private readonly healthService: HealthService) {}
+  private readonly healthService: HealthService;
+
+  constructor(healthService: HealthService) {
+    this.healthService = healthService;
+    this.getHealth = this.getHealth.bind(this);
+    this.getReadiness = this.getReadiness.bind(this);
+  }
 
   @Get()
   getHealth() {
