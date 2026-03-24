@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import {
   DashboardFamily,
   prisma,
@@ -66,7 +66,11 @@ export class DashboardService {
   private readonly logger = createLogger("api-dashboard-service");
   private readonly reportDefinitions = getServiceTitanReportDefinitions();
 
-  constructor(private readonly refreshService?: DashboardRefreshService) {}
+  constructor(
+    @Optional()
+    @Inject(DashboardRefreshService)
+    private readonly refreshService?: DashboardRefreshService,
+  ) {}
 
   private async safeQuery<T>(operation: string, fallback: T, query: () => Promise<T>): Promise<T> {
     try {

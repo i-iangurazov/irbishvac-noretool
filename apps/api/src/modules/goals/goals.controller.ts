@@ -1,11 +1,11 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Post, Query } from "@nestjs/common";
 import { GoalsService, type GoalTrackerDto } from "./goals.service";
 
 @Controller("dashboard/goals")
 export class GoalsController {
   private readonly goalsService: GoalsService;
 
-  constructor(goalsService: GoalsService) {
+  constructor(@Inject(GoalsService) goalsService: GoalsService) {
     this.goalsService = goalsService;
     this.list = this.list.bind(this);
     this.upsert = this.upsert.bind(this);
