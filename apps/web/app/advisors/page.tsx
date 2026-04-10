@@ -7,18 +7,24 @@ type AdvisorsPageProps = {
 };
 
 export default async function AdvisorsPage({ searchParams }: AdvisorsPageProps) {
-  const filters = await resolveDashboardFilters(searchParams, "America/Los_Angeles");
+  const filters = await resolveDashboardFilters(
+    searchParams,
+    "America/Los_Angeles",
+    "/advisors",
+  );
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;
       totalSales: number;
       closedAverageSale: number;
+      closedOpportunitiesCount: number;
       closeRateRolling: number;
       salesOpportunitiesCount: number;
     }>;
     totals: {
       totalSales: number;
       totalOpportunities: number;
+      totalClosedOpportunities: number;
       weightedCloseRate: number;
       weightedClosedAverageSale: number;
     };
@@ -44,7 +50,7 @@ export default async function AdvisorsPage({ searchParams }: AdvisorsPageProps) 
         valueLabel: "Sales",
         value: compactMoney(row.totalSales),
         stats: [
-          { label: "Avg Sale", value: compactMoney(row.closedAverageSale) },
+          { label: "Closed Avg Sale", value: compactMoney(row.closedAverageSale) },
           { label: "Close Rate", value: ratio(row.closeRateRolling) },
           { label: "Opportunities", value: String(row.salesOpportunitiesCount) }
         ]

@@ -1,5 +1,7 @@
-import { formatCompactCurrency } from "@irbis/utils";
+import { formatCompactCurrency, formatCurrency } from "@irbis/utils";
 import {
+  type NormalizedRow,
+  type ServiceTitanField,
   pickFirst,
   resolveTabularReport,
   sumBy,
@@ -11,6 +13,90 @@ type MarketingRow = {
   value: number;
   groupKey: string;
 };
+
+const REVENUE_MONTHLY_PACE_ALIASES = ["CurrentMonthlyPace", "Current Monthly Pace"];
+const SALES_TOTAL_ALIASES = ["TotalSales", "Total Sales"];
+const GROSS_MARGIN_ALIASES = [
+  "GrossMargin",
+  "Gross Margin",
+  "GrossMarginDollars",
+  "TotalGrossMargin",
+  "JobsGrossMargin",
+  "Jobs Gross Margin",
+  "GrossProfit",
+  "Gross Profit",
+  "Gross_Profit",
+  "Margin"
+];
+const GROSS_MARGIN_REVENUE_ALIASES = [
+  "Total",
+  "TotalRevenue",
+  "CompletedRevenue",
+  "Revenue",
+  "JobRevenue"
+];
+const GROSS_MARGIN_COST_ALIASES = [
+  "TotalCosts",
+  "Total Costs",
+  "TotalCost",
+  "Total Cost",
+  "JobCosts",
+  "Job Costs",
+  "Cost"
+];
+const GROSS_MARGIN_LABOR_ALIASES = ["LaborPay", "Labor Pay"];
+
+function normalizeMetricKey(value: string) {
+  return value.replace(/[^a-z0-9]/gi, "").toLowerCase();
+}
+
+function resolveFieldName(
+  fields: ServiceTitanField[],
+  aliases: readonly string[],
+): string | null {
+  const normalizedFields = fields.map((field) => ({
+    name: field.name,
+    candidates: [field.name, field.label]
+      .filter((candidate): candidate is string => typeof candidate === "string")
+      .map(normalizeMetricKey)
+  }));
+
+  for (const alias of aliases) {
+    const normalizedAlias = normalizeMetricKey(alias);
+    const exactMatch = normalizedFields.find((field) =>
+      field.candidates.some((candidate) => candidate === normalizedAlias),
+    );
+
+    if (exactMatch) {
+      return exactMatch.name;
+    }
+  }
+
+  for (const alias of aliases) {
+    const normalizedAlias = normalizeMetricKey(alias);
+    const partialMatch = normalizedFields.find((field) =>
+      field.candidates.some(
+        (candidate) => candidate.includes(normalizedAlias),
+      ),
+    );
+
+    if (partialMatch) {
+      return partialMatch.name;
+    }
+  }
+
+  return null;
+}
+
+function readNumberFromRow(row: NormalizedRow, fieldName: string | null, aliases: readonly string[]) {
+  if (fieldName) {
+    const value = row[fieldName];
+    return value == null || value === "" ? null : toNumber(value);
+  }
+
+  const fallbackValue = pickFirst(row, [...aliases]);
+  return fallbackValue == null ? null : toNumber(fallbackValue);
+}
 
 export function buildMarketingDonut(
   input: unknown,
@@ -211,11 +297,16 @@ export function buildBookingRateSummary(input: unknown) {
 
 export function buildRevenueMonthlyPace(input: unknown) {
   const report = resolveTabularReport(input);
-  const value = sumBy(report.rows, (row) => toNumber(row.CurrentMonthlyPace));
+  const sourceField = resolveFieldName(report.fields, REVENUE_MONTHLY_PACE_ALIASES);
+  const value = sumBy(report.rows, (row) =>
+    readNumberFromRow(row, sourceField, REVENUE_MONTHLY_PACE_ALIASES) ?? 0,
+  );
 
   return {
     value,
-    formatted: formatCompactCurrency(value),
+    formatted: formatCurrency(value),
+    source: "upstream-current-monthly-pace" as const,
+    sourceField,
     snapshotTime: report.snapshotTime
   };
 }
@@ -229,11 +320,14 @@ export function buildSalesMonthlyPace(
   },
 ) {
   const report = resolveTabularReport(input);
-  const totalSalesToDate = sumBy(report.rows, (row) => toNumber(row.TotalSales));
+  const totalSalesField = resolveFieldName(report.fields, SALES_TOTAL_ALIASES);
+  const totalSalesToDate = sumBy(report.rows, (row) =>
+    readNumberFromRow(row, totalSalesField, SALES_TOTAL_ALIASES) ?? 0,
+  );
   const daysInMonth = options?.daysInMonth ?? 30;
   const businessDayOfMonth = options?.businessDayOfMonth ?? daysInMonth;
-  const fromDay = options?.fromDay ?? 2;
-  const daysPast = Math.max(1, businessDayOfMonth - (fromDay - 1));
+  const fromDay = options?.fromDay ?? 1;
+  const daysPast = Math.max(1, businessDayOfMonth - fromDay + 1);
   const pace = totalSalesToDate * (daysInMonth / daysPast);
 
   return {
@@ -242,7 +336,9 @@ export function buildSalesMonthlyPace(
     daysInMonth,
     fromDay,
     pace,
-    paceFormatted: formatCompactCurrency(pace),
+    paceFormatted: formatCurrency(pace),
+    source: "derived-total-sales" as const,
+    sourceField: totalSalesField,
     snapshotTime: report.snapshotTime
   };
 }
@@ -355,18 +451,39 @@ export function buildSalesSummary(input: unknown) {
 export function buildJobCostingSummary(input: unknown, monthlyGoal = 500_000) {
   const report = resolveTabularReport(input);
   const rows = report.rows;
+  const grossMarginField = resolveFieldName(report.fields, GROSS_MARGIN_ALIASES);
+  const revenueField = resolveFieldName(report.fields, GROSS_MARGIN_REVENUE_ALIASES);
+  const costField = resolveFieldName(report.fields, GROSS_MARGIN_COST_ALIASES);
+  const laborField = resolveFieldName(report.fields, GROSS_MARGIN_LABOR_ALIASES);
 
-  const monthToDate = sumBy(rows, (row) =>
-    toNumber(
-      pickFirst(row, ["GrossMargin", "GrossMarginDollars", "TotalGrossMargin", "CompletedRevenue"]),
-    ),
-  );
+  const monthToDate = sumBy(rows, (row) => {
+    const directGrossMargin = readNumberFromRow(row, grossMarginField, GROSS_MARGIN_ALIASES);
+
+    if (directGrossMargin != null) {
+      return directGrossMargin;
+    }
+
+    const revenue = readNumberFromRow(row, revenueField, GROSS_MARGIN_REVENUE_ALIASES);
+    const costs = readNumberFromRow(row, costField, GROSS_MARGIN_COST_ALIASES);
+
+    if (revenue == null || costs == null) {
+      return 0;
+    }
+
+    const labor = readNumberFromRow(row, laborField, GROSS_MARGIN_LABOR_ALIASES) ?? 0;
+    return revenue - costs - labor;
+  });
 
   return {
     goal: monthlyGoal,
     mtd: monthToDate,
-    remainingToGoal: Math.max(monthlyGoal - monthToDate, 0),
-    percentToGoal: monthlyGoal > 0 ? Math.min(1, monthToDate / monthlyGoal) : 0,
+    remainingToGoal: monthlyGoal - monthToDate,
+    percentToGoal: monthlyGoal > 0 ? monthToDate / monthlyGoal : 0,
+    source:
+      grossMarginField != null
+        ? ("gross-margin-field" as const)
+        : ("revenue-minus-costs" as const),
+    sourceField: grossMarginField,
     snapshotTime: report.snapshotTime
   };
 }

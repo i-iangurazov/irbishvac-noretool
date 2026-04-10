@@ -21,7 +21,11 @@ function plainMetric(value: number) {
 }
 
 export default async function TechniciansPage({ searchParams }: TechniciansPageProps) {
-  const filters = await resolveDashboardFilters(searchParams, "America/Los_Angeles");
+  const filters = await resolveDashboardFilters(
+    searchParams,
+    "America/Los_Angeles",
+    "/technicians",
+  );
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;

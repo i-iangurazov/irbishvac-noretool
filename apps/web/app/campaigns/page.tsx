@@ -7,7 +7,11 @@ type CampaignsPageProps = {
 };
 
 export default async function CampaignsPage({ searchParams }: CampaignsPageProps) {
-  const filters = await resolveDashboardFilters(searchParams, "America/Los_Angeles");
+  const filters = await resolveDashboardFilters(
+    searchParams,
+    "America/Los_Angeles",
+    "/campaigns",
+  );
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;

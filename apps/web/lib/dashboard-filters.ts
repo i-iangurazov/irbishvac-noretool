@@ -26,6 +26,12 @@ export type DashboardFilterState = Pick<
   "preset" | "from" | "to" | "tvMode" | "kioskMode" | "rotateMode"
 >;
 
+export const DASHBOARD_ROTATION_PATHS = [
+  "/technicians",
+  "/advisors",
+  "/installers"
+] as const;
+
 function takeFirst(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -37,6 +43,14 @@ function parseBooleanFlag(value: string | undefined) {
 
   const normalized = value.trim().toLowerCase();
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+}
+
+export function supportsDashboardRotation(path: string) {
+  return DASHBOARD_ROTATION_PATHS.includes(path as (typeof DASHBOARD_ROTATION_PATHS)[number]);
+}
+
+export function getDashboardRotationNavItems<T extends { href: string }>(items: T[]) {
+  return items.filter((item) => supportsDashboardRotation(item.href));
 }
 
 export function buildPresetHref(
@@ -132,6 +146,14 @@ export function buildRotationHref(
   preset: DatePreset,
   enabled: boolean,
 ) {
+  if (!supportsDashboardRotation(path)) {
+    return buildDashboardHref(path, filters, {
+      preset,
+      tvMode: true,
+      rotateMode: false
+    });
+  }
+
   const params = new URLSearchParams({ preset });
   params.set("tv", "1");
 
@@ -149,12 +171,14 @@ export function buildRotationHref(
 export async function resolveDashboardFilters(
   searchParams: DashboardSearchParams | undefined,
   timeZone: string,
+  path?: string,
 ): Promise<ResolvedDashboardFilters> {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const preset = parseDatePreset(takeFirst(resolvedSearchParams.preset)) ?? "mtd";
   const tvMode = parseBooleanFlag(takeFirst(resolvedSearchParams.tv));
   const kioskMode = parseBooleanFlag(takeFirst(resolvedSearchParams.kiosk));
-  const rotateMode = parseBooleanFlag(takeFirst(resolvedSearchParams.rotate));
+  const rotateRequested = parseBooleanFlag(takeFirst(resolvedSearchParams.rotate));
+  const rotateMode = path && !supportsDashboardRotation(path) ? false : rotateRequested;
   const explicitFrom = takeFirst(resolvedSearchParams.from);
   const explicitTo = takeFirst(resolvedSearchParams.to);
   const range =

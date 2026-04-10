@@ -18,6 +18,7 @@ type DashboardShellProps = {
   tvMode?: boolean | undefined;
   kioskMode?: boolean | undefined;
   navQueryString?: string | undefined;
+  rotationNavItems?: NavItem[] | undefined;
   tvMenu?:
     | {
         enabled: boolean;
@@ -37,8 +38,12 @@ type DashboardShellProps = {
 };
 
 export function DashboardShell(props: DashboardShellProps) {
-  const activeItem = props.navItems.find((item) => item.href === props.activePath);
-  const navSections = props.navItems.reduce<Array<{ name: string; items: NavItem[] }>>((acc, item) => {
+  const activeItem = props.navItems.find(
+    (item) => item.href === props.activePath,
+  );
+  const navSections = props.navItems.reduce<
+    Array<{ name: string; items: NavItem[] }>
+  >((acc, item) => {
     const sectionName = item.section ?? "Dashboards";
     const section = acc.find((entry) => entry.name === sectionName);
 
@@ -54,38 +59,62 @@ export function DashboardShell(props: DashboardShellProps) {
   const navHrefFor = (href: string) =>
     props.navQueryString ? `${href}?${props.navQueryString}` : href;
   const menuContent = (
-    <nav className="dashboard-shell__menu absolute right-0 top-[calc(100%+0.5rem)] z-20 w-[20rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-[#e4ddd4] bg-white p-3 shadow-[0_18px_50px_rgba(0,54,62,0.12)] 3xl:w-[24rem] 3xl:p-4 4xl:w-[26rem] 5xl:w-[30rem] 5xl:p-5">
-      {navSections.map((section) => (
-        <div className="mb-3 last:mb-0" key={section.name}>
-          <div className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.28em] text-slate-500 3xl:text-[11px] 4xl:text-[12px] 5xl:text-[13px]">
-            {section.name}
-          </div>
-          <div className="grid gap-1">
-            {section.items.map((item) => {
-              const active = item.href === props.activePath;
-
-              return (
-                <a
-                  className={`dashboard-shell__menu-link rounded-xl px-3 py-2.5 text-sm transition 3xl:px-4 3xl:py-3.5 3xl:text-[1rem] 4xl:text-[1.08rem] 5xl:px-4.5 5xl:py-4 5xl:text-[1.16rem] ${
-                    active
-                      ? "bg-[#00363e] text-white"
-                      : "bg-[#f7f3ee] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
-                  }`}
-                  href={navHrefFor(item.href)}
-                  key={item.href}
-                >
-                  <div className="font-black">{item.label}</div>
-                </a>
-              );
-            })}
-          </div>
+    <nav
+      aria-label="Dashboard navigation"
+      className="dashboard-shell__menu absolute right-0 z-20 border border-[#e4ddd4] bg-white shadow-[0_18px_50px_rgba(0,54,62,0.12)]"
+    >
+      <div className="dashboard-shell__menu-header">
+        <div className="dashboard-shell__menu-eyebrow font-bold uppercase tracking-[0.28em] text-slate-500">
+          Dashboard Menu
         </div>
-      ))}
+        <div className="dashboard-shell__menu-current font-black tracking-tight text-[#182033]">
+          {activeItem?.label ?? props.title}
+        </div>
+        {activeItem?.section ? (
+          <div className="dashboard-shell__menu-current-section font-semibold text-slate-500">
+            {activeItem.section}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="dashboard-shell__menu-body">
+        {navSections.map((section) => (
+          <section className="dashboard-shell__menu-section" key={section.name}>
+            <div className="dashboard-shell__menu-section-title font-bold uppercase tracking-[0.28em] text-slate-500">
+              {section.name}
+            </div>
+            <div className="dashboard-shell__menu-grid grid">
+              {section.items.map((item) => {
+                const active = item.href === props.activePath;
+
+                return (
+                  <a
+                    className={`dashboard-shell__menu-link transition ${
+                      active
+                        ? "bg-[#00363e] text-white"
+                        : "bg-[#f7f3ee] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
+                    }`}
+                    href={navHrefFor(item.href)}
+                    key={item.href}
+                  >
+                    <div className="dashboard-shell__menu-link-label font-black">
+                      {item.label}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
 
       {props.tvMenu ? (
         <>
-          <div className="my-3 border-t border-[#eee5dc]" />
-          <div className="mb-1">
+          <div className="dashboard-shell__menu-divider" />
+          <section className="dashboard-shell__menu-tools">
+            <div className="dashboard-shell__menu-section-title font-bold uppercase tracking-[0.28em] text-slate-500">
+              Display Tools
+            </div>
             <TvSettingsModal
               enabled={props.tvMenu.enabled}
               kioskHref={props.tvMenu.kioskHref}
@@ -97,7 +126,7 @@ export function DashboardShell(props: DashboardShellProps) {
               rotateYtdHref={props.tvMenu.rotateYtdHref}
               toggleHref={props.tvMenu.toggleHref}
             />
-          </div>
+          </section>
         </>
       ) : null}
     </nav>
@@ -105,83 +134,83 @@ export function DashboardShell(props: DashboardShellProps) {
 
   return (
     <div
+      data-dashboard-shell="true"
       data-tv-mode={props.tvMode ? "true" : "false"}
       data-kiosk-mode={kioskMode ? "true" : "false"}
-      className={`bg-[linear-gradient(180deg,_#faf8f2_0%,_#f3efe7_100%)] text-slate-900 ${
-        props.tvMode ? "h-[100dvh] overflow-hidden" : "min-h-screen"
-      }`}
+      data-rotate-mode={props.tvMenu?.rotateMode ? "true" : "false"}
+      className="dashboard-shell h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#faf8f2_0%,_#f3efe7_100%)] text-slate-900"
     >
       <TvRotationRuntime
         activePath={props.activePath}
         enabled={Boolean(props.tvMode && props.tvMenu?.rotateMode)}
-        navItems={props.navItems}
+        navItems={props.rotationNavItems ?? props.navItems}
         presetQuery={props.navQueryString ?? ""}
       />
       <div
-        className={`dashboard-shell__inner mx-auto flex w-full flex-col ${
-          props.tvMode
-            ? "h-[100dvh] max-w-none overflow-hidden px-4 py-3 md:px-6 md:py-4 3xl:px-8 3xl:py-5 4xl:px-10 5xl:px-14"
-            : "min-h-screen max-w-[1660px] px-3 py-3 md:px-5 md:py-4 2xl:max-w-[1980px] 3xl:max-w-[2620px] 3xl:px-7 3xl:py-5 4xl:max-w-[3340px] 4xl:px-10 5xl:max-w-[3920px] 5xl:px-14"
+        className={`dashboard-shell__inner mx-auto flex h-[100dvh] w-full flex-col overflow-hidden ${
+          props.tvMode ? "max-w-none" : ""
         }`}
       >
         {kioskMode ? (
-          <div className="pointer-events-none fixed right-4 top-4 z-50 3xl:right-6 3xl:top-6">
+          <div className="dashboard-shell__kiosk-menu pointer-events-none fixed z-50">
             <details className="pointer-events-auto relative">
-              <summary className="dashboard-shell__menu-button flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[0.95rem] border border-[#e6ddd2] bg-white text-[0.95rem] font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.12)] marker:hidden 3xl:h-12 3xl:w-12 3xl:text-[1.05rem] 4xl:h-14 4xl:w-14 4xl:text-[1.15rem] 5xl:h-16 5xl:w-16 5xl:text-[1.3rem]">
+              <summary className="dashboard-shell__menu-button flex cursor-pointer list-none items-center justify-center border border-[#e6ddd2] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.12)] marker:hidden">
                 ☰
               </summary>
               {menuContent}
             </details>
           </div>
         ) : (
-        <header
-          className={`dashboard-shell__header sticky top-0 z-40 border-b border-[#e8ddd1]/90 bg-[rgba(249,246,240,0.94)] backdrop-blur-md ${
-            props.tvMode
-              ? "-mx-2 px-2 py-2 md:-mx-4 md:px-4 3xl:-mx-6 3xl:px-6 4xl:-mx-8 4xl:px-8 5xl:-mx-10 5xl:px-10"
-              : "-mx-1 px-1 py-2 md:-mx-3 md:px-3 3xl:-mx-5 3xl:px-5 3xl:py-3 4xl:-mx-7 4xl:px-7 5xl:-mx-10 5xl:px-10"
-          }`}
-        >
-          <div
-            className={`flex items-center justify-between gap-3 3xl:gap-4 ${
-              props.tvMode ? "lg:flex-nowrap" : "flex-wrap lg:flex-nowrap"
+          <header
+            className={`dashboard-shell__header sticky top-0 z-40 border-b border-[#e8ddd1]/90 bg-[rgba(249,246,240,0.94)] backdrop-blur-md ${
+              props.tvMode
+                ? "dashboard-shell__header--tv"
+                : "dashboard-shell__header--desktop"
             }`}
           >
-            <div className="flex min-w-0 items-center gap-3 3xl:gap-4">
-              {props.brandLogoUrl ? (
-                <img
-                  alt="IRBIS HVAC"
-                  className="dashboard-shell__logo h-10 w-10 rounded-[0.9rem] border border-[#e7dfd3] bg-white object-contain p-1 shadow-[0_4px_14px_rgba(8,61,73,0.08)] 3xl:h-14 3xl:w-14 3xl:rounded-[1rem] 4xl:h-16 4xl:w-16 5xl:h-20 5xl:w-20"
-                  src={props.brandLogoUrl}
-                />
-              ) : (
-                <div className="dashboard-shell__logo flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[#083d49] text-sm font-black tracking-[0.08em] text-white shadow-[0_4px_14px_rgba(8,61,73,0.16)] 3xl:h-14 3xl:w-14 3xl:text-lg 4xl:h-16 4xl:w-16 5xl:h-20 5xl:w-20 5xl:text-xl">
-                  IR
-                </div>
-              )}
-
-              <div className="min-w-0">
-                {activeItem?.section ? (
-                  <div className="dashboard-shell__section text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500 3xl:text-[13px] 4xl:text-[14px] 5xl:text-[16px]">
-                    {activeItem.section}
+            <div
+              className={`dashboard-shell__header-row flex items-center justify-between ${
+                props.tvMode ? "lg:flex-nowrap" : "flex-wrap lg:flex-nowrap"
+              }`}
+            >
+              <div className="dashboard-shell__brand flex min-w-0 items-center">
+                {props.brandLogoUrl ? (
+                  <img
+                    alt="IRBIS HVAC"
+                    className="dashboard-shell__logo border border-[#e7dfd3] bg-white object-contain shadow-[0_4px_14px_rgba(8,61,73,0.08)]"
+                    src={props.brandLogoUrl}
+                  />
+                ) : (
+                  <div className="dashboard-shell__logo flex items-center justify-center bg-[#083d49] font-black tracking-[0.08em] text-white shadow-[0_4px_14px_rgba(8,61,73,0.16)]">
+                    IR
                   </div>
-                ) : null}
-                <div className="dashboard-shell__title truncate text-[1rem] font-black tracking-tight text-[#182033] md:text-[1.12rem] 3xl:text-[1.42rem] 4xl:text-[1.62rem] 5xl:text-[1.92rem]">
-                  {activeItem?.label ?? props.title}
+                )}
+
+                <div className="min-w-0">
+                  {activeItem?.section ? (
+                    <div className="dashboard-shell__section font-bold uppercase tracking-[0.24em] text-slate-500">
+                      {activeItem.section}
+                    </div>
+                  ) : null}
+                  <div className="dashboard-shell__title truncate font-black tracking-tight text-[#182033]">
+                    {activeItem?.label ?? props.title}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex min-w-0 flex-1 items-center justify-end gap-2 3xl:gap-3 4xl:gap-4 lg:justify-end">
-              <div className="flex min-w-0 flex-1 justify-end">{props.headerContent}</div>
-              <details className="relative shrink-0">
-                <summary className="dashboard-shell__menu-button flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[0.95rem] border border-[#e6ddd2] bg-white text-[0.95rem] font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.06)] marker:hidden 3xl:h-12 3xl:w-12 3xl:text-[1.05rem] 4xl:h-14 4xl:w-14 4xl:text-[1.15rem] 5xl:h-16 5xl:w-16 5xl:text-[1.3rem]">
-                  ☰
-                </summary>
-                {menuContent}
-              </details>
+              <div className="dashboard-shell__header-actions flex min-w-0 flex-1 items-center justify-end lg:justify-end">
+                <div className="flex min-w-0 flex-1 justify-end">
+                  {props.headerContent}
+                </div>
+                <details className="relative shrink-0">
+                  <summary className="dashboard-shell__menu-button flex cursor-pointer list-none items-center justify-center border border-[#e6ddd2] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.06)] marker:hidden">
+                    ☰
+                  </summary>
+                  {menuContent}
+                </details>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
         )}
 
         <div className="sr-only">
@@ -190,7 +219,7 @@ export function DashboardShell(props: DashboardShellProps) {
         </div>
 
         <main
-          className={`dashboard-shell__main ${kioskMode ? "mt-0" : "mt-4"} flex-1 ${props.tvMode ? "min-h-0 overflow-hidden" : ""} ${
+          className={`dashboard-shell__main ${kioskMode ? "mt-0" : "mt-4"} flex-1 min-h-0 overflow-hidden ${
             props.contentClassName ?? ""
           }`}
         >

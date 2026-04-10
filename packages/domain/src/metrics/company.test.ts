@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildBookingRateSummary,
+  buildJobCostingSummary,
   buildMarketingDonut,
   buildRevenueGoalSummary,
+  buildRevenueMonthlyPace,
   buildSalesMonthlyPace,
   buildSalesSummary,
   buildTrendingModel
@@ -52,8 +54,59 @@ describe("company metrics", () => {
       data: [["BU1", 1000, 10, 0.5, 400, 1200]]
     };
 
-    expect(buildSalesMonthlyPace(input, { daysInMonth: 30, businessDayOfMonth: 15 }).pace).toBe(2142.8571428571427);
+    expect(buildSalesMonthlyPace(input, { daysInMonth: 30, businessDayOfMonth: 15 }).pace).toBe(2000);
+    expect(buildSalesMonthlyPace(input, { daysInMonth: 30, businessDayOfMonth: 15 }).fromDay).toBe(1);
     expect(buildSalesSummary(input).totals.totalRevenue).toBe(1200);
+  });
+
+  it("sums revenue monthly pace from the upstream current-monthly-pace field", () => {
+    const result = buildRevenueMonthlyPace({
+      fields: [{ name: "Current Monthly Pace" }],
+      data: [[22589.21]]
+    });
+
+    expect(result.value).toBe(22589.21);
+    expect(result.source).toBe("upstream-current-monthly-pace");
+    expect(result.sourceField).toBe("Current Monthly Pace");
+  });
+
+  it("prefers direct gross-margin fields and preserves negative values", () => {
+    const result = buildJobCostingSummary(
+      {
+        fields: [{ name: "Gross Profit" }],
+        data: [[-2500], [4000]]
+      },
+      10_000,
+    );
+
+    expect(result.mtd).toBe(1500);
+    expect(result.remainingToGoal).toBe(8500);
+    expect(result.percentToGoal).toBe(0.15);
+    expect(result.source).toBe("gross-margin-field");
+    expect(result.sourceField).toBe("Gross Profit");
+  });
+
+  it("falls back to revenue minus costs minus labor for gross margin when needed", () => {
+    const result = buildJobCostingSummary(
+      {
+        fields: [
+          { name: "Total" },
+          { name: "Total Costs" },
+          { name: "Labor Pay" }
+        ],
+        data: [
+          [100_000, 60_000, 5_000],
+          [50_000, 25_000, 2_500]
+        ]
+      },
+      50_000,
+    );
+
+    expect(result.mtd).toBe(57_500);
+    expect(result.remainingToGoal).toBe(-7500);
+    expect(result.percentToGoal).toBe(1.15);
+    expect(result.source).toBe("revenue-minus-costs");
+    expect(result.sourceField).toBeNull();
   });
 
   it("builds goal summary and trending model", () => {

@@ -82,8 +82,7 @@ export function buildDashboardReadModel(family: ReportFamilyKey, payload: unknow
     case "salesMonthlyPace":
       return buildSalesMonthlyPace(payload, {
         businessDayOfMonth: businessDay,
-        daysInMonth: getDaysInBusinessMonth(today, config.app.timezone),
-        fromDay: 2
+        daysInMonth: getDaysInBusinessMonth(today, config.app.timezone)
       });
     case "revenueMonthlyPace":
       return buildRevenueMonthlyPace(payload);

@@ -32,11 +32,26 @@ export function TvFullscreenButton() {
 
   return (
     <button
-      className="dashboard-shell__menu-link w-full rounded-xl bg-[#f7f3ee] px-3 py-2.5 text-left text-sm text-[#00363e] transition hover:bg-[#fa6e18] hover:text-white 3xl:px-4 3xl:py-3.5 3xl:text-[1rem] 4xl:text-[1.08rem] 5xl:px-4.5 5xl:py-4 5xl:text-[1.16rem]"
+      className={`tv-settings-modal__action tv-fullscreen-button w-full text-left transition ${
+        isFullscreen
+          ? "bg-[#0b4d5a] text-white shadow-[0_10px_22px_rgba(11,77,90,0.16)]"
+          : "bg-[#f7f3ee] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
+      }`}
+      data-active={isFullscreen ? "true" : "false"}
       onClick={handleClick}
       type="button"
     >
-      <div className="font-black">{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</div>
+      <div className="tv-settings-modal__action-copy">
+        <div className="tv-settings-modal__action-title font-black">
+          {isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        </div>
+        <div className="tv-settings-modal__action-description">
+          Use the browser fullscreen API for the current display.
+        </div>
+      </div>
+      <div className="tv-settings-modal__action-state">
+        {isFullscreen ? "On" : "Open"}
+      </div>
     </button>
   );
 }

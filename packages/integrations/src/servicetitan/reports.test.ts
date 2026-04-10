@@ -57,7 +57,7 @@ describe("buildReportParameters", () => {
     expect(parameters[1]).toEqual({ name: "To", value: "2026-03-21" });
   });
 
-  it("supports month-from-second report ranges keyed by the selected to-date", () => {
+  it("supports month-to-date report ranges keyed by the selected to-date", () => {
     const parameters = buildReportParameters(
       {
         family: "salesMonthlyPace",
@@ -76,7 +76,7 @@ describe("buildReportParameters", () => {
             }).format(referenceDate);
 
           return {
-            from: `${to.slice(0, 8)}02`,
+            from: `${to.slice(0, 8)}01`,
             to
           };
         }
@@ -89,7 +89,7 @@ describe("buildReportParameters", () => {
       },
     );
 
-    expect(parameters[0]).toEqual({ name: "From", value: "2026-03-02" });
+    expect(parameters[0]).toEqual({ name: "From", value: "2026-03-01" });
     expect(parameters[1]).toEqual({ name: "To", value: "2026-03-21" });
   });
 });

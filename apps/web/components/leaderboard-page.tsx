@@ -3,17 +3,23 @@ import {
   DataFreshnessBadge,
   EmptyDashboardState,
   FilterBar,
-  LeaderboardCard
+  LeaderboardCard,
 } from "@irbis/ui";
-import { formatCompactCurrency, formatCurrency, formatPercent } from "@irbis/utils";
+import {
+  formatCompactCurrency,
+  formatCurrency,
+  formatPercent,
+} from "@irbis/utils";
 import { navItems } from "../lib/api";
 import {
   buildDashboardQueryString,
+  getDashboardRotationNavItems,
   buildKioskHref,
   buildPresetHref,
   buildRotationHref,
   buildTvModeHref,
-  type ResolvedDashboardFilters
+  supportsDashboardRotation,
+  type ResolvedDashboardFilters,
 } from "../lib/dashboard-filters";
 import { getBrandLogoUrl, resolveStaffHeadshotUrl } from "../lib/assets";
 
@@ -63,12 +69,17 @@ export function ratio(value: number) {
 
 export function LeaderboardPage(props: LeaderboardPageProps) {
   const hasCachedData = Boolean(props.freshness) || props.items.length > 0;
-  const visibleItems = props.items.slice(0, props.maxVisibleItems ?? 9);
+  const tvMode = props.filters.tvMode;
+  const rotationSupported = supportsDashboardRotation(props.path);
+  const rotateMode = rotationSupported && props.filters.rotateMode;
+  const maxVisibleItems = props.maxVisibleItems ?? 9;
+  const visibleItems = props.items.slice(0, maxVisibleItems);
   const items = visibleItems.map((item) => ({
     ...item,
-    imageUrl: props.useHeadshots ? resolveStaffHeadshotUrl(item.title, item.imageUrl) : item.imageUrl
+    imageUrl: props.useHeadshots
+      ? resolveStaffHeadshotUrl(item.title, item.imageUrl)
+      : item.imageUrl,
   }));
-  const tvMode = props.filters.tvMode;
   const featuredItem = items[0];
   const secondaryItems = items.slice(1);
 
@@ -82,24 +93,48 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
       tvMode={props.filters.tvMode}
       kioskMode={props.filters.kioskMode}
       navQueryString={buildDashboardQueryString(props.filters)}
+      rotationNavItems={
+        rotationSupported ? getDashboardRotationNavItems(navItems) : undefined
+      }
       tvMenu={{
         enabled: tvMode,
         toggleHref: buildTvModeHref(props.path, props.filters, !tvMode),
         kioskMode: props.filters.kioskMode,
-        kioskHref: buildKioskHref(props.path, props.filters, !props.filters.kioskMode),
-        rotateMode: props.filters.rotateMode,
-        rotatePreset: props.filters.preset,
-        rotateOffHref: buildRotationHref(props.path, props.filters, props.filters.preset, false),
-        rotateMtdHref: buildRotationHref(props.path, props.filters, "mtd", true),
-        rotateYtdHref: buildRotationHref(props.path, props.filters, "ytd", true)
+        kioskHref: buildKioskHref(
+          props.path,
+          props.filters,
+          !props.filters.kioskMode,
+        ),
+        ...(rotationSupported
+          ? {
+              rotateMode,
+              rotatePreset: props.filters.preset,
+              rotateOffHref: buildRotationHref(
+                props.path,
+                props.filters,
+                props.filters.preset,
+                false,
+              ),
+              rotateMtdHref: buildRotationHref(
+                props.path,
+                props.filters,
+                "mtd",
+                true,
+              ),
+              rotateYtdHref: buildRotationHref(
+                props.path,
+                props.filters,
+                "ytd",
+                true,
+              ),
+            }
+          : {}),
       }}
       contentClassName={
-        tvMode
-          ? "min-h-[calc(100dvh-7.5rem)] 4xl:min-h-[calc(100dvh-8.5rem)] 5xl:min-h-[calc(100dvh-9.5rem)]"
-          : "4xl:min-h-[calc(100dvh-9rem)] 5xl:min-h-[calc(100dvh-10rem)]"
+        "leaderboard-page__main"
       }
       headerContent={
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="dashboard-header-tools flex flex-wrap items-center justify-end">
           <FilterBar
             from={props.filters.fromLabel}
             to={props.filters.toLabel}
@@ -107,32 +142,51 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
               {
                 label: "YTD",
                 href: buildPresetHref(props.path, "ytd", props.filters),
-                active: props.filters.preset === "ytd"
+                active: props.filters.preset === "ytd",
               },
               {
                 label: "MTD",
                 href: buildPresetHref(props.path, "mtd", props.filters),
-                active: props.filters.preset === "mtd"
-              }
+                active: props.filters.preset === "mtd",
+              },
             ]}
           />
           <DataFreshnessBadge value={props.freshness} />
         </div>
       }
     >
-      <div className={`flex flex-col gap-3 ${tvMode ? "leaderboard-page leaderboard-page--tv h-full min-h-0" : "leaderboard-page"}`}>
+      <div className="leaderboard-page flex h-full min-h-0 flex-col">
         {hasCachedData ? (
-          tvMode ? (
-            <section className="leaderboard-tv-grid h-full min-h-0">
-              {items.map((item, index) => (
+          <div className="leaderboard-board grid items-stretch">
+            {featuredItem ? (
+              <LeaderboardCard
+                featured={true}
+                imageUrl={featuredItem.imageUrl}
+                rank={1}
+                stats={featuredItem.stats}
+                subtitle={featuredItem.subtitle}
+                title={featuredItem.title}
+                value={featuredItem.value}
+                valueLabel={featuredItem.valueLabel}
+              />
+            ) : null}
+
+            <section className="leaderboard-secondary-grid grid auto-rows-fr items-stretch md:grid-cols-2 xl:grid-cols-4 xl:grid-rows-2">
+              {secondaryItems.map((item, index) => (
                 <div
-                  className={index === 0 ? "leaderboard-tv-slot leaderboard-tv-slot--featured" : "leaderboard-tv-slot"}
+                  className={
+                    index >= 4
+                      ? "hidden xl:block"
+                      : index >= 2
+                        ? "hidden md:block"
+                        : ""
+                  }
                   key={`${item.title}-${index + 1}`}
                 >
                   <LeaderboardCard
-                    featured={index === 0}
+                    featured={false}
                     imageUrl={item.imageUrl}
-                    rank={index + 1}
+                    rank={index + 2}
                     stats={item.stats}
                     subtitle={item.subtitle}
                     title={item.title}
@@ -142,46 +196,7 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
                 </div>
               ))}
             </section>
-          ) : (
-            <div
-              className="leaderboard-board grid items-stretch gap-3 3xl:gap-4 xl:grid-cols-[minmax(18rem,0.44fr)_minmax(0,1.56fr)] 2xl:grid-cols-[minmax(19rem,0.45fr)_minmax(0,1.55fr)] 3xl:grid-cols-[minmax(21rem,0.47fr)_minmax(0,1.53fr)] 4xl:grid-cols-[minmax(25rem,0.5fr)_minmax(0,1.5fr)] 5xl:grid-cols-[minmax(29rem,0.54fr)_minmax(0,1.46fr)] 4xl:min-h-[calc(100dvh-9rem)] 5xl:min-h-[calc(100dvh-10rem)]"
-            >
-              {featuredItem ? (
-                <LeaderboardCard
-                  featured={true}
-                  imageUrl={featuredItem.imageUrl}
-                  rank={1}
-                  stats={featuredItem.stats}
-                  subtitle={featuredItem.subtitle}
-                  title={featuredItem.title}
-                  value={featuredItem.value}
-                  valueLabel={featuredItem.valueLabel}
-                />
-              ) : null}
-
-              <section className="leaderboard-secondary-grid grid auto-rows-fr items-stretch gap-3 md:grid-cols-2 xl:grid-cols-4 xl:grid-rows-2 3xl:gap-4 4xl:h-full 5xl:h-full">
-                {secondaryItems.map((item, index) => (
-                  <div
-                    className={
-                      index >= 4 ? "hidden xl:block" : index >= 2 ? "hidden md:block" : ""
-                    }
-                    key={`${item.title}-${index + 1}`}
-                  >
-                    <LeaderboardCard
-                      featured={false}
-                      imageUrl={item.imageUrl}
-                      rank={index + 2}
-                      stats={item.stats}
-                      subtitle={item.subtitle}
-                      title={item.title}
-                      value={item.value}
-                      valueLabel={item.valueLabel}
-                    />
-                  </div>
-                ))}
-              </section>
-            </div>
-          )
+          </div>
         ) : (
           <EmptyDashboardState
             title="No cached snapshot for this range yet"

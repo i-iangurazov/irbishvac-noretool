@@ -12,16 +12,41 @@ describe("leaderboard metric families", () => {
         { name: "TotalSales" },
         { name: "ClosedAverageSale" },
         { name: "CloseRateRolling" },
-        { name: "SalesOpportunity" }
+        { name: "SalesOpportunity" },
+        { name: "ClosedOpportunities" }
       ],
       data: [
-        ["Advisor A", 1500, 400, 0.5, 3],
-        ["Advisor B", 900, 300, 0.4, 2]
+        ["Advisor A", 4500, 1500, 0.5, 6, 1],
+        ["Advisor B", 3000, 1500, 0.4, 4, 2]
       ]
     });
 
     expect(result.rowsRanked[0]?.name).toBe("Advisor A");
-    expect(result.totals.totalOpportunities).toBe(5);
+    expect(result.rows.find((row) => row.name === "Advisor A")?.closedAverageSale).toBe(4500);
+    expect(result.totals.totalOpportunities).toBe(10);
+    expect(result.totals.totalClosedOpportunities).toBe(3);
+    expect(result.totals.weightedClosedAverageSale).toBe(2500);
+  });
+
+  it("infers advisor closed opportunities from available aggregates and handles zero safely", () => {
+    const result = buildAdvisorDashboard({
+      fields: [
+        { name: "Name" },
+        { name: "TotalSales" },
+        { name: "ClosedAverageSale" },
+        { name: "CloseRateRolling" },
+        { name: "SalesOpportunity" }
+      ],
+      data: [
+        ["Advisor A", 6000, 2000, 0.5, 6],
+        ["Advisor B", 0, 0, 0.4, 3]
+      ]
+    });
+
+    expect(result.rows.find((row) => row.name === "Advisor A")?.closedOpportunitiesCount).toBe(3);
+    expect(result.rows.find((row) => row.name === "Advisor B")?.closedOpportunitiesCount).toBe(0);
+    expect(result.totals.totalClosedOpportunities).toBe(3);
+    expect(result.totals.weightedClosedAverageSale).toBe(2000);
   });
 
   it("builds call-center summary rows", () => {

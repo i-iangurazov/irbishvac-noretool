@@ -87,8 +87,7 @@ function buildReadModel(family: DashboardFamily, payload: unknown) {
     case DashboardFamily.SALES_MONTHLY_PACE:
       return buildSalesMonthlyPace(payload, {
         businessDayOfMonth: businessDay,
-        daysInMonth: getDaysInBusinessMonth(today, config.app.timezone),
-        fromDay: 2
+        daysInMonth: getDaysInBusinessMonth(today, config.app.timezone)
       });
     case DashboardFamily.REVENUE_MONTHLY_PACE:
       return buildRevenueMonthlyPace(payload);

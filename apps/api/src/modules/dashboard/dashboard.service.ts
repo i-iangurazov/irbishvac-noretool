@@ -408,8 +408,7 @@ export class DashboardService {
         (payload) =>
           buildSalesMonthlyPace(payload, {
             businessDayOfMonth: businessDay,
-            daysInMonth: getDaysInBusinessMonth(now, this.config.app.timezone),
-            fromDay: 2
+            daysInMonth: getDaysInBusinessMonth(now, this.config.app.timezone)
           }),
         context,
       ),

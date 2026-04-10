@@ -4,7 +4,7 @@ import {
   DashboardShell,
   DataFreshnessBadge,
   EmptyDashboardState,
-  FilterBar
+  FilterBar,
 } from "@irbis/ui";
 import { formatCompactCurrency, formatCurrency } from "@irbis/utils";
 import { navItems } from "../lib/api";
@@ -12,9 +12,8 @@ import {
   buildDashboardQueryString,
   buildKioskHref,
   buildPresetHref,
-  buildRotationHref,
   buildTvModeHref,
-  type ResolvedDashboardFilters
+  type ResolvedDashboardFilters,
 } from "../lib/dashboard-filters";
 import { getBrandLogoUrl } from "../lib/assets";
 import { CompanyWideGoalInsertButton } from "./company-wide-goal-insert-button";
@@ -47,9 +46,19 @@ type CompanyWideData = {
     pct: number;
     snapshotTime?: string | null;
   };
-  salesToday: { totals: { totalSales: number; totalRevenue: number }; snapshotTime?: string | null };
-  salesYesterday: { totals: { totalSales: number; totalRevenue: number }; snapshotTime?: string | null };
-  salesMonthlyPace: { pace: number; totalSalesToDate: number; snapshotTime?: string | null };
+  salesToday: {
+    totals: { totalSales: number; totalRevenue: number };
+    snapshotTime?: string | null;
+  };
+  salesYesterday: {
+    totals: { totalSales: number; totalRevenue: number };
+    snapshotTime?: string | null;
+  };
+  salesMonthlyPace: {
+    pace: number;
+    totalSalesToDate: number;
+    snapshotTime?: string | null;
+  };
   revenueMonthlyPace: { value: number; snapshotTime?: string | null };
   bookingRate: {
     kpis: { leads: number; booked: number; unbooked: number; rate: number };
@@ -84,7 +93,13 @@ type CompanyWidePageProps = {
   filters: ResolvedDashboardFilters;
 };
 
-const MARKETING_COLORS = ["#18b3ad", "#4c56d7", "#ff8a1f", "#de4a89", "#7b79ff"];
+const MARKETING_COLORS = [
+  "#18b3ad",
+  "#4c56d7",
+  "#ff8a1f",
+  "#de4a89",
+  "#7b79ff",
+];
 
 function Panel(props: {
   title?: string;
@@ -94,25 +109,27 @@ function Panel(props: {
 }) {
   return (
     <section
-      className={`company-panel rounded-[1rem] border border-[#ece3da] bg-[linear-gradient(180deg,_#ffffff_0%,_#fcfbf8_100%)] px-4 py-4 shadow-[0_6px_18px_rgba(15,23,42,0.05)] 3xl:px-5 3xl:py-5 4xl:px-6 4xl:py-6 5xl:px-7 5xl:py-7 ${props.className ?? ""}`}
+      className={`company-panel border border-[#ece3da] bg-[linear-gradient(180deg,_#ffffff_0%,_#fcfbf8_100%)] shadow-[0_6px_18px_rgba(15,23,42,0.05)] ${props.className ?? ""}`}
     >
       {props.title ? (
         <div
-          className={`company-panel__title font-black uppercase tracking-tight text-[#111827] ${
-            props.titleClassName ?? "text-[1rem] md:text-[1.1rem] 3xl:text-[1.2rem] 4xl:text-[1.32rem] 5xl:text-[1.5rem]"
-          }`}
+          className={`company-panel__title font-black uppercase tracking-tight text-[#111827] ${props.titleClassName ?? ""}`}
         >
           {props.title}
         </div>
       ) : null}
-      <div className={props.title ? "mt-4" : undefined}>{props.children}</div>
+      <div
+        className={`company-panel__body ${props.title ? "mt-4" : ""}`.trim()}
+      >
+        {props.children}
+      </div>
     </section>
   );
 }
 
 function ProgressBar(props: { value: number; colorClassName?: string }) {
   return (
-    <div className="h-3 overflow-hidden rounded-full bg-[#e8edf3]">
+    <div className="company-progress-bar overflow-hidden rounded-full bg-[#e8edf3]">
       <div
         className={`h-full rounded-full ${props.colorClassName ?? "bg-[#0b8ca0]"}`}
         style={{ width: `${Math.min(Math.max(props.value * 100, 0), 100)}%` }}
@@ -156,11 +173,15 @@ function goalMarkerBottom(goal: number, max: number) {
 
 function StatBlock(props: { label: string; value: string; accent?: boolean }) {
   return (
-    <div>
-      <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 3xl:text-[11px] 5xl:text-[12px]">
+    <div className="company-stat-block">
+      <div className="company-stat-block__label font-bold uppercase tracking-[0.18em] text-slate-500">
         {props.label}
       </div>
-      <div className={`mt-1 text-[0.98rem] font-black md:text-[1.05rem] 3xl:text-[1.12rem] 4xl:text-[1.22rem] 5xl:text-[1.38rem] ${props.accent ? "text-[#fa6e18]" : "text-[#1f2937]"}`}>
+      <div
+        className={`company-stat-block__value font-black ${
+          props.accent ? "text-[#fa6e18]" : "text-[#1f2937]"
+        }`}
+      >
         {props.value}
       </div>
     </div>
@@ -173,11 +194,23 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
     data.goals.reduce((sum, goal) => sum + goal.goalAmount, 0) ||
     data.revenueGoals.totals.yearlyGoal;
   const ytdRevenue = data.revenueGoals.yearTotalRevenue;
-  const businessYearStart = new Date(`${filters.to.slice(0, 4)}-01-01T00:00:00.000Z`);
+  const businessYearStart = new Date(
+    `${filters.to.slice(0, 4)}-01-01T00:00:00.000Z`,
+  );
   const businessToDate = new Date(`${filters.to}T00:00:00.000Z`);
-  const daysElapsed =
-    Math.max(1, Math.floor((businessToDate.getTime() - businessYearStart.getTime()) / 86_400_000) + 1);
-  const revenuePacing = daysElapsed > 0 ? ytdRevenue * (356 / daysElapsed) : 0;
+  const businessYear = Number(filters.to.slice(0, 4));
+  const daysInYear =
+    businessYear % 4 === 0 &&
+    (businessYear % 100 !== 0 || businessYear % 400 === 0)
+      ? 366
+      : 365;
+  const daysElapsed = Math.max(
+    1,
+    Math.floor(
+      (businessToDate.getTime() - businessYearStart.getTime()) / 86_400_000,
+    ) + 1,
+  );
+  const revenuePacing = daysElapsed > 0 ? ytdRevenue * (daysInYear / daysElapsed) : 0;
   const trendMax =
     data.trending.chartMax ||
     Math.max(
@@ -187,10 +220,13 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
         month.previous.revenue,
         month.current.sales,
         month.current.revenue,
-        month.goal
+        month.goal,
       ]),
     );
-  const trendTicks = Array.from({ length: 5 }, (_, index) => trendMax * ((4 - index) / 4));
+  const trendTicks = Array.from(
+    { length: 5 },
+    (_, index) => trendMax * ((4 - index) / 4),
+  );
   const freshness =
     data.trending.snapshotTime ??
     data.revenueGoals.snapshotTime ??
@@ -198,7 +234,10 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
     data.bookingRate.snapshotTime ??
     null;
   const hasCachedData = Boolean(freshness);
-  const marketingTotal = data.marketing.rows.reduce((sum, row) => sum + row.value, 0);
+  const marketingTotal = data.marketing.rows.reduce(
+    (sum, row) => sum + row.value,
+    0,
+  );
   let marketingOffset = 0;
   const marketingRows = data.marketing.rows.map((row, index) => {
     const share = marketingTotal > 0 ? row.value / marketingTotal : 0;
@@ -212,33 +251,48 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
       share,
       start,
       end,
-      color: MARKETING_COLORS[index % MARKETING_COLORS.length] ?? MARKETING_COLORS[0] ?? "#18b3ad"
+      color:
+        MARKETING_COLORS[index % MARKETING_COLORS.length] ??
+        MARKETING_COLORS[0] ??
+        "#18b3ad",
     };
   });
   const marketingGradient = marketingRows.length
     ? marketingRows
-        .map((row) => `${row.color} ${row.start.toFixed(2)}% ${row.end.toFixed(2)}%`)
+        .map(
+          (row) =>
+            `${row.color} ${row.start.toFixed(2)}% ${row.end.toFixed(2)}%`,
+        )
         .join(", ")
     : "#e8edf3 0% 100%";
   const topMarketingRow = marketingRows[0] ?? null;
   const bookingPct = Math.max(0, Math.min(data.bookingRate.kpis.rate, 1));
-  const grossMarginScaleMax = 700_000;
+  const grossMarginScaleMax = Math.max(
+    700_000,
+    data.jobCostingSummary.goal,
+    Math.abs(data.jobCostingSummary.mtd),
+  );
   const grossMarginScalePct = Math.max(
     0,
-    Math.min((data.jobCostingSummary.mtd / grossMarginScaleMax) * 100, 100),
+    Math.min(
+      (Math.max(data.jobCostingSummary.mtd, 0) / grossMarginScaleMax) * 100,
+      100,
+    ),
   );
-  const grossMarginGoalPct = Math.max(
+  const grossMarginGoalMarkerPct = Math.max(
     0,
     Math.min(
       data.jobCostingSummary.goal > 0
-        ? (data.jobCostingSummary.mtd / data.jobCostingSummary.goal) * 100
+        ? (data.jobCostingSummary.goal / grossMarginScaleMax) * 100
         : 0,
       100,
     ),
   );
-  const remainingGrossMargin = Math.max(
-    0,
-    data.jobCostingSummary.goal - data.jobCostingSummary.mtd,
+  const remainingGrossMargin = data.jobCostingSummary.remainingToGoal;
+  const grossMarginRemainingLabel =
+    remainingGrossMargin < 0 ? "Ahead of Goal" : "Remaining";
+  const grossMarginRemainingValue = formatCurrency(
+    Math.abs(remainingGrossMargin),
   );
 
   return (
@@ -256,19 +310,12 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
         toggleHref: buildTvModeHref("/company-wide", filters, !tvMode),
         kioskMode: filters.kioskMode,
         kioskHref: buildKioskHref("/company-wide", filters, !filters.kioskMode),
-        rotateMode: filters.rotateMode,
-        rotatePreset: filters.preset,
-        rotateOffHref: buildRotationHref("/company-wide", filters, filters.preset, false),
-        rotateMtdHref: buildRotationHref("/company-wide", filters, "mtd", true),
-        rotateYtdHref: buildRotationHref("/company-wide", filters, "ytd", true)
       }}
       contentClassName={
-        tvMode
-          ? "min-h-[calc(100dvh-7.5rem)] 4xl:min-h-[calc(100dvh-8.5rem)] 5xl:min-h-[calc(100dvh-9.5rem)]"
-          : undefined
+        "company-wide-page__main"
       }
       headerContent={
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="dashboard-header-tools flex flex-wrap items-center justify-end">
           <FilterBar
             from={filters.fromLabel}
             to={filters.toLabel}
@@ -276,38 +323,28 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
               {
                 label: "YTD",
                 href: buildPresetHref("/company-wide", "ytd", filters),
-                active: filters.preset === "ytd"
+                active: filters.preset === "ytd",
               },
               {
                 label: "MTD",
                 href: buildPresetHref("/company-wide", "mtd", filters),
-                active: filters.preset === "mtd"
-              }
+                active: filters.preset === "mtd",
+              },
             ]}
           />
           <DataFreshnessBadge value={freshness} />
         </div>
       }
     >
-      <div className={`company-wide-page flex flex-col gap-3 ${tvMode ? "company-wide-page--tv h-full min-h-0" : ""}`}>
+      <div className="company-wide-page flex h-full min-h-0 flex-col">
         {hasCachedData ? (
-          <div
-            className={`company-board ${tvMode ? "company-board--tv" : ""} grid gap-3 3xl:gap-4 4xl:gap-5 5xl:gap-6 ${
-              tvMode
-                ? "h-full min-h-0 items-stretch xl:grid-cols-[minmax(0,1.94fr)_minmax(29rem,0.72fr)] 4xl:grid-cols-[minmax(0,2.02fr)_minmax(34rem,0.62fr)] 5xl:grid-cols-[minmax(0,2.12fr)_minmax(40rem,0.54fr)]"
-                : "items-start xl:grid-cols-[minmax(0,1.62fr)_minmax(20rem,0.88fr)] 2xl:grid-cols-[minmax(0,1.68fr)_minmax(21rem,0.92fr)] 3xl:grid-cols-[minmax(0,1.8fr)_minmax(25rem,0.8fr)] 4xl:grid-cols-[minmax(0,1.92fr)_minmax(31rem,0.68fr)] 5xl:grid-cols-[minmax(0,2.02fr)_minmax(36rem,0.58fr)]"
-            }`}
-          >
-            <div
-              className={`company-board__left grid gap-3 ${tvMode ? "h-full min-h-0 grid-rows-[minmax(0,1.52fr)_minmax(0,1fr)]" : ""}`}
-            >
-              <section className={`company-board__trending-section ${tvMode ? "h-full" : ""}`}>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <div className={`company-board__section-title font-black uppercase leading-none tracking-tight text-[#111827] ${
-                    tvMode
-                      ? "text-[1.5rem] 3xl:text-[1.8rem] 4xl:text-[2.2rem] 5xl:text-[2.5rem]"
-                      : "text-[1.15rem] md:text-[1.35rem] 3xl:text-[1.5rem] 4xl:text-[1.72rem] 5xl:text-[1.95rem]"
-                  }`}>
+          <div className="company-board grid h-full min-h-0 items-start">
+            <div className="company-board__left grid">
+              <section className="company-board__trending-section">
+                <div className="company-board__trending-header flex items-center justify-between">
+                  <div
+                    className="company-board__section-title company-board__trending-title font-black uppercase leading-none tracking-tight text-[#111827]"
+                  >
                     Trending
                   </div>
                   <CompanyWideGoalInsertButton
@@ -315,106 +352,119 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
                     year={data.trending.years.current}
                   />
                 </div>
-                <Panel className={`company-board__trending-panel px-4 py-4 ${tvMode ? "flex h-full min-h-0 flex-col" : ""}`}>
-                  <div className={`company-board__legend mb-3 flex flex-wrap gap-2 ${tvMode ? "4xl:gap-3" : ""}`}>
-                    <span className={`rounded-full border border-[#eadfd3] bg-[#f7f3ee] px-3 py-1 font-semibold text-[#8b5b3c] ${
-                      tvMode
-                        ? "text-[0.95rem] 3xl:px-4 3xl:py-2 4xl:text-[1.12rem] 5xl:px-5 5xl:py-2.5 5xl:text-[1.24rem]"
-                        : "text-[0.86rem] 3xl:px-3.5 3xl:py-1.5 3xl:text-[0.92rem] 5xl:px-4.5 5xl:py-2 5xl:text-[1.02rem]"
-                    }`}>
+                <Panel className="company-board__trending-panel">
+                  <div className="company-board__legend flex flex-wrap">
+                    <span
+                      className="border border-[#eadfd3] bg-[#f7f3ee] font-semibold text-[#8b5b3c]"
+                    >
                       {data.trending.years.previous} Sales
                     </span>
-                    <span className={`rounded-full border border-[#eadfd3] bg-[#f7f3ee] px-3 py-1 font-semibold text-[#4a90e2] ${
-                      tvMode
-                        ? "text-[0.95rem] 3xl:px-4 3xl:py-2 4xl:text-[1.12rem] 5xl:px-5 5xl:py-2.5 5xl:text-[1.24rem]"
-                        : "text-[0.86rem] 3xl:px-3.5 3xl:py-1.5 3xl:text-[0.92rem] 5xl:px-4.5 5xl:py-2 5xl:text-[1.02rem]"
-                    }`}>
+                    <span
+                      className="border border-[#eadfd3] bg-[#f7f3ee] font-semibold text-[#4a90e2]"
+                    >
                       {data.trending.years.previous} Revenue
                     </span>
-                    <span className={`rounded-full border border-[#d7efe8] bg-[#eefaf7] px-3 py-1 font-semibold text-[#ff6b35] ${
-                      tvMode
-                        ? "text-[0.95rem] 3xl:px-4 3xl:py-2 4xl:text-[1.12rem] 5xl:px-5 5xl:py-2.5 5xl:text-[1.24rem]"
-                        : "text-[0.86rem] 3xl:px-3.5 3xl:py-1.5 3xl:text-[0.92rem] 5xl:px-4.5 5xl:py-2 5xl:text-[1.02rem]"
-                    }`}>
+                    <span
+                      className="border border-[#d7efe8] bg-[#eefaf7] font-semibold text-[#ff6b35]"
+                    >
                       {data.trending.years.current} Sales
                     </span>
-                    <span className={`rounded-full border border-[#d7efe8] bg-[#eefaf7] px-3 py-1 font-semibold text-[#17b4b0] ${
-                      tvMode
-                        ? "text-[0.95rem] 3xl:px-4 3xl:py-2 4xl:text-[1.12rem] 5xl:px-5 5xl:py-2.5 5xl:text-[1.24rem]"
-                        : "text-[0.86rem] 3xl:px-3.5 3xl:py-1.5 3xl:text-[0.92rem] 5xl:px-4.5 5xl:py-2 5xl:text-[1.02rem]"
-                    }`}>
+                    <span
+                      className="border border-[#d7efe8] bg-[#eefaf7] font-semibold text-[#17b4b0]"
+                    >
                       {data.trending.years.current} Revenue
                     </span>
                   </div>
 
-                  <div
-                    className={`company-board__trend-frame rounded-[1rem] border border-[#edf0f4] bg-[#f8fbff] p-3.5 3xl:p-4 4xl:p-5 5xl:p-6 ${
-                      tvMode ? "flex-1 min-h-0" : ""
-                    }`}
-                  >
-                    <div className={`grid gap-3 md:grid-cols-[52px_minmax(0,1fr)] 3xl:grid-cols-[60px_minmax(0,1fr)] 4xl:grid-cols-[78px_minmax(0,1fr)] 5xl:grid-cols-[90px_minmax(0,1fr)] 3xl:gap-4 5xl:gap-5 ${
-                      tvMode ? "h-full min-h-0" : ""
-                    }`}>
-                      <div className={`relative ${
-                        tvMode ? "h-full min-h-[18rem] 3xl:min-h-[22rem] 4xl:min-h-[26rem] 5xl:min-h-[30rem]" : "h-56 2xl:h-64 3xl:h-72 4xl:h-96 5xl:h-[28rem]"
-                      }`}>
+                  <div className="company-board__trend-frame border border-[#edf0f4] bg-[#f8fbff]">
+                    <div className="company-board__trend-shell grid">
+                      <div className="company-board__trend-axis relative">
                         {trendTicks.map((tick, index) => (
                           <div
-                            className="absolute left-0 right-0 flex -translate-y-1/2 items-center text-xs font-bold text-slate-500 3xl:text-[13px] 4xl:text-[15px] 5xl:text-[17px]"
+                            className="company-board__trend-axis-label absolute left-0 right-0 flex -translate-y-1/2 items-center font-bold text-slate-500"
                             key={`${tick}-${index}`}
-                            style={{ top: `${(index / (trendTicks.length - 1)) * 100}%` }}
+                            style={{
+                              top: `${(index / (trendTicks.length - 1)) * 100}%`,
+                            }}
                           >
                             {axisCurrency(tick)}
                           </div>
                         ))}
                       </div>
 
-                      <div className={`relative grid min-h-0 ${
-                        tvMode
-                          ? "h-full grid-rows-[minmax(0,1fr)_1.9rem] 3xl:grid-rows-[minmax(0,1fr)_2.2rem] 4xl:grid-rows-[minmax(0,1fr)_2.6rem] 5xl:grid-rows-[minmax(0,1fr)_3rem]"
-                          : "h-56 grid-rows-[minmax(0,1fr)_1.35rem] 2xl:h-64 2xl:grid-rows-[minmax(0,1fr)_1.5rem] 3xl:h-72 3xl:grid-rows-[minmax(0,1fr)_1.7rem] 4xl:h-96 4xl:grid-rows-[minmax(0,1fr)_2.1rem] 5xl:h-[28rem] 5xl:grid-rows-[minmax(0,1fr)_2.4rem]"
-                      }`}>
+                      <div className="company-board__trend-chart relative grid min-h-0">
                         <div className="absolute inset-0">
                           {trendTicks.map((_, index) => (
                             <div
                               className="absolute left-0 right-0 border-t border-[#dbe6f4]"
                               key={index}
-                              style={{ top: `${(index / (trendTicks.length - 1)) * 100}%` }}
+                              style={{
+                                top: `${(index / (trendTicks.length - 1)) * 100}%`,
+                              }}
                             />
                           ))}
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1.5 3xl:gap-2 5xl:gap-2.5">
+                        <div className="company-board__trend-bars grid grid-cols-12">
                           {data.trending.months.map((month) => (
-                            <div className="relative flex h-full items-end justify-center gap-1 4xl:gap-1.5" key={month.month}>
+                            <div
+                              className="company-board__trend-bar-group relative flex h-full items-end justify-center"
+                              key={month.month}
+                            >
                               <div
-                                className="absolute left-1/2 w-[84%] -translate-x-1/2 rounded-full bg-[#42d14a] 3xl:h-[0.42rem] 5xl:h-[0.5rem]"
+                                className="company-board__trend-goal absolute left-1/2 -translate-x-1/2 rounded-full bg-[#42d14a]"
                                 style={{
-                                  bottom: goalMarkerBottom(month.goal, trendMax),
-                                  height: "0.36rem"
+                                  bottom: goalMarkerBottom(
+                                    month.goal,
+                                    trendMax,
+                                  ),
+                                  height: "0.36rem",
                                 }}
                               />
-                              <div className="w-1.5 rounded-full bg-[#8b5b3c] 3xl:w-2 5xl:w-2.5" style={{ height: trendBarHeight(month.previous.sales, trendMax) }} />
                               <div
-                                className="w-1.5 rounded-full bg-[#4a90e2] 3xl:w-2 5xl:w-2.5"
-                                style={{ height: trendBarHeight(month.previous.revenue, trendMax) }}
+                                className="company-board__trend-bar rounded-full bg-[#8b5b3c]"
+                                style={{
+                                  height: trendBarHeight(
+                                    month.previous.sales,
+                                    trendMax,
+                                  ),
+                                }}
                               />
                               <div
-                                className="w-1.5 rounded-full bg-[#ff6b35] 3xl:w-2 5xl:w-2.5"
-                                style={{ height: trendBarHeight(month.current.sales, trendMax) }}
+                                className="company-board__trend-bar rounded-full bg-[#4a90e2]"
+                                style={{
+                                  height: trendBarHeight(
+                                    month.previous.revenue,
+                                    trendMax,
+                                  ),
+                                }}
                               />
                               <div
-                                className="w-1.5 rounded-full bg-[#17b4b0] 3xl:w-2 5xl:w-2.5"
-                                style={{ height: trendBarHeight(month.current.revenue, trendMax) }}
+                                className="company-board__trend-bar rounded-full bg-[#ff6b35]"
+                                style={{
+                                  height: trendBarHeight(
+                                    month.current.sales,
+                                    trendMax,
+                                  ),
+                                }}
+                              />
+                              <div
+                                className="company-board__trend-bar rounded-full bg-[#17b4b0]"
+                                style={{
+                                  height: trendBarHeight(
+                                    month.current.revenue,
+                                    trendMax,
+                                  ),
+                                }}
                               />
                             </div>
                           ))}
                         </div>
 
-                        <div className="grid grid-cols-12 gap-1.5 pt-1 3xl:gap-2 3xl:pt-1.5 5xl:gap-2.5 5xl:pt-2">
+                        <div className="company-board__trend-months grid grid-cols-12">
                           {data.trending.months.map((month) => (
                             <div
-                              className="text-center text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 3xl:text-[12px] 4xl:text-[13px] 5xl:text-[15px]"
+                              className="company-board__trend-month text-center font-black uppercase tracking-[0.16em] text-slate-500"
                               key={`${month.month}-label`}
                             >
                               {month.short ?? month.month.slice(0, 3)}
@@ -427,78 +477,94 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
                 </Panel>
               </section>
 
-              <div className={`company-board__lower grid items-stretch gap-3 3xl:gap-4 5xl:gap-5 ${
-                tvMode
-                  ? "h-full min-h-0 xl:grid-cols-[minmax(0,1.68fr)_minmax(24rem,0.78fr)] 4xl:grid-cols-[minmax(0,1.84fr)_minmax(28rem,0.66fr)] 5xl:grid-cols-[minmax(0,1.98fr)_minmax(32rem,0.58fr)]"
-                  : "xl:grid-cols-[minmax(0,1.28fr)_minmax(16rem,0.82fr)] 2xl:grid-cols-[minmax(0,1.34fr)_minmax(17rem,0.78fr)] 3xl:grid-cols-[minmax(0,1.52fr)_minmax(20rem,0.66fr)] 4xl:grid-cols-[minmax(0,1.7fr)_minmax(24rem,0.55fr)] 5xl:grid-cols-[minmax(0,1.84fr)_minmax(27rem,0.48fr)]"
-              }`}>
-                <Panel className="company-board__marketing h-full" title="Marketing">
+              <div className="company-board__lower grid items-stretch">
+                <Panel
+                  className="company-board__marketing h-full"
+                  title="Marketing"
+                >
                   {marketingRows.length > 0 ? (
-                    <div className={`grid h-full min-h-0 gap-5 3xl:gap-6 ${
-                      tvMode
-                        ? "lg:grid-cols-[18rem_minmax(0,1fr)] 4xl:grid-cols-[21rem_minmax(0,1fr)] 5xl:grid-cols-[24rem_minmax(0,1fr)]"
-                        : "lg:grid-cols-[12rem_minmax(0,1fr)] 3xl:grid-cols-[14rem_minmax(0,1fr)] 4xl:grid-cols-[15rem_minmax(0,1fr)]"
-                    }`}>
-                      <div className="flex flex-col justify-center gap-4">
-                          <div className="mx-auto">
-                            <div
-                              className={`relative rounded-full ${
-                                tvMode
-                                  ? "h-[11rem] w-[11rem] 3xl:h-[13rem] 3xl:w-[13rem] 4xl:h-[15rem] 4xl:w-[15rem] 5xl:h-[17rem] 5xl:w-[17rem]"
-                                  : "h-28 w-28 md:h-[7.5rem] md:w-[7.5rem] 3xl:h-[8.5rem] 3xl:w-[8.5rem] 4xl:h-[9.5rem] 4xl:w-[9.5rem]"
-                              }`}
-                              style={{ background: `conic-gradient(${marketingGradient})` }}
-                            >
-                              <div className={`absolute rounded-full bg-white ${tvMode ? "inset-[1.35rem]" : "inset-[1rem]"}`} />
-                            </div>
+                    <div
+                      className="company-board__marketing-grid grid h-full min-h-0"
+                    >
+                      <div className="company-board__marketing-summary-column flex flex-col justify-center">
+                        <div className="mx-auto">
+                          <div
+                            className="company-board__marketing-ring relative rounded-full"
+                            style={{
+                              background: `conic-gradient(${marketingGradient})`,
+                            }}
+                          >
+                            <div className="company-board__marketing-ring-inner absolute rounded-full bg-white" />
                           </div>
+                        </div>
 
-                        <div className={`grid gap-2 ${tvMode ? "4xl:gap-3" : ""}`}>
-                          <div className={`rounded-[0.9rem] bg-[#f8fbfd] ${tvMode ? "px-4 py-4 4xl:px-5 4xl:py-5" : "px-3 py-3"}`}>
-                            <div className={`font-bold uppercase tracking-[0.18em] text-slate-500 ${tvMode ? "text-[11px] 4xl:text-[12px] 5xl:text-[13px]" : "text-[10px]"}`}>
+                        <div className="company-board__marketing-summary grid">
+                          <div
+                            className="company-board__marketing-metric bg-[#f8fbfd]"
+                          >
+                            <div
+                              className="company-board__marketing-metric-label font-bold uppercase tracking-[0.18em] text-slate-500"
+                            >
                               Total Attributed
                             </div>
-                            <div className={`mt-1 font-black text-[#1f2937] ${tvMode ? "text-[1.3rem] 4xl:text-[1.55rem] 5xl:text-[1.8rem]" : "text-[1.05rem] 3xl:text-[1.18rem]"}`}>
+                            <div
+                              className="company-board__marketing-metric-value font-black text-[#1f2937]"
+                            >
                               {formatCompactCurrency(marketingTotal, 1)}
                             </div>
                           </div>
-                          <div className={`rounded-[0.9rem] bg-[#f8fbfd] ${tvMode ? "px-4 py-4 4xl:px-5 4xl:py-5" : "px-3 py-3"}`}>
-                            <div className={`font-bold uppercase tracking-[0.18em] text-slate-500 ${tvMode ? "text-[11px] 4xl:text-[12px] 5xl:text-[13px]" : "text-[10px]"}`}>
+                          <div
+                            className="company-board__marketing-metric bg-[#f8fbfd]"
+                          >
+                            <div
+                              className="company-board__marketing-metric-label font-bold uppercase tracking-[0.18em] text-slate-500"
+                            >
                               Top Source
                             </div>
-                            <div className={`mt-1 truncate font-black text-[#00363e] ${tvMode ? "text-[1.1rem] 4xl:text-[1.32rem] 5xl:text-[1.55rem]" : "text-[0.95rem] 3xl:text-[1rem]"}`}>
+                            <div
+                              className="company-board__marketing-metric-value font-black text-[#00363e]"
+                            >
                               {topMarketingRow?.name ?? "N/A"}
                             </div>
-                            <div className={`mt-1 font-bold text-[#18b3ad] ${tvMode ? "text-[0.95rem] 4xl:text-[1.05rem] 5xl:text-[1.12rem]" : "text-sm 3xl:text-[0.95rem]"}`}>
-                              {topMarketingRow ? `${Math.round(topMarketingRow.share * 100)}% share` : ""}
+                            <div
+                              className="company-board__marketing-metric-subvalue font-bold text-[#18b3ad]"
+                            >
+                              {topMarketingRow
+                                ? `${Math.round(topMarketingRow.share * 100)}% share`
+                                : ""}
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className={`grid content-center gap-2.5 3xl:gap-3 ${tvMode ? "4xl:gap-4" : ""}`}>
+                      <div className="company-board__marketing-rows grid content-start">
                         {marketingRows.slice(0, 5).map((row) => (
                           <div
-                            className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[0.85rem] bg-[#fcfcfd] ${
-                              tvMode ? "px-4 py-3.5 4xl:px-5 4xl:py-4.5" : "px-3 py-2.5 3xl:px-3.5 3xl:py-3"
-                            }`}
+                            className="company-board__marketing-row grid grid-cols-[minmax(0,1fr)_auto] items-center bg-[#fcfcfd]"
                             key={row.label}
                           >
-                            <div className="flex min-w-0 items-center gap-3">
+                            <div className="company-board__marketing-row-main flex min-w-0 items-center">
                               <span
-                                className="inline-flex h-3 w-3 rounded-full"
+                                className="company-board__marketing-dot inline-flex rounded-full"
                                 style={{ backgroundColor: row.color }}
                               />
                               <div className="min-w-0">
-                                <div className={`truncate font-semibold text-[#00363e] ${tvMode ? "text-[15px] 4xl:text-[17px] 5xl:text-[19px]" : "text-[13px] 3xl:text-[14px]"}`}>
+                                <div
+                                  className="company-board__marketing-row-name font-semibold text-[#00363e]"
+                                >
                                   {row.name}
                                 </div>
-                                <div className={`font-medium text-slate-500 ${tvMode ? "text-[12px] 4xl:text-[13px] 5xl:text-[14px]" : "text-[11px] 3xl:text-[12px]"}`}>
-                                  {Math.round(row.share * 100)}% of attributed revenue
+                                <div
+                                  className="company-board__marketing-row-detail font-medium text-slate-500"
+                                >
+                                  {Math.round(row.share * 100)}% of attributed
+                                  revenue
                                 </div>
                               </div>
                             </div>
-                            <div className={`text-right font-black text-[#1f2937] ${tvMode ? "text-[15px] 4xl:text-[17px] 5xl:text-[19px]" : "text-[13px] 3xl:text-[14px]"}`}>
+                            <div
+                              className="company-board__marketing-row-value text-right font-black text-[#1f2937]"
+                            >
                               {formatCompactCurrency(row.value, 1)}
                             </div>
                           </div>
@@ -506,58 +572,61 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex min-h-[12rem] items-center justify-center text-sm text-slate-500">
+                    <div className="company-board__marketing-empty flex items-center justify-center text-slate-500">
                       No marketing rows available.
                     </div>
                   )}
                 </Panel>
 
-                <div className={`company-board__support grid h-full min-h-0 gap-3 3xl:gap-4 ${
-                  tvMode ? "grid-rows-[minmax(0,0.92fr)_minmax(0,1.08fr)]" : "xl:grid-rows-[minmax(0,0.94fr)_minmax(0,1.06fr)]"
-                }`}>
+                <div
+                  className="company-board__support grid h-full min-h-0"
+                >
                   <Panel className="company-board__calls h-full" title="Calls">
-                    <div className={`grid h-full min-h-0 items-center gap-4 3xl:gap-5 ${
-                      tvMode ? "grid-cols-[auto_minmax(0,1fr)]" : "grid-cols-[auto_minmax(0,1fr)]"
-                    }`}>
+                    <div className="company-board__calls-grid grid h-full min-h-0 items-start grid-cols-[auto_minmax(0,1fr)]">
                       <div
-                        className={`relative flex items-center justify-center rounded-full ${
-                          tvMode ? "h-28 w-28 3xl:h-32 3xl:w-32 4xl:h-36 4xl:w-36 5xl:h-40 5xl:w-40" : "h-24 w-24 3xl:h-28 3xl:w-28 4xl:h-32 4xl:w-32"
-                        }`}
+                        className="company-board__calls-ring relative flex items-center justify-center rounded-full"
                         style={{
-                          background: `conic-gradient(#0b8b4f ${bookingPct * 360}deg, #d7fbef 0deg)`
+                          background: `conic-gradient(#0b8b4f ${bookingPct * 360}deg, #d7fbef 0deg)`,
                         }}
                       >
-                        <div className="absolute inset-[0.7rem] rounded-full bg-white shadow-inner" />
+                        <div className="company-board__calls-ring-inner absolute rounded-full bg-white shadow-inner" />
                         <div className="absolute text-center">
-                          <div className="text-[1.7rem] font-black tracking-tight text-[#111827] 3xl:text-[1.95rem] 4xl:text-[2.15rem]">
+                          <div className="company-board__calls-rate font-black tracking-tight text-[#111827]">
                             {percentLabel(data.bookingRate.kpis.rate)}
                           </div>
                         </div>
                       </div>
 
-                        <div className={`grid gap-2 ${tvMode ? "4xl:gap-3" : ""}`}>
-                        <div className={`grid grid-cols-3 text-center ${tvMode ? "gap-3 4xl:gap-4" : "gap-2"}`}>
-                          <div className="rounded-[0.85rem] bg-[#f8fbfd] px-2 py-2.5">
-                            <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Leads</div>
-                            <div className="mt-1 text-lg font-black text-[#1f2937] 3xl:text-[1.35rem]">
+                      <div className="company-board__calls-stats grid">
+                        <div className="company-board__calls-stat-grid grid grid-cols-3 text-center">
+                          <div className="company-board__calls-stat bg-[#f8fbfd]">
+                            <div className="company-board__calls-stat-label uppercase tracking-[0.12em] text-slate-500">
+                              Leads
+                            </div>
+                            <div className="company-board__calls-stat-value font-black text-[#1f2937]">
                               {data.bookingRate.kpis.leads}
                             </div>
                           </div>
-                          <div className="rounded-[0.85rem] bg-[#f8fbfd] px-2 py-2.5">
-                            <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Booked</div>
-                            <div className="mt-1 text-lg font-black text-[#1f2937] 3xl:text-[1.35rem]">
+                          <div className="company-board__calls-stat bg-[#f8fbfd]">
+                            <div className="company-board__calls-stat-label uppercase tracking-[0.12em] text-slate-500">
+                              Booked
+                            </div>
+                            <div className="company-board__calls-stat-value font-black text-[#1f2937]">
                               {data.bookingRate.kpis.booked}
                             </div>
                           </div>
-                          <div className="rounded-[0.85rem] bg-[#f8fbfd] px-2 py-2.5">
-                            <div className="text-[10px] uppercase tracking-[0.12em] text-slate-500">Open</div>
-                            <div className="mt-1 text-lg font-black text-[#1f2937] 3xl:text-[1.35rem]">
+                          <div className="company-board__calls-stat bg-[#f8fbfd]">
+                            <div className="company-board__calls-stat-label uppercase tracking-[0.12em] text-slate-500">
+                              Open
+                            </div>
+                            <div className="company-board__calls-stat-value font-black text-[#1f2937]">
                               {data.bookingRate.kpis.unbooked}
                             </div>
                           </div>
                         </div>
-                        <div className={`text-slate-500 ${tvMode ? "text-[13px] 4xl:text-[14px] 5xl:text-[15px]" : "text-[12px] 3xl:text-[13px]"}`}>
-                          Based on the latest booking snapshot for the selected date scope.
+                        <div className="company-board__calls-note text-slate-500">
+                          Based on the latest booking snapshot for the selected
+                          date scope.
                         </div>
                       </div>
                     </div>
@@ -570,39 +639,47 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
               </div>
             </div>
 
-            <div className={`company-board__right-rail grid gap-3 ${tvMode ? "h-full min-h-0 grid-rows-[repeat(4,minmax(0,1fr))]" : ""}`}>
+            <div className="company-board__right-rail grid">
               <Panel className="company-board__sales-panel" title="Sales">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
-                  <div className="rounded-[1rem] bg-[#f8fbfd] px-4 py-3.5">
-                    <div className="text-center text-[12px] font-black uppercase tracking-[0.18em] text-slate-500">
+                <div className="company-board__sales-grid grid">
+                  <div className="company-board__period-card bg-[#f8fbfd]">
+                    <div className="company-board__period-title text-center font-black uppercase tracking-[0.18em] text-slate-500">
                       Today
                     </div>
-                    <div className="mt-3 grid gap-3">
+                    <div className="company-board__period-stats grid">
                       <StatBlock
                         label="Total Sales"
-                        value={formatCurrency(data.salesToday.totals.totalSales)}
+                        value={formatCurrency(
+                          data.salesToday.totals.totalSales,
+                        )}
                       />
                       <StatBlock
                         accent={true}
                         label="Total Revenue"
-                        value={formatCurrency(data.salesToday.totals.totalRevenue)}
+                        value={formatCurrency(
+                          data.salesToday.totals.totalRevenue,
+                        )}
                       />
                     </div>
                   </div>
 
-                  <div className="rounded-[1rem] bg-[#f8fbfd] px-4 py-3.5">
-                    <div className="text-center text-[12px] font-black uppercase tracking-[0.18em] text-slate-500">
+                  <div className="company-board__period-card bg-[#f8fbfd]">
+                    <div className="company-board__period-title text-center font-black uppercase tracking-[0.18em] text-slate-500">
                       Yesterday
                     </div>
-                    <div className="mt-3 grid gap-3">
+                    <div className="company-board__period-stats grid">
                       <StatBlock
                         label="Total Sales"
-                        value={formatCurrency(data.salesYesterday.totals.totalSales)}
+                        value={formatCurrency(
+                          data.salesYesterday.totals.totalSales,
+                        )}
                       />
                       <StatBlock
                         accent={true}
                         label="Total Revenue"
-                        value={formatCurrency(data.salesYesterday.totals.totalRevenue)}
+                        value={formatCurrency(
+                          data.salesYesterday.totals.totalRevenue,
+                        )}
                       />
                     </div>
                   </div>
@@ -610,80 +687,101 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
               </Panel>
 
               <Panel className="company-board__goal-panel" title="Goal Tracker">
-                <div className="flex items-center gap-4">
+                <div className="company-board__goal-progress flex items-center">
                   <div className="min-w-0 flex-1">
-                    <ProgressBar value={yearlyGoal > 0 ? ytdRevenue / yearlyGoal : 0} />
+                    <ProgressBar
+                      value={yearlyGoal > 0 ? ytdRevenue / yearlyGoal : 0}
+                    />
                   </div>
-                  <div className="text-[1.55rem] font-black text-[#fa6e18] 3xl:text-[1.7rem]">
+                  <div className="company-board__goal-percent font-black text-[#fa6e18]">
                     {percentLabel(yearlyGoal > 0 ? ytdRevenue / yearlyGoal : 0)}
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                  <StatBlock label="Revenue (YTD)" value={formatCompactCurrency(ytdRevenue, 1)} />
-                  <StatBlock accent={true} label="Pacing" value={formatCompactCurrency(revenuePacing, 1)} />
-                  <StatBlock label="Goal" value={formatCompactCurrency(yearlyGoal, 1)} />
+                <div className="company-board__goal-stats grid">
+                  <StatBlock
+                    label="Revenue (YTD)"
+                    value={formatCompactCurrency(ytdRevenue, 1)}
+                  />
+                  <StatBlock
+                    accent={true}
+                    label="Pacing"
+                    value={formatCompactCurrency(revenuePacing, 1)}
+                  />
+                  <StatBlock
+                    label="Goal"
+                    value={formatCompactCurrency(yearlyGoal, 1)}
+                  />
                 </div>
               </Panel>
 
-              <Panel className="company-board__gross-panel" title="Company Jobs Gross Margin Goal Tracker" titleClassName="text-[1.05rem] md:text-[1.2rem]">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <StatBlock label="Monthly Goal" value={formatCurrency(data.jobCostingSummary.goal)} />
-                  <StatBlock label="MTD Gross Margin" value={formatCurrency(data.jobCostingSummary.mtd)} />
-                  <StatBlock label="Remaining" value={formatCurrency(remainingGrossMargin)} />
+              <Panel
+                className="company-board__gross-panel"
+                title="Company Jobs Gross Margin Goal Tracker"
+                titleClassName="company-board__gross-title"
+              >
+                <div className="company-board__gross-stats grid">
+                  <StatBlock
+                    label="Monthly Goal"
+                    value={formatCurrency(data.jobCostingSummary.goal)}
+                  />
+                  <StatBlock
+                    label="MTD Gross Margin"
+                    value={formatCurrency(data.jobCostingSummary.mtd)}
+                  />
+                  <StatBlock
+                    label={grossMarginRemainingLabel}
+                    value={grossMarginRemainingValue}
+                  />
                 </div>
 
-                <div className="mt-4">
-                    <div className="mb-2 flex items-center justify-between gap-4 text-[0.95rem] font-black text-[#111827] 3xl:text-[1.02rem]">
+                <div className="company-board__gross-summary">
+                  <div className="company-board__gross-summary-line flex items-center justify-between font-black text-[#111827]">
                     <span>MTD</span>
                     <span>
                       {formatCurrency(data.jobCostingSummary.mtd)}{" "}
-                      <span className="text-sm text-slate-500">
+                      <span className="company-board__gross-percent text-slate-500">
                         {percentLabel(data.jobCostingSummary.percentToGoal)}
                       </span>
                     </span>
                   </div>
 
-                    <div className="relative h-5 overflow-hidden rounded-full bg-[#eef2f6]">
+                  <div className="company-board__gross-scale relative overflow-hidden rounded-full bg-[#eef2f6]">
                     <div
                       className="absolute inset-y-0 left-0 rounded-full bg-[#2683a3]"
                       style={{ width: `${grossMarginScalePct}%` }}
                     />
                     <div
-                      className="absolute inset-y-0 w-[2px] bg-[#c8d0d9]"
-                      style={{ left: `${(500_000 / grossMarginScaleMax) * 100}%` }}
-                    />
-                    <div
-                      className="absolute top-1/2 h-10 w-[2px] -translate-y-1/2 bg-[#7c8288]"
-                      style={{ left: `${grossMarginGoalPct}%` }}
+                      className="company-board__gross-goal-marker absolute top-1/2 -translate-y-1/2 bg-[#7c8288]"
+                      style={{ left: `${grossMarginGoalMarkerPct}%` }}
                     />
                   </div>
 
-                  <div className="mt-2 flex items-center justify-between text-xs font-bold text-slate-500">
+                  <div className="company-board__gross-scale-labels flex items-center justify-between font-bold text-slate-500">
                     <span>0</span>
-                    <span>500k</span>
-                    <span>700k</span>
+                    <span>{axisCurrency(data.jobCostingSummary.goal)}</span>
+                    <span>{axisCurrency(grossMarginScaleMax)}</span>
                   </div>
                 </div>
               </Panel>
 
               <Panel className="company-board__pace-panel" title="Monthly Pace">
-                <div className="space-y-4">
-                  <div>
-                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#111827]">
+                <div className="company-board__pace-stack">
+                  <div className="company-pace-card">
+                    <div className="company-pace-card__label font-black uppercase tracking-[0.12em] text-[#111827]">
                       Company Revenue Monthly Pace
                     </div>
-                    <div className="rounded-[0.8rem] bg-[#fa6e18] px-4 py-2.5 text-center text-[1.15rem] font-black text-white 3xl:text-[1.28rem] 4xl:text-[1.34rem]">
-                      {formatCompactCurrency(data.revenueMonthlyPace.value, 2)}
+                    <div className="company-pace-card__value bg-[#fa6e18] text-center font-black text-white">
+                      {formatCurrency(data.revenueMonthlyPace.value)}
                     </div>
                   </div>
 
-                  <div>
-                    <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#111827]">
+                  <div className="company-pace-card">
+                    <div className="company-pace-card__label font-black uppercase tracking-[0.12em] text-[#111827]">
                       Company Sales Monthly Pace
                     </div>
-                    <div className="rounded-[0.8rem] bg-[#fa6e18] px-4 py-2.5 text-center text-[1.15rem] font-black text-white 3xl:text-[1.28rem] 4xl:text-[1.34rem]">
-                      {formatCompactCurrency(data.salesMonthlyPace.pace, 2)}
+                    <div className="company-pace-card__value bg-[#fa6e18] text-center font-black text-white">
+                      {formatCurrency(data.salesMonthlyPace.pace)}
                     </div>
                   </div>
                 </div>

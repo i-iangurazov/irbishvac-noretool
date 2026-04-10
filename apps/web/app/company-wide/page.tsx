@@ -7,7 +7,11 @@ type CompanyWideRouteProps = {
 };
 
 export default async function CompanyWideRoute({ searchParams }: CompanyWideRouteProps) {
-  const filters = await resolveDashboardFilters(searchParams, "America/Los_Angeles");
+  const filters = await resolveDashboardFilters(
+    searchParams,
+    "America/Los_Angeles",
+    "/company-wide",
+  );
   const data = await fetchApi(`/dashboard/company-wide?${filters.apiQueryString}`);
   return <CompanyWidePage data={data as never} filters={filters} />;
 }

@@ -97,7 +97,7 @@ function buildYesterdayRange(referenceDate: Date, timeZone: string) {
   };
 }
 
-function buildMonthFromSecondRange(
+function buildMonthToDateRange(
   referenceDate: Date,
   timeZone: string,
   explicitTo?: string,
@@ -106,7 +106,7 @@ function buildMonthFromSecondRange(
   const { year, month } = getDateParts(toReferenceDate(to, referenceDate), timeZone);
 
   return {
-    from: `${year}-${padTwo(month)}-02`,
+    from: `${year}-${padTwo(month)}-01`,
     to
   };
 }
@@ -212,7 +212,7 @@ export function getServiceTitanReportDefinitions(): Record<
       defaultPreset: "mtd",
       extraParameters: [{ name: "DateType", value: 1 }],
       rangeResolver: ({ context, referenceDate, timeZone }) =>
-        buildMonthFromSecondRange(referenceDate, timeZone, context?.to)
+        buildMonthToDateRange(referenceDate, timeZone, context?.to)
     },
     revenueGoals: {
       family: "revenueGoals",
@@ -247,7 +247,7 @@ export function getServiceTitanReportDefinitions(): Record<
       defaultPreset: "mtd",
       businessUnitGroup: "company",
       rangeResolver: ({ context, referenceDate, timeZone }) =>
-        buildMonthFromSecondRange(referenceDate, timeZone, context?.to)
+        buildMonthToDateRange(referenceDate, timeZone, context?.to)
     },
     revenueMonthlyPace: {
       family: "revenueMonthlyPace",
@@ -257,7 +257,7 @@ export function getServiceTitanReportDefinitions(): Record<
       defaultPreset: "mtd",
       businessUnitGroup: "company",
       rangeResolver: ({ context, referenceDate, timeZone }) =>
-        buildMonthFromSecondRange(referenceDate, timeZone, context?.to)
+        buildMonthToDateRange(referenceDate, timeZone, context?.to)
     },
     bookingRate: {
       family: "bookingRate",

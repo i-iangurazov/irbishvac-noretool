@@ -7,7 +7,11 @@ type LeadsPageProps = {
 };
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  const filters = await resolveDashboardFilters(searchParams, "America/Los_Angeles");
+  const filters = await resolveDashboardFilters(
+    searchParams,
+    "America/Los_Angeles",
+    "/leads",
+  );
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;

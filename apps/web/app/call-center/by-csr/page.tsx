@@ -7,7 +7,11 @@ type CallCenterByCsrPageProps = {
 };
 
 export default async function CallCenterByCsrPage({ searchParams }: CallCenterByCsrPageProps) {
-  const filters = await resolveDashboardFilters(searchParams, "America/Los_Angeles");
+  const filters = await resolveDashboardFilters(
+    searchParams,
+    "America/Los_Angeles",
+    "/call-center/by-csr",
+  );
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;

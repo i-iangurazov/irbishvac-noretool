@@ -7,7 +7,11 @@ type InstallersPageProps = {
 };
 
 export default async function InstallersPage({ searchParams }: InstallersPageProps) {
-  const filters = await resolveDashboardFilters(searchParams, "America/Los_Angeles");
+  const filters = await resolveDashboardFilters(
+    searchParams,
+    "America/Los_Angeles",
+    "/installers",
+  );
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;
