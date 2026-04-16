@@ -10,6 +10,9 @@ import {
   buildCallCenterDashboard,
   buildCampaignDashboard,
   buildCapacitySummary,
+  filterAdvisorDashboardByDepartment,
+  filterInstallerDashboardByDepartment,
+  filterTechnicianDashboardByDepartment,
   buildInstallerDashboard,
   buildJobCostingSummary,
   buildLeadGenerationDashboard,
@@ -19,7 +22,8 @@ import {
   buildSalesMonthlyPace,
   buildSalesSummary,
   buildTechnicianDashboard,
-  buildTrendingModel
+  buildTrendingModel,
+  type FieldStaffDepartment
 } from "@irbis/domain";
 import {
   getServiceTitanReportDefinitions,
@@ -250,31 +254,52 @@ export class DashboardService {
     return goals.map(toGoalTrackerDto);
   }
 
-  async getTechnicians(context?: DashboardRequestContext) {
-    return this.resolveMetricFamily(
+  private async getTechnicianDashboardForDepartment(
+    department: FieldStaffDepartment,
+    context?: DashboardRequestContext,
+  ) {
+    const dashboard = await this.resolveMetricFamily(
       DashboardFamily.TECHNICIANS,
       "technicians",
       (payload) => buildTechnicianDashboard(payload),
       context,
     );
+
+    return filterTechnicianDashboardByDepartment(dashboard, department);
+  }
+
+  async getTechnicians(context?: DashboardRequestContext) {
+    return this.getTechnicianDashboardForDepartment("hvac-service", context);
+  }
+
+  async getPlumbingTechnicians(context?: DashboardRequestContext) {
+    return this.getTechnicianDashboardForDepartment("plumbing", context);
+  }
+
+  async getElectricalTechnicians(context?: DashboardRequestContext) {
+    return this.getTechnicianDashboardForDepartment("electrical", context);
   }
 
   async getInstallers(context?: DashboardRequestContext) {
-    return this.resolveMetricFamily(
+    const dashboard = await this.resolveMetricFamily(
       DashboardFamily.INSTALLERS,
       "installers",
       (payload) => buildInstallerDashboard(payload),
       context,
     );
+
+    return filterInstallerDashboardByDepartment(dashboard, "hvac-install");
   }
 
   async getAdvisors(context?: DashboardRequestContext) {
-    return this.resolveMetricFamily(
+    const dashboard = await this.resolveMetricFamily(
       DashboardFamily.ADVISORS,
       "advisors",
       (payload) => buildAdvisorDashboard(payload),
       context,
     );
+
+    return filterAdvisorDashboardByDepartment(dashboard, "hvac-comfort-advisor");
   }
 
   async getCallCenterSummary(context?: DashboardRequestContext) {

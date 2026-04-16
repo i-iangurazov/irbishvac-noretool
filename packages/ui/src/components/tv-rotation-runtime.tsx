@@ -25,11 +25,14 @@ export function TvRotationRuntime({
   presetQuery
 }: TvRotationRuntimeProps) {
   useEffect(() => {
-    if (!enabled || navItems.length < 2) {
+    if (!enabled || navItems.length === 0) {
       return;
     }
 
-    const availableItems = navItems.filter((item) => item.href !== activePath);
+    const activeItemSelected = navItems.some((item) => item.href === activePath);
+    const availableItems = activeItemSelected
+      ? navItems.filter((item) => item.href !== activePath)
+      : navItems;
 
     if (availableItems.length === 0) {
       return;

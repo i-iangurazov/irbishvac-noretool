@@ -218,11 +218,11 @@ body[data-vw-app="true"] {
     calc(100vw - var(--dash-space-xl))
   ) !important;
   border-radius: var(--dash-radius-lg) !important;
-  padding: var(--dash-space-md) !important;
+  padding: var(--dash-space-sm) !important;
   box-shadow: var(--dash-shadow-strong) !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: var(--dash-space-md) !important;
+  gap: var(--dash-space-sm) !important;
   overflow: hidden !important;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 247, 243, 0.98) 100%) !important;
@@ -243,7 +243,7 @@ body[data-vw-app="true"] {
 [data-dashboard-shell="true"] .dashboard-shell__menu-header {
   display: grid !important;
   gap: var(--dash-space-2xs) !important;
-  padding-bottom: var(--dash-space-sm) !important;
+  padding-bottom: var(--dash-space-xs) !important;
   border-bottom: var(--dash-border) solid rgba(228, 221, 212, 0.9) !important;
 }
 
@@ -255,7 +255,7 @@ body[data-vw-app="true"] {
 }
 
 [data-dashboard-shell="true"] .dashboard-shell__menu-current {
-  font-size: var(--dash-font-md) !important;
+  font-size: var(--dash-font-sm) !important;
   line-height: 1.02 !important;
 }
 
@@ -266,19 +266,20 @@ body[data-vw-app="true"] {
 
 [data-dashboard-shell="true"] .dashboard-shell__menu-body {
   display: grid !important;
-  gap: var(--dash-space-md) !important;
+  gap: var(--dash-space-sm) !important;
   min-height: 0 !important;
   overflow-y: auto !important;
   padding-right: var(--dash-space-2xs) !important;
+  overscroll-behavior: contain !important;
 }
 
 [data-dashboard-shell="true"] .dashboard-shell__menu-section {
   display: grid !important;
-  gap: var(--dash-space-xs) !important;
+  gap: var(--dash-space-2xs) !important;
 }
 
 [data-dashboard-shell="true"] .dashboard-shell__menu-section + .dashboard-shell__menu-section {
-  padding-top: var(--dash-space-sm) !important;
+  padding-top: var(--dash-space-xs) !important;
   border-top: var(--dash-border) solid rgba(237, 229, 220, 0.85) !important;
 }
 
@@ -294,8 +295,18 @@ body[data-vw-app="true"] {
 [data-dashboard-shell="true"] .dashboard-shell__menu-link {
   display: flex !important;
   align-items: center !important;
-  min-height: calc(var(--vw-unit) * 46) !important;
+  min-height: calc(var(--vw-unit) * 38) !important;
+  padding: var(--dash-space-xs) var(--dash-space-sm) !important;
+  font-size: var(--dash-font-xs) !important;
+  line-height: 1.08 !important;
   border: var(--dash-border) solid rgba(223, 214, 203, 0.9) !important;
+}
+
+[data-dashboard-shell="true"] .dashboard-shell__menu .dashboard-shell__menu-link {
+  min-height: calc(var(--vw-unit) * 38) !important;
+  padding: var(--dash-space-xs) var(--dash-space-sm) !important;
+  font-size: var(--dash-font-xs) !important;
+  line-height: 1.08 !important;
 }
 
 [data-dashboard-shell="true"] .dashboard-shell__menu-link-label {
@@ -1471,7 +1482,10 @@ body[data-vw-app="true"] {
 }
 
 [data-dashboard-shell="true"] .dashboard-shell__menu {
-  max-height: calc(100dvh - var(--dash-space-2xl)) !important;
+  max-height: min(
+    calc(var(--vw-unit) * 780),
+    calc(100dvh - calc(var(--vw-unit) * 152))
+  ) !important;
   overflow: hidden !important;
 }
 

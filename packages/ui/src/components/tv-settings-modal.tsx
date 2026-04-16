@@ -14,6 +14,11 @@ type TvSettingsModalProps = {
   rotateOffHref?: string | undefined;
   rotateMtdHref?: string | undefined;
   rotateYtdHref?: string | undefined;
+  rotationBoardOptions?: Array<{
+    label: string;
+    href: string;
+    active: boolean;
+  }> | undefined;
 };
 
 function ActionLink(props: {
@@ -180,6 +185,30 @@ export function TvSettingsModal(props: TvSettingsModalProps) {
                     />
                   ) : null}
                 </div>
+                {props.rotationBoardOptions && props.rotationBoardOptions.length > 0 ? (
+                  <div className="tv-settings-modal__section-head">
+                    <div className="tv-settings-modal__section-title font-black uppercase tracking-[0.24em] text-slate-500">
+                      Boards
+                    </div>
+                    <div className="tv-settings-modal__section-copy text-slate-500">
+                      Select which field boards are eligible for automatic TV
+                      rotation.
+                    </div>
+                  </div>
+                ) : null}
+                {props.rotationBoardOptions && props.rotationBoardOptions.length > 0 ? (
+                  <div className="tv-settings-modal__actions grid">
+                    {props.rotationBoardOptions.map((option) => (
+                      <ActionLink
+                        active={option.active}
+                        href={option.href}
+                        key={option.href}
+                        label={option.label}
+                        onActivate={() => setOpen(false)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </section>
             ) : (
               <section className="tv-settings-modal__section grid">

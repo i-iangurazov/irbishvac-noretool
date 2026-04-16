@@ -30,6 +30,11 @@ type DashboardShellProps = {
         rotateOffHref?: string;
         rotateMtdHref?: string;
         rotateYtdHref?: string;
+        rotationBoardOptions?: Array<{
+          label: string;
+          href: string;
+          active: boolean;
+        }>;
       }
     | undefined;
   headerContent?: ReactNode | undefined;
@@ -64,9 +69,6 @@ export function DashboardShell(props: DashboardShellProps) {
       className="dashboard-shell__menu absolute right-0 z-20 border border-[#e4ddd4] bg-white shadow-[0_18px_50px_rgba(0,54,62,0.12)]"
     >
       <div className="dashboard-shell__menu-header">
-        <div className="dashboard-shell__menu-eyebrow font-bold uppercase tracking-[0.28em] text-slate-500">
-          Dashboard Menu
-        </div>
         <div className="dashboard-shell__menu-current font-black tracking-tight text-[#182033]">
           {activeItem?.label ?? props.title}
         </div>
@@ -124,6 +126,7 @@ export function DashboardShell(props: DashboardShellProps) {
               rotateMtdHref={props.tvMenu.rotateMtdHref}
               rotateOffHref={props.tvMenu.rotateOffHref}
               rotateYtdHref={props.tvMenu.rotateYtdHref}
+              rotationBoardOptions={props.tvMenu.rotationBoardOptions}
               toggleHref={props.tvMenu.toggleHref}
             />
           </section>

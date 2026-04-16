@@ -38,6 +38,8 @@ export class DashboardController {
   constructor(@Inject(DashboardService) dashboardService: DashboardService) {
     this.dashboardService = dashboardService;
     this.getTechnicians = this.getTechnicians.bind(this);
+    this.getPlumbing = this.getPlumbing.bind(this);
+    this.getElectrical = this.getElectrical.bind(this);
     this.getInstallers = this.getInstallers.bind(this);
     this.getCompanyWide = this.getCompanyWide.bind(this);
     this.getAdvisors = this.getAdvisors.bind(this);
@@ -51,6 +53,16 @@ export class DashboardController {
   @Get("technicians")
   async getTechnicians(@Query() query: DashboardQuery) {
     return this.dashboardService.getTechnicians(toRequestContext(query));
+  }
+
+  @Get("plumbing")
+  async getPlumbing(@Query() query: DashboardQuery) {
+    return this.dashboardService.getPlumbingTechnicians(toRequestContext(query));
+  }
+
+  @Get("electrical")
+  async getElectrical(@Query() query: DashboardQuery) {
+    return this.dashboardService.getElectricalTechnicians(toRequestContext(query));
   }
 
   @Get("installers")

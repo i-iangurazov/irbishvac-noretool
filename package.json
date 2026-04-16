@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "predev": "pnpm web:free-port && pnpm api:free-port",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

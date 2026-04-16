@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAdvisorDashboard } from "./advisors";
+import { buildAdvisorDashboard, filterAdvisorDashboardByDepartment } from "./advisors";
 import { buildCallCenterDashboard } from "./call-center";
 import { buildCampaignDashboard } from "./campaigns";
 import { buildLeadGenerationDashboard } from "./lead-generation";
@@ -47,6 +47,45 @@ describe("leaderboard metric families", () => {
     expect(result.rows.find((row) => row.name === "Advisor B")?.closedOpportunitiesCount).toBe(0);
     expect(result.totals.totalClosedOpportunities).toBe(3);
     expect(result.totals.weightedClosedAverageSale).toBe(2000);
+  });
+
+  it("keeps advisor rows only when ST position matches comfort advisors", () => {
+    const result = buildAdvisorDashboard({
+      fields: [
+        { name: "Name" },
+        { name: "Position" },
+        { name: "TotalSales" },
+        { name: "ClosedAverageSale" },
+        { name: "CloseRateRolling" },
+        { name: "SalesOpportunity" }
+      ],
+      data: [
+        ["Advisor A", "HVAC Comfort Advisors", 6000, 2000, 0.5, 6],
+        ["Plumber A", "Plumbing Service Technicians", 3000, 1500, 0.4, 3]
+      ]
+    });
+
+    const advisors = filterAdvisorDashboardByDepartment(result, "hvac-comfort-advisor");
+
+    expect(advisors.rowsRanked).toHaveLength(1);
+    expect(advisors.rowsRanked[0]?.name).toBe("Advisor A");
+  });
+
+  it("treats legacy advisor rows without ST position as comfort advisors", () => {
+    const result = buildAdvisorDashboard({
+      fields: [
+        { name: "Name" },
+        { name: "TotalSales" },
+        { name: "ClosedAverageSale" },
+        { name: "CloseRateRolling" },
+        { name: "SalesOpportunity" }
+      ],
+      data: [["Legacy Advisor", 6000, 2000, 0.5, 6]]
+    });
+
+    expect(
+      filterAdvisorDashboardByDepartment(result, "hvac-comfort-advisor").rowsRanked[0]?.name,
+    ).toBe("Legacy Advisor");
   });
 
   it("builds call-center summary rows", () => {

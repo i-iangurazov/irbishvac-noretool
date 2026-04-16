@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 export type DashboardNavItem = {
+  id: string;
   href: string;
   label: string;
   section: string;
@@ -9,48 +10,70 @@ export type DashboardNavItem = {
 
 export const navItems: DashboardNavItem[] = [
   {
+    id: "company-wide",
     href: "/company-wide",
     label: "Company-wide",
     shortLabel: "CW",
     section: "Overview"
   },
   {
+    id: "technicians",
     href: "/technicians",
-    label: "Technicians",
+    label: "HVAC Service",
     shortLabel: "TC",
     section: "Field Performance"
   },
   {
+    id: "plumbing",
+    href: "/plumbing",
+    label: "Plumbing",
+    shortLabel: "PL",
+    section: "Field Performance"
+  },
+  {
+    id: "electrical",
+    href: "/electrical",
+    label: "Electrical",
+    shortLabel: "EL",
+    section: "Field Performance"
+  },
+  {
+    id: "installers",
     href: "/installers",
     label: "Installers",
     shortLabel: "IN",
     section: "Field Performance"
   },
   {
+    id: "advisors",
     href: "/advisors",
     label: "Advisors",
     shortLabel: "AD",
     section: "Field Performance"
   },
   {
+    id: "call-center-summary",
     href: "/call-center/summary",
     label: "Call Center Summary",
     shortLabel: "CS",
     section: "Call Center"
   },
   {
+    id: "call-center-by-csr",
     href: "/call-center/by-csr",
     label: "Call Center By CSR",
     shortLabel: "CR",
     section: "Call Center"
   },
   {
+    id: "leads",
     href: "/leads",
     label: "Lead Generation",
     shortLabel: "LG",
     section: "Demand"
   },
   {
+    id: "campaigns",
     href: "/campaigns",
     label: "Campaigns",
     shortLabel: "CM",

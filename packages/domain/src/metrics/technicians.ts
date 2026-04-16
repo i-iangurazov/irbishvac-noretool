@@ -1,5 +1,12 @@
-import { weightedAverage } from "../shared/report";
-import { resolveTabularReport, sumBy, toNumber, toRatio } from "../shared/report";
+import {
+  BUSINESS_UNIT_FIELD_KEYS,
+  classifyFieldStaffDepartment,
+  type FieldStaffDepartment,
+  POSITION_FIELD_KEYS,
+  readTextField,
+  TECHNICIAN_ID_FIELD_KEYS
+} from "./field-staff-departments";
+import { resolveTabularReport, sumBy, toNumber, toRatio, weightedAverage } from "../shared/report";
 
 export type TechnicianExtra = {
   completedJobs?: number | null;
@@ -12,6 +19,9 @@ export type TechnicianExtra = {
 export type TechnicianMetricRow = {
   name: string;
   businessUnit: string;
+  department: FieldStaffDepartment | null;
+  position: string | null;
+  technicianId: string | null;
   completedRevenue: number;
   opportunityJobAverage: number;
   totalSales: number;
@@ -64,14 +74,25 @@ export function buildTechnicianDashboard(
   const rows = report.rows.map((row) => {
     const name = String(row.Name ?? "");
     const extra = extrasByName[name] ?? {};
+    const businessUnit = readTextField(row, BUSINESS_UNIT_FIELD_KEYS) ?? "";
+    const position = readTextField(row, POSITION_FIELD_KEYS);
+    const technicianId = readTextField(row, TECHNICIAN_ID_FIELD_KEYS);
     const completedRevenue = toNumber(row.CompletedRevenue);
     const avgSaleFromOpps = toNumber(row.OpportunityAverageSale);
     const totalTechLeadSales = toNumber(row.TotalLeadSales);
     const totalInfluencedRevenue = completedRevenue + totalTechLeadSales;
+    const department = classifyFieldStaffDepartment({
+      businessUnit,
+      position,
+      sourceFamily: "technicians"
+    });
 
     return {
       name,
-      businessUnit: String(row.TechnicianBusinessUnit ?? ""),
+      businessUnit,
+      department,
+      position,
+      technicianId,
       completedRevenue,
       opportunityJobAverage: toNumber(row.OpportunityJobAverage),
       totalSales: toNumber(row.TotalSales),
@@ -96,32 +117,65 @@ export function buildTechnicianDashboard(
     };
   });
 
-  const rowsRanked = rows
+  const rowsRanked = rankTechnicianRows(rows);
+
+  return {
+    rows,
+    rowsRanked,
+    totals: calculateTechnicianTotals(rows),
+    snapshotTime: report.snapshotTime
+  };
+}
+
+function rankTechnicianRows(rows: TechnicianMetricRow[]) {
+  return rows
     .slice()
     .sort((left, right) => right.totalInfluencedRevenue - left.totalInfluencedRevenue)
     .map((row, index) => ({ ...row, rankByRevenue: index + 1 }));
+}
 
+function calculateTechnicianTotals(rows: TechnicianMetricRow[]): TechnicianDashboard["totals"] {
   const totalSalesOpp = sumBy(rows, (row) => row.salesOpportunity);
   const totalClosedOpp = sumBy(rows, (row) => row.closedOpportunities);
   const totalMemOpp = sumBy(rows, (row) => row.membershipOpportunities);
   const totalMemSold = sumBy(rows, (row) => row.membershipsSold);
 
   return {
+    totalInfluencedRevenue: sumBy(rows, (row) => row.totalInfluencedRevenue),
+    completedRevenue: sumBy(rows, (row) => row.completedRevenue),
+    avgCloseRate: (totalSalesOpp > 0 ? totalClosedOpp / totalSalesOpp : 0).toFixed(3),
+    avgAvgSaleFromOpps: Number(
+      weightedAverage(
+        rows,
+        (row) => row.avgSaleFromOpps,
+        (row) => row.closedOpportunities,
+      ).toFixed(2),
+    ),
+    avgMembershipConv: (totalMemOpp > 0 ? totalMemSold / totalMemOpp : 0).toFixed(3)
+  };
+}
+
+export function filterTechnicianDashboardByDepartment(
+  dashboard: TechnicianDashboard,
+  department: FieldStaffDepartment,
+): TechnicianDashboard {
+  const sourceRows = Array.isArray(dashboard.rows) ? dashboard.rows : dashboard.rowsRanked ?? [];
+  const rows = sourceRows.filter((row) => {
+    const resolvedDepartment =
+      row.department ??
+      classifyFieldStaffDepartment({
+        businessUnit: row.businessUnit,
+        position: row.position,
+        sourceFamily: "technicians"
+      });
+
+    return resolvedDepartment === department;
+  });
+
+  return {
+    ...dashboard,
     rows,
-    rowsRanked,
-    totals: {
-      totalInfluencedRevenue: sumBy(rows, (row) => row.totalInfluencedRevenue),
-      completedRevenue: sumBy(rows, (row) => row.completedRevenue),
-      avgCloseRate: (totalSalesOpp > 0 ? totalClosedOpp / totalSalesOpp : 0).toFixed(3),
-      avgAvgSaleFromOpps: Number(
-        weightedAverage(
-          rows,
-          (row) => row.avgSaleFromOpps,
-          (row) => row.closedOpportunities,
-        ).toFixed(2),
-      ),
-      avgMembershipConv: (totalMemOpp > 0 ? totalMemSold / totalMemOpp : 0).toFixed(3)
-    },
-    snapshotTime: report.snapshotTime
+    rowsRanked: rankTechnicianRows(rows),
+    totals: calculateTechnicianTotals(rows)
   };
 }

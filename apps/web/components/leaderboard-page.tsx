@@ -13,6 +13,8 @@ import {
 import { navItems } from "../lib/api";
 import {
   buildDashboardQueryString,
+  buildRotationBoardHref,
+  DASHBOARD_ROTATION_BOARDS,
   getDashboardRotationNavItems,
   buildKioskHref,
   buildPresetHref,
@@ -72,6 +74,14 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
   const tvMode = props.filters.tvMode;
   const rotationSupported = supportsDashboardRotation(props.path);
   const rotateMode = rotationSupported && props.filters.rotateMode;
+  const rotationNavItems = rotationSupported
+    ? getDashboardRotationNavItems(navItems, props.filters.rotationBoardIds)
+    : undefined;
+  const allRotationBoardsSelected =
+    props.filters.rotationBoardIds.length === DASHBOARD_ROTATION_BOARDS.length &&
+    DASHBOARD_ROTATION_BOARDS.every((board) =>
+      props.filters.rotationBoardIds.includes(board.id),
+    );
   const maxVisibleItems = props.maxVisibleItems ?? 9;
   const visibleItems = props.items.slice(0, maxVisibleItems);
   const items = visibleItems.map((item) => ({
@@ -93,9 +103,7 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
       tvMode={props.filters.tvMode}
       kioskMode={props.filters.kioskMode}
       navQueryString={buildDashboardQueryString(props.filters)}
-      rotationNavItems={
-        rotationSupported ? getDashboardRotationNavItems(navItems) : undefined
-      }
+      rotationNavItems={rotationNavItems}
       tvMenu={{
         enabled: tvMode,
         toggleHref: buildTvModeHref(props.path, props.filters, !tvMode),
@@ -127,6 +135,18 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
                 "ytd",
                 true,
               ),
+              rotationBoardOptions: [
+                {
+                  label: "All Field Boards",
+                  href: buildRotationBoardHref(props.path, props.filters, "all"),
+                  active: allRotationBoardsSelected
+                },
+                ...DASHBOARD_ROTATION_BOARDS.map((board) => ({
+                  label: board.label,
+                  href: buildRotationBoardHref(props.path, props.filters, board.id),
+                  active: props.filters.rotationBoardIds.includes(board.id)
+                }))
+              ],
             }
           : {}),
       }}
