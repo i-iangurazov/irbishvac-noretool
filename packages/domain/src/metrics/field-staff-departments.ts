@@ -1,9 +1,11 @@
 export type FieldStaffDepartment =
   | "hvac-service"
-  | "plumbing"
+  | "plumbing-service"
+  | "electrical-service"
   | "hvac-comfort-advisor"
   | "hvac-install"
-  | "electrical";
+  | "plumbing-install"
+  | "electrical-install";
 
 export type FieldStaffSourceFamily = "technicians" | "installers" | "advisors";
 
@@ -26,9 +28,13 @@ export const FIELD_STAFF_DEPARTMENTS: Record<
     label: "HVAC Service Technicians",
     positionLabels: ["HVAC Service Technicians"]
   },
-  plumbing: {
+  "plumbing-service": {
     label: "Plumbing Service Technicians",
     positionLabels: ["Plumbing Service Technicians"]
+  },
+  "electrical-service": {
+    label: "Electrical Service Technicians",
+    positionLabels: ["Electrical Service Technicians", "Electrical Service Techncians"]
   },
   "hvac-comfort-advisor": {
     label: "HVAC Comfort Advisors",
@@ -38,9 +44,13 @@ export const FIELD_STAFF_DEPARTMENTS: Record<
     label: "HVAC Installation Technicians",
     positionLabels: ["HVAC Installation Technicians"]
   },
-  electrical: {
-    label: "Electrical Service Technicians",
-    positionLabels: ["Electrical Service Technicians", "Electrical Service Techncians"]
+  "plumbing-install": {
+    label: "Plumbing Installation Technicians",
+    positionLabels: ["Plumbing Installation Technicians", "Plumbing Install Technicians"]
+  },
+  "electrical-install": {
+    label: "Electrical Installation Technicians",
+    positionLabels: ["Electrical Installation Technicians", "Electrical Install Technicians"]
   }
 };
 
@@ -87,29 +97,49 @@ function hasAny(text: string, needles: string[]) {
   return needles.some((needle) => text.includes(needle));
 }
 
-function defaultDepartmentForSource(sourceFamily: FieldStaffSourceFamily | null | undefined) {
+type FieldStaffRole = "service" | "install" | "advisor";
+type FieldStaffTrade = "hvac" | "plumbing" | "electrical";
+
+function defaultRoleForSource(sourceFamily: FieldStaffSourceFamily | null | undefined): FieldStaffRole | null {
   switch (sourceFamily) {
     case "technicians":
-      return "hvac-service";
+      return "service";
     case "installers":
-      return "hvac-install";
+      return "install";
     case "advisors":
-      return "hvac-comfort-advisor";
+      return "advisor";
     default:
       return null;
   }
 }
 
-function classifyText(
-  value: string | null | undefined,
-  options: { allowGenericService?: boolean } = {},
-): FieldStaffDepartment | null {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return null;
+function departmentForTradeRole(trade: FieldStaffTrade, role: FieldStaffRole): FieldStaffDepartment {
+  if (role === "advisor") {
+    return "hvac-comfort-advisor";
   }
 
-  const text = normalizeText(value);
+  if (role === "install") {
+    switch (trade) {
+      case "plumbing":
+        return "plumbing-install";
+      case "electrical":
+        return "electrical-install";
+      default:
+        return "hvac-install";
+    }
+  }
 
+  switch (trade) {
+    case "plumbing":
+      return "plumbing-service";
+    case "electrical":
+      return "electrical-service";
+    default:
+      return "hvac-service";
+  }
+}
+
+function resolveTrade(text: string): FieldStaffTrade | null {
   if (hasAny(text, ["plumb"])) {
     return "plumbing";
   }
@@ -118,6 +148,14 @@ function classifyText(
     return "electrical";
   }
 
+  if (hasAny(text, ["hvac", "heating", "cooling", "air conditioning"])) {
+    return "hvac";
+  }
+
+  return null;
+}
+
+function resolveRole(text: string): FieldStaffRole | null {
   if (
     hasAny(text, [
       "comfort advisor",
@@ -128,19 +166,58 @@ function classifyText(
       "advisors"
     ])
   ) {
-    return "hvac-comfort-advisor";
+    return "advisor";
   }
 
   if (hasAny(text, ["install", "installer", "installation"])) {
-    return "hvac-install";
+    return "install";
   }
 
-  if (
-    hasAny(text, ["hvac service"]) ||
-    (options.allowGenericService === true &&
-      hasAny(text, ["service technician", "service tech", "service"]))
-  ) {
-    return "hvac-service";
+  if (hasAny(text, ["hvac service", "service technician", "service tech", "service"])) {
+    return "service";
+  }
+
+  return null;
+}
+
+function classifyText(
+  value: string | null | undefined,
+  options: { defaultRole?: FieldStaffRole | null } = {},
+): FieldStaffDepartment | null {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+
+  const text = normalizeText(value);
+  const role = resolveRole(text) ?? options.defaultRole ?? null;
+
+  if (!role) {
+    return null;
+  }
+
+  return departmentForTradeRole(resolveTrade(text) ?? "hvac", role);
+}
+
+export function normalizeFieldStaffDepartment(
+  department: string | null | undefined,
+  sourceFamily?: FieldStaffSourceFamily | null,
+): FieldStaffDepartment | null {
+  if (!department) {
+    return null;
+  }
+
+  if (department in FIELD_STAFF_DEPARTMENTS) {
+    return department as FieldStaffDepartment;
+  }
+
+  const sourceDefaultRole = defaultRoleForSource(sourceFamily) ?? "service";
+
+  if (department === "plumbing") {
+    return sourceDefaultRole === "install" ? "plumbing-install" : "plumbing-service";
+  }
+
+  if (department === "electrical") {
+    return sourceDefaultRole === "install" ? "electrical-install" : "electrical-service";
   }
 
   return null;
@@ -149,12 +226,15 @@ function classifyText(
 export function classifyFieldStaffDepartment(
   input: FieldStaffDepartmentInput,
 ): FieldStaffDepartment | null {
+  const defaultRole = defaultRoleForSource(input.sourceFamily);
+
   return (
     classifyText(input.position) ??
-    classifyText(input.department, { allowGenericService: true }) ??
-    classifyText(input.businessUnit, { allowGenericService: true }) ??
+    normalizeFieldStaffDepartment(input.department, input.sourceFamily) ??
+    classifyText(input.department, { defaultRole }) ??
+    classifyText(input.businessUnit, { defaultRole }) ??
     classifyText(input.role) ??
-    defaultDepartmentForSource(input.sourceFamily)
+    (defaultRole ? departmentForTradeRole("hvac", defaultRole) : null)
   );
 }
 

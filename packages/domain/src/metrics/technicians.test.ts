@@ -76,9 +76,11 @@ describe("buildTechnicianDashboard", () => {
     });
 
     expect(filterTechnicianDashboardByDepartment(result, "hvac-service").rowsRanked).toHaveLength(1);
-    expect(filterTechnicianDashboardByDepartment(result, "plumbing").rowsRanked).toHaveLength(1);
-    expect(filterTechnicianDashboardByDepartment(result, "plumbing").rowsRanked[0]?.name).toBe("Plumber");
-    expect(filterTechnicianDashboardByDepartment(result, "electrical").rowsRanked[0]?.name).toBe("Electrician");
+    expect(filterTechnicianDashboardByDepartment(result, "plumbing-service").rowsRanked).toHaveLength(1);
+    expect(filterTechnicianDashboardByDepartment(result, "plumbing-service").rowsRanked[0]?.name).toBe("Plumber");
+    expect(filterTechnicianDashboardByDepartment(result, "electrical-service").rowsRanked[0]?.name).toBe(
+      "Electrician",
+    );
     expect(filterTechnicianDashboardByDepartment(result, "hvac-comfort-advisor").rowsRanked[0]?.name).toBe(
       "Advisor Position",
     );

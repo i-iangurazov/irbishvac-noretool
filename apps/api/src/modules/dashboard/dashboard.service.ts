@@ -269,14 +269,29 @@ export class DashboardService {
   }
 
   async getPlumbingTechnicians(context?: DashboardRequestContext) {
-    return this.getTechnicianDashboardForDepartment("plumbing", context);
+    return this.getTechnicianDashboardForDepartment("plumbing-service", context);
   }
 
   async getElectricalTechnicians(context?: DashboardRequestContext) {
-    return this.getTechnicianDashboardForDepartment("electrical", context);
+    return this.getTechnicianDashboardForDepartment("electrical-service", context);
   }
 
   async getInstallers(context?: DashboardRequestContext) {
+    return this.getInstallerDashboardForDepartment("hvac-install", context);
+  }
+
+  async getPlumbingInstallers(context?: DashboardRequestContext) {
+    return this.getInstallerDashboardForDepartment("plumbing-install", context);
+  }
+
+  async getElectricalInstallers(context?: DashboardRequestContext) {
+    return this.getInstallerDashboardForDepartment("electrical-install", context);
+  }
+
+  private async getInstallerDashboardForDepartment(
+    department: FieldStaffDepartment,
+    context?: DashboardRequestContext,
+  ) {
     const dashboard = await this.resolveMetricFamily(
       DashboardFamily.INSTALLERS,
       "installers",
@@ -284,7 +299,7 @@ export class DashboardService {
       context,
     );
 
-    return filterInstallerDashboardByDepartment(dashboard, "hvac-install");
+    return filterInstallerDashboardByDepartment(dashboard, department);
   }
 
   async getAdvisors(context?: DashboardRequestContext) {

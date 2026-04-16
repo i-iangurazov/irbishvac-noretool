@@ -41,6 +41,8 @@ export class DashboardController {
     this.getPlumbing = this.getPlumbing.bind(this);
     this.getElectrical = this.getElectrical.bind(this);
     this.getInstallers = this.getInstallers.bind(this);
+    this.getPlumbingInstallers = this.getPlumbingInstallers.bind(this);
+    this.getElectricalInstallers = this.getElectricalInstallers.bind(this);
     this.getCompanyWide = this.getCompanyWide.bind(this);
     this.getAdvisors = this.getAdvisors.bind(this);
     this.getCallCenterSummary = this.getCallCenterSummary.bind(this);
@@ -68,6 +70,16 @@ export class DashboardController {
   @Get("installers")
   async getInstallers(@Query() query: DashboardQuery) {
     return this.dashboardService.getInstallers(toRequestContext(query));
+  }
+
+  @Get("plumbing-install")
+  async getPlumbingInstallers(@Query() query: DashboardQuery) {
+    return this.dashboardService.getPlumbingInstallers(toRequestContext(query));
+  }
+
+  @Get("electrical-install")
+  async getElectricalInstallers(@Query() query: DashboardQuery) {
+    return this.dashboardService.getElectricalInstallers(toRequestContext(query));
   }
 
   @Get("company-wide")

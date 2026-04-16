@@ -29,9 +29,11 @@ export type DashboardFilterState = Pick<
 
 export const DASHBOARD_ROTATION_BOARDS = [
   { id: "technicians", href: "/technicians", label: "HVAC Service" },
-  { id: "plumbing", href: "/plumbing", label: "Plumbing" },
-  { id: "electrical", href: "/electrical", label: "Electrical" },
-  { id: "installers", href: "/installers", label: "Installers" },
+  { id: "plumbing", href: "/plumbing", label: "Plumbing Service" },
+  { id: "electrical", href: "/electrical", label: "Electrical Service" },
+  { id: "installers", href: "/installers", label: "HVAC Install" },
+  { id: "plumbing-install", href: "/plumbing-install", label: "Plumbing Install" },
+  { id: "electrical-install", href: "/electrical-install", label: "Electrical Install" },
   { id: "advisors", href: "/advisors", label: "Advisors" }
 ] as const;
 

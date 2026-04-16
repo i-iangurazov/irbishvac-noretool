@@ -10,9 +10,8 @@ export default async function ElectricalPage({ searchParams }: ElectricalPagePro
       apiPath="electrical"
       path="/electrical"
       title="Electrical Service Technician Dashboard"
-      subtitle="Electrical service leaderboard filtered automatically from ServiceTitan department data."
+      subtitle="Electrical service leaderboard filtered automatically from ServiceTitan position data."
       searchParams={searchParams}
     />
   );
 }
-

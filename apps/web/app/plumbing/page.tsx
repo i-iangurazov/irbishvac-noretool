@@ -10,9 +10,8 @@ export default async function PlumbingPage({ searchParams }: PlumbingPageProps) 
       apiPath="plumbing"
       path="/plumbing"
       title="Plumbing Service Technician Dashboard"
-      subtitle="Plumbing service leaderboard filtered automatically from ServiceTitan department data."
+      subtitle="Plumbing service leaderboard filtered automatically from ServiceTitan position data."
       searchParams={searchParams}
     />
   );
 }
-

@@ -20,28 +20,42 @@ export const navItems: DashboardNavItem[] = [
     id: "technicians",
     href: "/technicians",
     label: "HVAC Service",
-    shortLabel: "TC",
+    shortLabel: "HS",
     section: "Field Performance"
   },
   {
     id: "plumbing",
     href: "/plumbing",
-    label: "Plumbing",
-    shortLabel: "PL",
+    label: "Plumbing Service",
+    shortLabel: "PS",
     section: "Field Performance"
   },
   {
     id: "electrical",
     href: "/electrical",
-    label: "Electrical",
-    shortLabel: "EL",
+    label: "Electrical Service",
+    shortLabel: "ES",
     section: "Field Performance"
   },
   {
     id: "installers",
     href: "/installers",
-    label: "Installers",
-    shortLabel: "IN",
+    label: "HVAC Install",
+    shortLabel: "HI",
+    section: "Field Performance"
+  },
+  {
+    id: "plumbing-install",
+    href: "/plumbing-install",
+    label: "Plumbing Install",
+    shortLabel: "PI",
+    section: "Field Performance"
+  },
+  {
+    id: "electrical-install",
+    href: "/electrical-install",
+    label: "Electrical Install",
+    shortLabel: "EI",
     section: "Field Performance"
   },
   {

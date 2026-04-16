@@ -14,6 +14,8 @@ describe("dashboard filter helpers", () => {
     expect(supportsDashboardRotation("/electrical")).toBe(true);
     expect(supportsDashboardRotation("/advisors")).toBe(true);
     expect(supportsDashboardRotation("/installers")).toBe(true);
+    expect(supportsDashboardRotation("/plumbing-install")).toBe(true);
+    expect(supportsDashboardRotation("/electrical-install")).toBe(true);
     expect(supportsDashboardRotation("/company-wide")).toBe(false);
     expect(supportsDashboardRotation("/campaigns")).toBe(false);
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildInstallerDashboard } from "./installers";
+import { buildInstallerDashboard, filterInstallerDashboardByDepartment } from "./installers";
 
 describe("buildInstallerDashboard", () => {
   it("ranks installers by installed revenue and computes weighted averages", () => {
@@ -21,5 +21,32 @@ describe("buildInstallerDashboard", () => {
     expect(result.rowsRanked[0]?.name).toBe("North Team");
     expect(result.totals.jobsCompleted).toBe(6);
     expect(result.totals.billableEfficiencyAvg).toBe(0.7);
+  });
+
+  it("separates HVAC, plumbing, and electrical installers from ST position or business unit", () => {
+    const result = buildInstallerDashboard({
+      fields: [
+        { name: "Name" },
+        { name: "BusinessUnit" },
+        { name: "Position" },
+        { name: "CompletedRevenue" },
+        { name: "CompletedJobs" }
+      ],
+      data: [
+        ["HVAC Installer", "HVAC Install", "", 1000, 1],
+        ["Plumbing Installer", "Plumbing", "Plumbing Installation Technicians", 2000, 2],
+        ["Electrical Installer", "Electrical", "Electrical Install Technicians", 3000, 3]
+      ]
+    });
+
+    expect(filterInstallerDashboardByDepartment(result, "hvac-install").rowsRanked[0]?.name).toBe(
+      "HVAC Installer",
+    );
+    expect(filterInstallerDashboardByDepartment(result, "plumbing-install").rowsRanked[0]?.name).toBe(
+      "Plumbing Installer",
+    );
+    expect(filterInstallerDashboardByDepartment(result, "electrical-install").rowsRanked[0]?.name).toBe(
+      "Electrical Installer",
+    );
   });
 });

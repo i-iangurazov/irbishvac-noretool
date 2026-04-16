@@ -1,6 +1,7 @@
 import {
   BUSINESS_UNIT_FIELD_KEYS,
   classifyFieldStaffDepartment,
+  normalizeFieldStaffDepartment,
   type FieldStaffDepartment,
   POSITION_FIELD_KEYS,
   readTextField,
@@ -134,7 +135,7 @@ export function filterInstallerDashboardByDepartment(
   const sourceRows = Array.isArray(dashboard.rows) ? dashboard.rows : dashboard.rowsRanked ?? [];
   const rows = sourceRows.filter((row) => {
     const resolvedDepartment =
-      row.department ??
+      normalizeFieldStaffDepartment(row.department, "installers") ??
       classifyFieldStaffDepartment({
         businessUnit: row.businessUnit,
         position: row.position,

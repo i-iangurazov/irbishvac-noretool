@@ -10,9 +10,8 @@ export default async function TechniciansPage({ searchParams }: TechniciansPageP
       apiPath="technicians"
       path="/technicians"
       title="HVAC Service Technician Dashboard"
-      subtitle="HVAC service technician leaderboard filtered automatically from ServiceTitan department data."
+      subtitle="HVAC service technician leaderboard filtered automatically from ServiceTitan position data."
       searchParams={searchParams}
     />
   );
 }
-
