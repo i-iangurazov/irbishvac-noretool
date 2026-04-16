@@ -35,13 +35,16 @@ describe("buildInstallerDashboard", () => {
       data: [
         ["HVAC Installer", "HVAC Install", "", 1000, 1],
         ["Plumbing Installer", "Plumbing", "Plumbing Installation Technicians", 2000, 2],
-        ["Electrical Installer", "Electrical", "Electrical Install Technicians", 3000, 3]
+        ["Electrical Installer", "Electrical", "Electrical Install Technicians", 3000, 3],
+        ["Service Role Installer", "HVAC - Service", "Service Technician", 4000, 4]
       ]
     });
 
-    expect(filterInstallerDashboardByDepartment(result, "hvac-install").rowsRanked[0]?.name).toBe(
-      "HVAC Installer",
-    );
+    const hvacInstallers = filterInstallerDashboardByDepartment(result, "hvac-install").rowsRanked;
+
+    expect(hvacInstallers).toHaveLength(2);
+    expect(hvacInstallers.map((row) => row.name)).toContain("HVAC Installer");
+    expect(hvacInstallers.map((row) => row.name)).toContain("Service Role Installer");
     expect(filterInstallerDashboardByDepartment(result, "plumbing-install").rowsRanked[0]?.name).toBe(
       "Plumbing Installer",
     );

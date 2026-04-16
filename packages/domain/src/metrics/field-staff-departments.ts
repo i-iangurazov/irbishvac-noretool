@@ -68,8 +68,15 @@ export const POSITION_FIELD_KEYS = [
 
 export const BUSINESS_UNIT_FIELD_KEYS = [
   "TechnicianBusinessUnit",
+  "Technician Business Unit",
   "BusinessUnit",
   "Business Unit",
+  "TechnicianTrade",
+  "Technician Trade",
+  "Trade",
+  "TechnicianDivision",
+  "Technician Division",
+  "Division",
   "Department",
   "Team"
 ];
@@ -182,14 +189,21 @@ function resolveRole(text: string): FieldStaffRole | null {
 
 function classifyText(
   value: string | null | undefined,
-  options: { defaultRole?: FieldStaffRole | null } = {},
+  options: {
+    defaultRole?: FieldStaffRole | null;
+    preferDefaultRole?: boolean;
+  } = {},
 ): FieldStaffDepartment | null {
   if (typeof value !== "string" || value.trim().length === 0) {
     return null;
   }
 
   const text = normalizeText(value);
-  const role = resolveRole(text) ?? options.defaultRole ?? null;
+  const textRole = resolveRole(text);
+  const role =
+    options.preferDefaultRole === true
+      ? options.defaultRole ?? textRole
+      : textRole ?? options.defaultRole ?? null;
 
   if (!role) {
     return null;
@@ -206,11 +220,47 @@ export function normalizeFieldStaffDepartment(
     return null;
   }
 
+  const sourceDefaultRole = defaultRoleForSource(sourceFamily) ?? "service";
+
+  if (sourceFamily === "installers") {
+    switch (department) {
+      case "hvac-service":
+      case "hvac-install":
+        return "hvac-install";
+      case "plumbing":
+      case "plumbing-service":
+      case "plumbing-install":
+        return "plumbing-install";
+      case "electrical":
+      case "electrical-service":
+      case "electrical-install":
+        return "electrical-install";
+      default:
+        break;
+    }
+  }
+
+  if (sourceFamily === "technicians") {
+    switch (department) {
+      case "hvac-service":
+      case "hvac-install":
+        return "hvac-service";
+      case "plumbing":
+      case "plumbing-service":
+      case "plumbing-install":
+        return "plumbing-service";
+      case "electrical":
+      case "electrical-service":
+      case "electrical-install":
+        return "electrical-service";
+      default:
+        break;
+    }
+  }
+
   if (department in FIELD_STAFF_DEPARTMENTS) {
     return department as FieldStaffDepartment;
   }
-
-  const sourceDefaultRole = defaultRoleForSource(sourceFamily) ?? "service";
 
   if (department === "plumbing") {
     return sourceDefaultRole === "install" ? "plumbing-install" : "plumbing-service";
@@ -227,6 +277,28 @@ export function classifyFieldStaffDepartment(
   input: FieldStaffDepartmentInput,
 ): FieldStaffDepartment | null {
   const defaultRole = defaultRoleForSource(input.sourceFamily);
+
+  if (input.sourceFamily === "installers") {
+    return (
+      normalizeFieldStaffDepartment(input.department, input.sourceFamily) ??
+      classifyText(input.businessUnit, { defaultRole, preferDefaultRole: true }) ??
+      classifyText(input.position, { defaultRole, preferDefaultRole: true }) ??
+      classifyText(input.role, { defaultRole, preferDefaultRole: true }) ??
+      classifyText(input.department, { defaultRole, preferDefaultRole: true }) ??
+      departmentForTradeRole("hvac", "install")
+    );
+  }
+
+  if (input.sourceFamily === "technicians") {
+    return (
+      classifyText(input.position) ??
+      normalizeFieldStaffDepartment(input.department, input.sourceFamily) ??
+      classifyText(input.department, { defaultRole }) ??
+      classifyText(input.businessUnit, { defaultRole }) ??
+      classifyText(input.role) ??
+      departmentForTradeRole("hvac", "service")
+    );
+  }
 
   return (
     classifyText(input.position) ??
