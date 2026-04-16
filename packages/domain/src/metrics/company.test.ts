@@ -61,13 +61,18 @@ describe("company metrics", () => {
 
   it("sums revenue monthly pace from the upstream current-monthly-pace field", () => {
     const result = buildRevenueMonthlyPace({
-      fields: [{ name: "Current Monthly Pace" }],
-      data: [[22589.21]]
+      fields: [{ name: "Current Monthly Pace" }, { name: "Completed Revenue" }],
+      data: [
+        [22589.21, 10000],
+        [30000, 20000]
+      ]
     });
 
-    expect(result.value).toBe(22589.21);
+    expect(result.value).toBe(52589.21);
+    expect(result.completedRevenueToDate).toBe(30000);
     expect(result.source).toBe("upstream-current-monthly-pace");
     expect(result.sourceField).toBe("Current Monthly Pace");
+    expect(result.completedRevenueField).toBe("Completed Revenue");
   });
 
   it("prefers direct gross-margin fields and preserves negative values", () => {

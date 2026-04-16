@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const findMany = vi.fn();
 const upsert = vi.fn();
+const setDefaultMonthlyGoalEntries = vi.fn();
 
 vi.mock("@irbis/db", () => ({
   prisma: {
@@ -9,7 +10,23 @@ vi.mock("@irbis/db", () => ({
       findMany,
       upsert
     }
-  }
+  },
+  getGoalMonthName: (monthIndex: number) =>
+    [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ][monthIndex - 1] ?? null,
+  setDefaultMonthlyGoalEntries
 }));
 
 vi.mock("@irbis/config", () => ({
@@ -24,6 +41,8 @@ describe("GoalsService", () => {
   beforeEach(() => {
     findMany.mockReset();
     upsert.mockReset();
+    setDefaultMonthlyGoalEntries.mockReset();
+    setDefaultMonthlyGoalEntries.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -33,20 +52,12 @@ describe("GoalsService", () => {
   it("defaults goal list reads to the current business year instead of UTC year", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T02:00:00.000Z"));
-    findMany.mockResolvedValue([]);
-
     const { GoalsService } = await import("./goals.service");
     const service = new GoalsService();
 
     await service.list();
 
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          year: 2025
-        }
-      }),
-    );
+    expect(setDefaultMonthlyGoalEntries).toHaveBeenCalledWith(2025);
   });
 
   it("rejects invalid monthIndex values", async () => {

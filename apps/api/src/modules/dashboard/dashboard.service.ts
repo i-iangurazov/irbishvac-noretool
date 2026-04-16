@@ -2,6 +2,7 @@ import { Inject, Injectable, Optional } from "@nestjs/common";
 import {
   DashboardFamily,
   prisma,
+  setDefaultMonthlyGoalEntries,
   type GoalTrackerEntry
 } from "@irbis/db";
 import {
@@ -240,15 +241,10 @@ export class DashboardService {
 
   private async getGoalsForContext(context?: DashboardRequestContext): Promise<GoalTrackerDto[]> {
     const goalYear = this.resolveGoalYear(context);
-    const goals = await this.safeQuery(`goal-tracker:list:${goalYear}`, [] as GoalTrackerEntry[], () =>
-      prisma.goalTrackerEntry.findMany({
-        where: {
-          year: goalYear
-        },
-        orderBy: {
-          monthIndex: "asc"
-        }
-      }),
+    const goals = await this.safeQuery(
+      `goal-tracker:default-monthly:${goalYear}`,
+      [] as GoalTrackerEntry[],
+      () => setDefaultMonthlyGoalEntries(goalYear),
     );
 
     return goals.map(toGoalTrackerDto);

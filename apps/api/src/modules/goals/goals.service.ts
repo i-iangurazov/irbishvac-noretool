@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { getConfig } from "@irbis/config";
-import { prisma, type GoalTrackerEntry } from "@irbis/db";
+import {
+  getGoalMonthName,
+  prisma,
+  setDefaultMonthlyGoalEntries,
+  type GoalTrackerEntry
+} from "@irbis/db";
 import { getDateParts } from "@irbis/utils";
 
 export type GoalTrackerDto = {
@@ -25,21 +30,6 @@ function toGoalTrackerDto(entry: GoalTrackerEntry): GoalTrackerDto {
   };
 }
 
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December"
-] as const;
-
 function assertIntegerInRange(value: number, label: string, min: number, max: number) {
   if (!Number.isInteger(value) || value < min || value > max) {
     throw new BadRequestException(`${label} must be an integer between ${min} and ${max}`);
@@ -47,7 +37,7 @@ function assertIntegerInRange(value: number, label: string, min: number, max: nu
 }
 
 function normalizeMonthName(monthName: string, monthIndex: number) {
-  const expectedMonthName = MONTH_NAMES[monthIndex - 1];
+  const expectedMonthName = getGoalMonthName(monthIndex);
   if (!expectedMonthName) {
     throw new BadRequestException("monthIndex must map to a calendar month");
   }
@@ -72,10 +62,7 @@ export class GoalsService {
   async list(year = this.getCurrentBusinessYear()): Promise<GoalTrackerDto[]> {
     assertIntegerInRange(year, "year", 2000, 2100);
 
-    const entries = await prisma.goalTrackerEntry.findMany({
-      where: { year },
-      orderBy: { monthIndex: "asc" }
-    });
+    const entries = await setDefaultMonthlyGoalEntries(year);
 
     return entries.map(toGoalTrackerDto);
   }

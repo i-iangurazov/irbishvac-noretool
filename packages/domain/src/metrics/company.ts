@@ -15,6 +15,13 @@ type MarketingRow = {
 };
 
 const REVENUE_MONTHLY_PACE_ALIASES = ["CurrentMonthlyPace", "Current Monthly Pace"];
+const REVENUE_COMPLETED_ALIASES = [
+  "CompletedRevenue",
+  "Completed Revenue",
+  "TotalRevenue",
+  "Total Revenue",
+  "Revenue"
+];
 const SALES_TOTAL_ALIASES = ["TotalSales", "Total Sales"];
 const GROSS_MARGIN_ALIASES = [
   "GrossMargin",
@@ -298,15 +305,21 @@ export function buildBookingRateSummary(input: unknown) {
 export function buildRevenueMonthlyPace(input: unknown) {
   const report = resolveTabularReport(input);
   const sourceField = resolveFieldName(report.fields, REVENUE_MONTHLY_PACE_ALIASES);
+  const completedRevenueField = resolveFieldName(report.fields, REVENUE_COMPLETED_ALIASES);
   const value = sumBy(report.rows, (row) =>
     readNumberFromRow(row, sourceField, REVENUE_MONTHLY_PACE_ALIASES) ?? 0,
+  );
+  const completedRevenueToDate = sumBy(report.rows, (row) =>
+    readNumberFromRow(row, completedRevenueField, REVENUE_COMPLETED_ALIASES) ?? 0,
   );
 
   return {
     value,
+    completedRevenueToDate,
     formatted: formatCurrency(value),
     source: "upstream-current-monthly-pace" as const,
     sourceField,
+    completedRevenueField,
     snapshotTime: report.snapshotTime
   };
 }

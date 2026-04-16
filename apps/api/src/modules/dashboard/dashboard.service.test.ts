@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const findFirst = vi.fn();
 const findMany = vi.fn();
 const findUnique = vi.fn();
+const setDefaultMonthlyGoalEntries = vi.fn();
 
 vi.mock("@irbis/db", () => ({
   DashboardFamily: {
@@ -34,7 +35,8 @@ vi.mock("@irbis/db", () => ({
     goalTrackerEntry: {
       findMany
     }
-  }
+  },
+  setDefaultMonthlyGoalEntries
 }));
 
 vi.mock("@irbis/integrations", () => ({
@@ -81,6 +83,8 @@ describe("DashboardService", () => {
     findFirst.mockReset();
     findMany.mockReset();
     findUnique.mockReset();
+    setDefaultMonthlyGoalEntries.mockReset();
+    setDefaultMonthlyGoalEntries.mockResolvedValue([]);
   });
 
   it("builds technician route payloads from raw snapshots", async () => {
@@ -159,6 +163,7 @@ describe("DashboardService", () => {
     findUnique.mockRejectedValue(new Error("db offline"));
     findFirst.mockRejectedValue(new Error("db offline"));
     findMany.mockRejectedValue(new Error("db offline"));
+    setDefaultMonthlyGoalEntries.mockRejectedValue(new Error("db offline"));
 
     const { DashboardService } = await import("./dashboard.service");
     const service = new DashboardService();
@@ -173,7 +178,6 @@ describe("DashboardService", () => {
   it("loads goal tracker rows for the selected business year", async () => {
     findUnique.mockResolvedValue(null);
     findFirst.mockResolvedValue(null);
-    findMany.mockResolvedValue([]);
 
     const { DashboardService } = await import("./dashboard.service");
     const service = new DashboardService();
@@ -184,12 +188,6 @@ describe("DashboardService", () => {
       to: "2025-10-14"
     });
 
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          year: 2025
-        }
-      }),
-    );
+    expect(setDefaultMonthlyGoalEntries).toHaveBeenCalledWith(2025);
   });
 });

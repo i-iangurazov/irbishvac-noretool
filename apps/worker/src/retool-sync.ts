@@ -1,5 +1,5 @@
 import { getConfig } from "@irbis/config";
-import { Prisma, prisma } from "@irbis/db";
+import { Prisma, prisma, setDefaultMonthlyGoalEntries } from "@irbis/db";
 import {
   RetoolDbClient,
   getServiceTitanReportDefinitions,
@@ -32,30 +32,9 @@ const TABLE_FAMILY_MAP: Record<string, ReportFamilyKey> = {
   st_booking_rate: "bookingRate"
 };
 
-async function upsertGoalTrackerEntries(client: RetoolDbClient) {
-  const goals = await client.fetchGoalTrackerRows();
+async function upsertGoalTrackerEntries() {
   const currentYear = getDateParts(new Date(), config.app.timezone).year;
-
-  for (const goal of goals) {
-    await prisma.goalTrackerEntry.upsert({
-      where: {
-        year_monthIndex: {
-          year: currentYear,
-          monthIndex: goal.monthIndex
-        }
-      },
-      create: {
-        year: currentYear,
-        monthIndex: goal.monthIndex,
-        monthName: goal.monthName,
-        goalAmount: goal.goalAmount
-      },
-      update: {
-        monthName: goal.monthName,
-        goalAmount: goal.goalAmount
-      }
-    });
-  }
+  const goals = await setDefaultMonthlyGoalEntries(currentYear);
 
   return goals.length;
 }
@@ -185,7 +164,7 @@ async function main() {
       }
     }
 
-    const goalsCount = await upsertGoalTrackerEntries(client);
+    const goalsCount = await upsertGoalTrackerEntries();
 
     logger.info("Retool DB sync completed", {
       importedTables: imported,
