@@ -22,7 +22,7 @@ describe("buildReportParameters", () => {
     expect(parameters.at(-1)).toEqual({ name: "IncludeInactive", value: "false" });
   });
 
-  it("supports fixed today-style report ranges", () => {
+  it("keys fixed today-style report ranges by the selected to-date", () => {
     const parameters = buildReportParameters(
       {
         family: "bookingRate",
@@ -53,8 +53,8 @@ describe("buildReportParameters", () => {
       },
     );
 
-    expect(parameters[0]).toEqual({ name: "From", value: "2026-03-21" });
-    expect(parameters[1]).toEqual({ name: "To", value: "2026-03-21" });
+    expect(parameters[0]).toEqual({ name: "From", value: "2026-03-20" });
+    expect(parameters[1]).toEqual({ name: "To", value: "2026-03-20" });
   });
 
   it("supports month-to-date report ranges keyed by the selected to-date", () => {

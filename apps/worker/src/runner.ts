@@ -86,6 +86,9 @@ export class DashboardRefreshRunner {
     const parameters = request.parameters;
     const requestHash = request.requestHash;
     const idempotencyKey = `${family}:${requestHash}`;
+    const businessDateFrom = new Date(`${request.range.from}T00:00:00.000Z`);
+    const businessDateTo = new Date(`${request.range.to}T00:00:00.000Z`);
+    const readModelBusinessDate = new Date(`${request.range.to}T12:00:00.000Z`);
 
     const jobRun = await prisma.jobRun.create({
       data: {
@@ -112,8 +115,8 @@ export class DashboardRefreshRunner {
         status: RunStatus.RUNNING,
         requestHash,
         idempotencyKey,
-        businessDateFrom: new Date(`${request.range.from}T00:00:00.000Z`),
-        businessDateTo: new Date(`${request.range.to}T00:00:00.000Z`),
+        businessDateFrom,
+        businessDateTo,
         requestParams: parameters,
         responseMeta: {
           correlationId,
@@ -126,8 +129,8 @@ export class DashboardRefreshRunner {
       update: {
         status: RunStatus.RUNNING,
         requestHash,
-        businessDateFrom: new Date(`${request.range.from}T00:00:00.000Z`),
-        businessDateTo: new Date(`${request.range.to}T00:00:00.000Z`),
+        businessDateFrom,
+        businessDateTo,
         requestParams: parameters,
         responseMeta: {
           correlationId,
@@ -149,6 +152,7 @@ export class DashboardRefreshRunner {
         parameters,
         correlationId
       });
+      const fetchedAt = new Date();
 
       const rawSnapshot = await prisma.rawReportSnapshot.create({
         data: {
@@ -158,14 +162,18 @@ export class DashboardRefreshRunner {
           category: definition.category,
           reportId: definition.reportId,
           requestHash,
-          businessDateFrom: new Date(`${request.range.from}T00:00:00.000Z`),
-          businessDateTo: new Date(`${request.range.to}T00:00:00.000Z`),
+          businessDateFrom,
+          businessDateTo,
+          sourceSnapshotTime: fetchedAt,
           payloadJson: result.payload,
+          fetchedAt,
           ingestionRunId: ingestionRun.id
         }
       });
 
-      const readModel = buildDashboardReadModel(family, result.payload) as Prisma.InputJsonValue;
+      const readModel = buildDashboardReadModel(family, result.payload, {
+        businessDate: readModelBusinessDate
+      }) as Prisma.InputJsonValue;
 
       await prisma.dashboardReadModel.upsert({
         where: {
@@ -177,15 +185,19 @@ export class DashboardRefreshRunner {
         create: {
           family: dashboardFamily,
           scopeKey: requestHash,
+          businessDateFrom,
+          businessDateTo,
           payloadJson: readModel,
           sourceSnapshotIds: [rawSnapshot.id],
-          snapshotTime: new Date(),
+          snapshotTime: fetchedAt,
           ingestionRunId: ingestionRun.id
         },
         update: {
+          businessDateFrom,
+          businessDateTo,
           payloadJson: readModel,
           sourceSnapshotIds: [rawSnapshot.id],
-          snapshotTime: new Date(),
+          snapshotTime: fetchedAt,
           ingestionRunId: ingestionRun.id
         }
       });
@@ -200,15 +212,19 @@ export class DashboardRefreshRunner {
         create: {
           family: dashboardFamily,
           scopeKey: "latest",
+          businessDateFrom,
+          businessDateTo,
           payloadJson: readModel,
           sourceSnapshotIds: [rawSnapshot.id],
-          snapshotTime: new Date(),
+          snapshotTime: fetchedAt,
           ingestionRunId: ingestionRun.id
         },
         update: {
+          businessDateFrom,
+          businessDateTo,
           payloadJson: readModel,
           sourceSnapshotIds: [rawSnapshot.id],
-          snapshotTime: new Date(),
+          snapshotTime: fetchedAt,
           ingestionRunId: ingestionRun.id
         }
       });

@@ -6,6 +6,58 @@ import { stableJson } from "./stable-json";
 
 const logger = createLogger("worker-validate-snapshots");
 
+function findFirstDiffPath(left: unknown, right: unknown, basePath = "$"): string | null {
+  if (stableJson(left) === stableJson(right)) {
+    return null;
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    const maxLength = Math.max(left.length, right.length);
+
+    for (let index = 0; index < maxLength; index += 1) {
+      if (index >= left.length || index >= right.length) {
+        return `${basePath}[${index}]`;
+      }
+
+      const diff = findFirstDiffPath(left[index], right[index], `${basePath}[${index}]`);
+      if (diff) {
+        return diff;
+      }
+    }
+
+    return basePath;
+  }
+
+  if (
+    left &&
+    right &&
+    typeof left === "object" &&
+    typeof right === "object" &&
+    !Array.isArray(left) &&
+    !Array.isArray(right)
+  ) {
+    const keys = Array.from(
+      new Set([...Object.keys(left as Record<string, unknown>), ...Object.keys(right as Record<string, unknown>)]),
+    ).sort();
+
+    for (const key of keys) {
+      const diff = findFirstDiffPath(
+        (left as Record<string, unknown>)[key],
+        (right as Record<string, unknown>)[key],
+        `${basePath}.${key}`,
+      );
+
+      if (diff) {
+        return diff;
+      }
+    }
+
+    return basePath;
+  }
+
+  return basePath;
+}
+
 async function main() {
   const plan = buildLatestSnapshotPlan();
   const failures: string[] = [];
@@ -38,7 +90,7 @@ async function main() {
               family: dashboardFamily,
               requestHash: item.requestHash
             },
-            orderBy: [{ sourceSnapshotTime: "desc" }, { fetchedAt: "desc" }]
+            orderBy: [{ fetchedAt: "desc" }, { sourceSnapshotTime: "desc" }]
           });
 
       if (!rawSnapshot || !readModel) {
@@ -46,10 +98,15 @@ async function main() {
         continue;
       }
 
-      const rebuilt = buildDashboardReadModel(item.family, rawSnapshot.payloadJson);
+      const rebuilt = buildDashboardReadModel(item.family, rawSnapshot.payloadJson, {
+        businessDate:
+          rawSnapshot.businessDateTo ?? rawSnapshot.sourceSnapshotTime ?? rawSnapshot.fetchedAt
+      });
 
       if (stableJson(rebuilt) !== stableJson(readModel.payloadJson)) {
-        failures.push(`${item.label}: read model mismatch`);
+        failures.push(
+          `${item.label}: read model mismatch at ${findFirstDiffPath(rebuilt, readModel.payloadJson) ?? "$"}`,
+        );
       }
     }
 

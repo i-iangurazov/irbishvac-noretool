@@ -100,7 +100,10 @@ async function main() {
     throw new Error(`Source snapshot ${sourceSnapshotId} not found for ${label}`);
   }
 
-  const rebuilt = buildDashboardReadModel(item.family, rawSnapshot.payloadJson);
+  const rebuilt = buildDashboardReadModel(item.family, rawSnapshot.payloadJson, {
+    businessDate:
+      rawSnapshot.businessDateTo ?? rawSnapshot.sourceSnapshotTime ?? rawSnapshot.fetchedAt
+  });
   const diffPath = findFirstDiffPath(rebuilt, readModel.payloadJson);
 
   console.log(

@@ -65,6 +65,15 @@ function toGoalTrackerDto(goal: GoalTrackerEntry): GoalTrackerDto {
   };
 }
 
+function parseBusinessDate(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(`${value}T12:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 @Injectable()
 export class DashboardService {
   private readonly config = getConfig();
@@ -113,11 +122,33 @@ export class DashboardService {
     });
   }
 
+  private hasExplicitScope(context?: DashboardRequestContext) {
+    return Boolean(context?.preset || context?.from || context?.to);
+  }
+
+  private resolveBusinessDate(context?: DashboardRequestContext) {
+    return parseBusinessDate(context?.to ?? context?.from) ?? new Date();
+  }
+
+  private getBusinessDateContext(context?: DashboardRequestContext) {
+    const businessDate = this.resolveBusinessDate(context);
+
+    return {
+      businessDate,
+      businessDay: getDateParts(businessDate, this.config.app.timezone).day,
+      businessWeekdayName: new Intl.DateTimeFormat("en-US", {
+        weekday: "long",
+        timeZone: this.config.app.timezone
+      }).format(businessDate),
+      daysInMonth: getDaysInBusinessMonth(businessDate, this.config.app.timezone)
+    };
+  }
+
   private async getLatestSnapshot(family: DashboardFamily) {
     return this.safeQuery(`latest-snapshot:${family}`, null, () =>
       prisma.rawReportSnapshot.findFirst({
         where: { family },
-        orderBy: [{ sourceSnapshotTime: "desc" }, { fetchedAt: "desc" }]
+        orderBy: [{ fetchedAt: "desc" }, { sourceSnapshotTime: "desc" }]
       }),
     );
   }
@@ -135,17 +166,9 @@ export class DashboardService {
           family,
           requestHash: request.requestHash
         },
-        orderBy: [{ sourceSnapshotTime: "desc" }, { fetchedAt: "desc" }]
+        orderBy: [{ fetchedAt: "desc" }, { sourceSnapshotTime: "desc" }]
       }),
     );
-  }
-
-  private async getScopedOrLatestSnapshot(
-    family: DashboardFamily,
-    reportFamily: ReportFamilyKey,
-    context?: DashboardRequestContext,
-  ) {
-    return (await this.getSnapshotForContext(family, reportFamily, context)) ?? this.getLatestSnapshot(family);
   }
 
   private queueRefresh(reportFamily: ReportFamilyKey, context?: DashboardRequestContext) {
@@ -210,8 +233,13 @@ export class DashboardService {
     if (scopedSnapshot) {
       return this.attachSnapshotTime(
         build(scopedSnapshot.payloadJson),
-        scopedSnapshot.sourceSnapshotTime,
+        scopedSnapshot.sourceSnapshotTime ?? scopedSnapshot.fetchedAt,
       );
+    }
+
+    if (this.hasExplicitScope(context)) {
+      this.queueRefresh(reportFamily, context);
+      return this.attachSnapshotTime(build({}), null);
     }
 
     if (context) {
@@ -226,7 +254,7 @@ export class DashboardService {
     const latestSnapshot = await this.getLatestSnapshot(family);
     return this.attachSnapshotTime(
       build(latestSnapshot?.payloadJson ?? {}),
-      latestSnapshot?.sourceSnapshotTime,
+      latestSnapshot?.sourceSnapshotTime ?? latestSnapshot?.fetchedAt,
     );
   }
 
@@ -351,14 +379,15 @@ export class DashboardService {
 
   async getTrending(context?: DashboardRequestContext): Promise<ReturnType<typeof buildTrendingModel>> {
     const goalYear = this.resolveGoalYear(context);
+    const hasExplicitScope = this.hasExplicitScope(context);
     const [scopedSnapshot, latestSnapshot, goals] = await Promise.all([
       this.getSnapshotForContext(DashboardFamily.TRENDING, "trending", context),
       this.getLatestSnapshot(DashboardFamily.TRENDING),
       this.getGoalsForContext(context)
     ]);
-    const snapshot = scopedSnapshot ?? latestSnapshot;
+    const snapshot = scopedSnapshot ?? (hasExplicitScope ? null : latestSnapshot);
 
-    if (!scopedSnapshot && context) {
+    if (!scopedSnapshot && hasExplicitScope) {
       this.queueRefresh("trending", context);
     }
 
@@ -371,18 +400,16 @@ export class DashboardService {
         })),
         { currentYear: goalYear },
       ),
-      snapshot?.sourceSnapshotTime,
+      snapshot?.sourceSnapshotTime ?? snapshot?.fetchedAt,
     );
   }
 
   async getCompanyWide(context?: DashboardRequestContext): Promise<CompanyWideDashboardResponse> {
-    const now = new Date();
-    const businessDay = getDateParts(now, this.config.app.timezone).day;
-    const businessWeekdayName = new Intl.DateTimeFormat("en-US", {
-      weekday: "long",
-      timeZone: this.config.app.timezone
-    }).format(now);
+    const businessDateContext = this.getBusinessDateContext(context);
+    const businessDay = businessDateContext.businessDay;
+    const businessWeekdayName = businessDateContext.businessWeekdayName;
     const goalYear = this.resolveGoalYear(context);
+    const hasExplicitScope = this.hasExplicitScope(context);
 
     const [
       marketing,
@@ -444,7 +471,7 @@ export class DashboardService {
         (payload) =>
           buildSalesMonthlyPace(payload, {
             businessDayOfMonth: businessDay,
-            daysInMonth: getDaysInBusinessMonth(now, this.config.app.timezone)
+            daysInMonth: businessDateContext.daysInMonth
           }),
         context,
       ),
@@ -464,9 +491,9 @@ export class DashboardService {
       this.getLatestSnapshot(DashboardFamily.TRENDING),
       this.getGoalsForContext(context)
     ]);
-    const trendingSnapshot = scopedTrendingSnapshot ?? latestTrendingSnapshot;
+    const trendingSnapshot = scopedTrendingSnapshot ?? (hasExplicitScope ? null : latestTrendingSnapshot);
 
-    if (!scopedTrendingSnapshot && context) {
+    if (!scopedTrendingSnapshot && hasExplicitScope) {
       this.queueRefresh("trending", context);
     }
 
@@ -489,7 +516,7 @@ export class DashboardService {
           })),
           { currentYear: goalYear },
         ),
-        trendingSnapshot?.sourceSnapshotTime,
+        trendingSnapshot?.sourceSnapshotTime ?? trendingSnapshot?.fetchedAt,
       ),
       goals
     };

@@ -59,6 +59,8 @@ async function upsertSnapshot(tableName: keyof typeof TABLE_FAMILY_MAP, client: 
     timezone: config.app.timezone,
     referenceDate: snapshot.snapshotTime
   });
+  const businessDateFrom = new Date(`${request.range.from}T00:00:00.000Z`);
+  const businessDateTo = new Date(`${request.range.to}T00:00:00.000Z`);
   const sourceSnapshotTime = snapshot.snapshotTime;
   const existing = await prisma.rawReportSnapshot.findFirst({
     where: {
@@ -78,15 +80,17 @@ async function upsertSnapshot(tableName: keyof typeof TABLE_FAMILY_MAP, client: 
         category: definition.category === "UNRESOLVED" ? "retool-db" : definition.category,
         reportId: definition.reportId === "UNRESOLVED" ? tableName : definition.reportId,
         requestHash: request.requestHash,
-        businessDateFrom: new Date(`${request.range.from}T00:00:00.000Z`),
-        businessDateTo: new Date(`${request.range.to}T00:00:00.000Z`),
+        businessDateFrom,
+        businessDateTo,
         sourceSnapshotTime,
         payloadJson: snapshot.payload as Prisma.InputJsonValue,
         fetchedAt: sourceSnapshotTime
       }
     }));
 
-  const readModel = buildDashboardReadModel(family, snapshot.payload) as Prisma.InputJsonValue;
+  const readModel = buildDashboardReadModel(family, snapshot.payload, {
+    businessDate: businessDateTo
+  }) as Prisma.InputJsonValue;
 
   await prisma.dashboardReadModel.upsert({
     where: {
@@ -98,15 +102,15 @@ async function upsertSnapshot(tableName: keyof typeof TABLE_FAMILY_MAP, client: 
     create: {
       family: dashboardFamily,
       scopeKey: request.requestHash,
-      businessDateFrom: new Date(`${request.range.from}T00:00:00.000Z`),
-      businessDateTo: new Date(`${request.range.to}T00:00:00.000Z`),
+      businessDateFrom,
+      businessDateTo,
       payloadJson: readModel,
       sourceSnapshotIds: [rawSnapshot.id],
       snapshotTime: sourceSnapshotTime
     },
     update: {
-      businessDateFrom: new Date(`${request.range.from}T00:00:00.000Z`),
-      businessDateTo: new Date(`${request.range.to}T00:00:00.000Z`),
+      businessDateFrom,
+      businessDateTo,
       payloadJson: readModel,
       sourceSnapshotIds: [rawSnapshot.id],
       snapshotTime: sourceSnapshotTime
@@ -123,15 +127,15 @@ async function upsertSnapshot(tableName: keyof typeof TABLE_FAMILY_MAP, client: 
     create: {
       family: dashboardFamily,
       scopeKey: "latest",
-      businessDateFrom: new Date(`${request.range.from}T00:00:00.000Z`),
-      businessDateTo: new Date(`${request.range.to}T00:00:00.000Z`),
+      businessDateFrom,
+      businessDateTo,
       payloadJson: readModel,
       sourceSnapshotIds: [rawSnapshot.id],
       snapshotTime: sourceSnapshotTime
     },
     update: {
-      businessDateFrom: new Date(`${request.range.from}T00:00:00.000Z`),
-      businessDateTo: new Date(`${request.range.to}T00:00:00.000Z`),
+      businessDateFrom,
+      businessDateTo,
       payloadJson: readModel,
       sourceSnapshotIds: [rawSnapshot.id],
       snapshotTime: sourceSnapshotTime

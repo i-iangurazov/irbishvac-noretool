@@ -113,35 +113,8 @@ describe("DashboardService", () => {
     expect(result.rowsRanked[0]?.name).toBe("A");
   });
 
-  it("falls back to the latest cached read model when the exact scope is missing", async () => {
-    findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        payloadJson: {
-          rowsRanked: [
-            {
-              name: "Fallback Tech",
-              businessUnit: "Service",
-              photoUrl: null,
-              totalInfluencedRevenue: 1234,
-              completedRevenue: 1000,
-              avgSaleFromOpps: 250,
-              replacementLeadConvRate: 0.2,
-              totalTechLeadSales: 300,
-              totalSales: 10,
-              membershipsSold: 1,
-              closeRate: 0.5
-            }
-          ],
-          totals: {
-            totalInfluencedRevenue: 1234,
-            completedRevenue: 1000,
-            avgCloseRate: "0.5",
-            avgMembershipConv: "0.25"
-          }
-        },
-        snapshotTime: new Date("2026-03-20T00:00:00.000Z")
-      });
+  it("does not fall back to a different cached date when the exact scope is missing", async () => {
+    findUnique.mockResolvedValue(null);
     findFirst.mockResolvedValue(null);
 
     const enqueue = vi.fn();
@@ -155,7 +128,7 @@ describe("DashboardService", () => {
       to: "2026-03-22"
     });
 
-    expect(result.rowsRanked[0]?.name).toBe("Fallback Tech");
+    expect(result.rowsRanked).toEqual([]);
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 

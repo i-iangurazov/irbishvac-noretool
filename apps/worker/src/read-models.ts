@@ -23,6 +23,10 @@ import { createLogger, getDateParts, getDaysInBusinessMonth } from "@irbis/utils
 const config = getConfig();
 const logger = createLogger("worker-read-models");
 
+type BuildDashboardReadModelOptions = {
+  businessDate?: Date | string | null;
+};
+
 export const DASHBOARD_FAMILY_MAP: Record<ReportFamilyKey, DashboardFamily> = {
   technicians: DashboardFamily.TECHNICIANS,
   installers: DashboardFamily.INSTALLERS,
@@ -43,13 +47,35 @@ export const DASHBOARD_FAMILY_MAP: Record<ReportFamilyKey, DashboardFamily> = {
   bookingRate: DashboardFamily.BOOKING_RATE
 };
 
-export function buildDashboardReadModel(family: ReportFamilyKey, payload: unknown) {
-  const today = new Date();
-  const businessDay = getDateParts(today, config.app.timezone).day;
+function resolveBusinessDate(value: Date | string | null | undefined) {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      return new Date();
+    }
+
+    const parsed = new Date(`${value.toISOString().slice(0, 10)}T12:00:00.000Z`);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = new Date(`${value.slice(0, 10)}T12:00:00.000Z`);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  return new Date();
+}
+
+export function buildDashboardReadModel(
+  family: ReportFamilyKey,
+  payload: unknown,
+  options?: BuildDashboardReadModelOptions,
+) {
+  const businessDate = resolveBusinessDate(options?.businessDate);
+  const businessDay = getDateParts(businessDate, config.app.timezone).day;
   const businessWeekdayName = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     timeZone: config.app.timezone
-  }).format(today);
+  }).format(businessDate);
 
   switch (family) {
     case "technicians":
@@ -82,7 +108,7 @@ export function buildDashboardReadModel(family: ReportFamilyKey, payload: unknow
     case "salesMonthlyPace":
       return buildSalesMonthlyPace(payload, {
         businessDayOfMonth: businessDay,
-        daysInMonth: getDaysInBusinessMonth(today, config.app.timezone)
+        daysInMonth: getDaysInBusinessMonth(businessDate, config.app.timezone)
       });
     case "revenueMonthlyPace":
       return buildRevenueMonthlyPace(payload);

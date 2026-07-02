@@ -175,14 +175,6 @@ function goalMarkerBottom(goal: number, max: number) {
   return `${Math.max(0, Math.min(ratio, 1)) * 100}%`;
 }
 
-function isSnapshotBeforeDate(snapshotTime: string | null | undefined, businessDate: string) {
-  if (!snapshotTime) {
-    return true;
-  }
-
-  return snapshotTime.slice(0, 10) < businessDate;
-}
-
 function StatBlock(props: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="company-stat-block">
@@ -213,22 +205,6 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
     data.revenueGoals.yearTotalRevenue ||
     trendingCurrentRevenue ||
     data.revenueMonthlyPace.completedRevenueToDate;
-  const currentPeriodSales =
-    data.salesMonthlyPace.totalSalesToDate || data.salesToday.totals.totalSales;
-  const currentPeriodRevenue =
-    data.revenueMonthlyPace.completedRevenueToDate ||
-    data.salesToday.totals.totalRevenue ||
-    data.revenueGoals.monthTotalRevenue;
-  const salesTodayIsStale = isSnapshotBeforeDate(data.salesToday.snapshotTime, filters.to);
-  const primarySalesCardTitle =
-    salesTodayIsStale && (currentPeriodSales > 0 || currentPeriodRevenue > 0) ? "MTD" : "Today";
-  const primarySalesTotals =
-    primarySalesCardTitle === "MTD"
-      ? {
-          totalSales: currentPeriodSales,
-          totalRevenue: currentPeriodRevenue
-        }
-      : data.salesToday.totals;
   const businessYearStart = new Date(
     `${filters.to.slice(0, 4)}-01-01T00:00:00.000Z`,
   );
@@ -681,20 +657,20 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
                 <div className="company-board__sales-grid grid">
                   <div className="company-board__period-card bg-[#f8fbfd]">
                     <div className="company-board__period-title text-center font-black uppercase tracking-[0.18em] text-slate-500">
-                      {primarySalesCardTitle}
+                      Today
                     </div>
                     <div className="company-board__period-stats grid">
                       <StatBlock
                         label="Total Sales"
                         value={formatCurrency(
-                          primarySalesTotals.totalSales,
+                          data.salesToday.totals.totalSales,
                         )}
                       />
                       <StatBlock
                         accent={true}
                         label="Total Revenue"
                         value={formatCurrency(
-                          primarySalesTotals.totalRevenue,
+                          data.salesToday.totals.totalRevenue,
                         )}
                       />
                     </div>

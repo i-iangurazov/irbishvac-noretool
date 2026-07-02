@@ -276,7 +276,7 @@ export function resolveReportRequest(
 ): ResolvedReportRequest {
   const preset = context?.preset ?? definition.defaultPreset;
   const timeZone = context?.timezone ?? "America/Los_Angeles";
-  const referenceDate = context?.referenceDate ?? new Date();
+  const referenceDate = toReferenceDate(context?.to, context?.referenceDate ?? new Date());
   const presetRange = getPresetRange(preset, timeZone, referenceDate);
   const range = definition.rangeResolver
     ? definition.rangeResolver({

@@ -48,13 +48,22 @@ const REPORT_FAMILY_BY_DASHBOARD_FAMILY: Partial<Record<DashboardFamily, ReportF
   [DashboardFamily.BOOKING_RATE]: "bookingRate"
 };
 
-function buildReadModel(family: DashboardFamily, payload: unknown) {
-  const today = new Date();
-  const businessDay = getDateParts(today, config.app.timezone).day;
+function resolveBusinessDate(value: Date | null | undefined) {
+  if (!value || Number.isNaN(value.getTime())) {
+    return new Date();
+  }
+
+  const parsed = new Date(`${value.toISOString().slice(0, 10)}T12:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+function buildReadModel(family: DashboardFamily, payload: unknown, businessDateInput?: Date | null) {
+  const businessDate = resolveBusinessDate(businessDateInput);
+  const businessDay = getDateParts(businessDate, config.app.timezone).day;
   const businessWeekdayName = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     timeZone: config.app.timezone
-  }).format(today);
+  }).format(businessDate);
 
   switch (family) {
     case DashboardFamily.TECHNICIANS:
@@ -87,7 +96,7 @@ function buildReadModel(family: DashboardFamily, payload: unknown) {
     case DashboardFamily.SALES_MONTHLY_PACE:
       return buildSalesMonthlyPace(payload, {
         businessDayOfMonth: businessDay,
-        daysInMonth: getDaysInBusinessMonth(today, config.app.timezone)
+        daysInMonth: getDaysInBusinessMonth(businessDate, config.app.timezone)
       });
     case DashboardFamily.REVENUE_MONTHLY_PACE:
       return buildRevenueMonthlyPace(payload);
@@ -107,7 +116,11 @@ async function upsertReadModel(
     return;
   }
 
-  const readModel = buildReadModel(family, snapshot.payloadJson) as Prisma.InputJsonValue;
+  const readModel = buildReadModel(
+    family,
+    snapshot.payloadJson,
+    snapshot.businessDateTo ?? snapshot.sourceSnapshotTime ?? snapshot.fetchedAt,
+  ) as Prisma.InputJsonValue;
 
   await prisma.dashboardReadModel.upsert({
     where: {
