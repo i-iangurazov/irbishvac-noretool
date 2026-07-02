@@ -43,5 +43,11 @@ describe("stableJson", () => {
     expect(stableJson({ value: 0.023255813953488372 })).toBe(
       stableJson({ value: 0.02325581395348837 }),
     );
+    expect(stableJson({ value: 0.10238907849829351 })).toBe(
+      stableJson({ value: 0.1023890784982935 }),
+    );
+    expect(stableJson({ value: 0.42857142857142855 })).toBe(
+      stableJson({ value: 0.4285714285714285 }),
+    );
   });
 });

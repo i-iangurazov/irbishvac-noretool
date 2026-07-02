@@ -4,7 +4,7 @@ function normalizeJsonValue(value: unknown): unknown {
       return value;
     }
 
-    return Number(value.toPrecision(15));
+    return Number(value.toPrecision(14));
   }
 
   if (Array.isArray(value)) {
