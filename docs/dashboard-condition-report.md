@@ -171,6 +171,14 @@ The scheduled GitHub Actions workflow is active again. The hourly schedule is:
 
 The workflow writes to the Railway-backed production database and validates snapshots after refresh.
 
+The workflow helper actions were also upgraded to Node 24-compatible versions:
+
+- `actions/checkout@v7`
+- `pnpm/action-setup@v6`
+- `actions/setup-node@v6`
+
+This addresses the GitHub Actions warning that older action versions targeted the deprecated Node 20 runtime.
+
 ## Remaining Risks
 
 Railway deployment details are not committed as code. The repository does not contain Railway service manifests, and the local Railway CLI was not available during this review. The Railway project settings are therefore operational state, not versioned infrastructure.
@@ -223,6 +231,7 @@ Alert when:
 - Latest `Refresh Snapshots` run should succeed.
 - Runs around 30 minutes are normal.
 - Repeated failures need investigation before trusting the dashboard.
+- Node runtime deprecation warnings should be treated as maintenance work and cleared before GitHub starts failing old action runtimes.
 
 3. Keep scoped-date behavior strict:
 

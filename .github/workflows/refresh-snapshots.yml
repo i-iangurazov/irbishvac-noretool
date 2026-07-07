@@ -56,13 +56,13 @@ jobs:
       R2_TECHNICIAN_PHOTO_NAME_STYLE: ${{ vars.R2_TECHNICIAN_PHOTO_NAME_STYLE }}
       R2_LOGO_KEY: ${{ vars.R2_LOGO_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.6.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
