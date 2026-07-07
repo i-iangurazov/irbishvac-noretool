@@ -20,7 +20,7 @@ degraded: false
 database: ok
 redis: ok
 snapshots: ok
-latestSnapshotTime: 2026-07-07T12:34:13.963Z
+latestSnapshotTime: 2026-07-07T12:38:36.785Z
 staleThresholdMinutes: 180
 ```
 
@@ -41,16 +41,11 @@ The production project is hosted on Railway. The API is reachable at the Railway
 The GitHub Actions workflow `Refresh Snapshots` is active and recently produced successful runs. At the time of verification, recent completed scheduled runs included:
 
 ```text
+28864992723 success 2026-07-07T12:09:16Z duration 29m25s
 28853245292 success 2026-07-07T08:41:23Z duration 30m17s
 28842958924 success 2026-07-07T05:06:07Z duration 29m0s
 28832432189 success 2026-07-07T00:19:40Z duration 28m51s
 28828027459 success 2026-07-06T22:37:19Z duration 29m2s
-```
-
-One scheduled run was still in progress during verification:
-
-```text
-28864992723 in_progress 2026-07-07T12:09:16Z
 ```
 
 The dashboard API returns fresh company-wide payloads for `preset=mtd`, including same-day snapshot timestamps on 2026-07-07.
@@ -266,4 +261,3 @@ Use this checklist for the next production review:
 - Confirm GitHub Actions secrets match Railway production data stores.
 - Confirm failure notifications go to an actively monitored IRBIS mailbox or Slack channel.
 - Add a production web smoke test once the canonical web URL is finalized.
-
