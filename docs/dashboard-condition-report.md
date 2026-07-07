@@ -4,7 +4,7 @@ Report date: 2026-07-07
 
 ## Executive Summary
 
-The dashboard is currently operational. The production API is healthy, GitHub scheduled refreshes are active again, and the latest code on `main` includes fixes for the stale-date, Today/Yesterday sales, and snapshot validation problems.
+The dashboard is currently operational. The production API is healthy, GitHub scheduled refreshes are active again, and the latest code includes fixes for the stale-date, Today/Yesterday sales, snapshot validation, workflow action runtime, and ServiceTitan transient retry problems.
 
 Verified production API:
 
@@ -27,6 +27,8 @@ staleThresholdMinutes: 180
 Latest relevant commits on `main`:
 
 ```text
+Current change set: Harden dashboard operations and refresh retries
+4989b30 Update refresh workflow action versions
 3213f6f Tolerate snapshot validation float noise
 ac0c4b0 Fix dashboard snapshot date scoping
 809d723 Classify installers by trade fields
@@ -50,9 +52,59 @@ The GitHub Actions workflow `Refresh Snapshots` is active and recently produced 
 
 The dashboard API returns fresh company-wide payloads for `preset=mtd`, including same-day snapshot timestamps on 2026-07-07.
 
+## GitHub Actions Audit
+
+The repository currently has one workflow file:
+
+```text
+.github/workflows/refresh-snapshots.yml
+```
+
+The latest 100 workflow runs were reviewed through GitHub CLI. Result:
+
+```text
+success: 65
+failure: 35
+```
+
+Recent state on 2026-07-07 was mostly healthy. The latest completed scheduled runs were green, including:
+
+```text
+28864992723 success 2026-07-07T12:09:16Z duration about 29m25s
+28853245292 success 2026-07-07T08:41:23Z duration about 30m17s
+28842958924 success 2026-07-07T05:06:07Z duration about 29m00s
+28832432189 success 2026-07-07T00:19:40Z duration about 28m51s
+```
+
+The red runs fell into these categories:
+
+1. Historical read-model validation failures caused by date-scoping bugs and strict floating-point comparison.
+2. Recent transient ServiceTitan failures on heavy YTD marketing/campaign reports.
+3. Workflow maintenance warning from older GitHub helper actions using a deprecated Node runtime.
+
+This means the failures were not unexplained. The remaining work was to harden the worker against retryable upstream ServiceTitan failures and verify the pushed workflow on `main`.
+
 ## Root Causes Of The Recent Issues
 
-### 1. Scheduled refresh was disabled
+### 1. ServiceTitan transient report timeouts were not retried
+
+Recent July failures after the validation fix were caused by ServiceTitan returning upstream `500` responses for heavy YTD marketing/campaign reports. The error body included timeout/canceled-task messages from ServiceTitan's own reporting backend.
+
+Observed examples:
+
+```text
+28758320692 failed campaigns:ytd
+28734492527 failed campaigns:ytd, marketing:ytd
+28729302444 failed campaigns:ytd, marketing:ytd
+```
+
+Impact:
+
+- A single transient ServiceTitan timeout could fail the entire 29 to 31 minute refresh.
+- Freshness could remain dependent on the previous successful snapshot.
+- Operators could see intermittent red Actions even though the app code and database were otherwise healthy.
+
+### 2. Scheduled refresh was disabled
 
 GitHub had disabled the `Refresh Snapshots` scheduled workflow due to repository inactivity. When the workflow stopped, production snapshots stopped updating. That is why the dashboard showed old June data.
 
@@ -62,7 +114,7 @@ Impact:
 - Users saw dates such as Jun 15 even when selecting later dates.
 - GitHub Actions showed intermittent historical failures and no reliable refresh cadence.
 
-### 2. Scoped date requests could fall back to stale latest data
+### 3. Scoped date requests could fall back to stale latest data
 
 The API previously allowed selected date ranges to fall back to the latest stored snapshot when the exact requested scope did not exist yet. This made the dashboard look populated but wrong.
 
@@ -72,7 +124,7 @@ Impact:
 - Users could not tell whether the dashboard was fresh or silently falling back.
 - Debugging was harder because the UI looked "complete" while using the wrong scope.
 
-### 3. Today and Yesterday ServiceTitan report ranges used runtime date
+### 4. Today and Yesterday ServiceTitan report ranges used runtime date
 
 Some fixed daily report families used the machine's current date instead of the selected dashboard business date. That made `salesYesterday` vulnerable to off-by-one or stale date behavior when the selected `to` date differed from the refresh runtime.
 
@@ -82,7 +134,7 @@ Impact:
 - Today sales could be mixed with MTD display behavior.
 - Historical date checks became unreliable.
 
-### 4. Company-wide sales display hid the real daily card
+### 5. Company-wide sales display hid the real daily card
 
 The Company-wide UI could show MTD sales where the stakeholder expected Today. This masked whether the daily `salesToday` family was correct.
 
@@ -91,7 +143,7 @@ Impact:
 - The sales card label did not match stakeholder expectation.
 - A stale or incorrect daily snapshot was harder to catch visually.
 
-### 5. Some derived models used `new Date()` during rebuild
+### 6. Some derived models used `new Date()` during rebuild
 
 Monthly pace, capacity, and related read-model logic relied on runtime time in places where it should have used the source snapshot's business date. This can create drift between raw snapshots and derived dashboard models.
 
@@ -100,7 +152,7 @@ Impact:
 - Rebuilding the same raw snapshot on a later day could produce a different read model.
 - Date-specific dashboard checks were harder to make deterministic.
 
-### 6. Snapshot validation was too strict for numeric round trips
+### 7. Snapshot validation was too strict for numeric round trips
 
 The failed GitHub Actions run showed read-model mismatches only at floating point paths:
 
@@ -118,7 +170,7 @@ Impact:
 - Operators could lose trust in GitHub Actions status.
 - Real failures were mixed with harmless floating point noise.
 
-### 7. Operational ownership was not documented enough
+### 8. Operational ownership was not documented enough
 
 The project had working code and refresh automation, but lacked a simple owner manual for Railway, GitHub Actions, freshness checks, and incident response.
 
@@ -160,6 +212,22 @@ What changed:
 - Snapshot validation uses source snapshot and business-date metadata consistently.
 - Validation now tolerates tiny numeric round-trip noise.
 - Future validation failures should be treated as real metric drift unless proven otherwise.
+
+### ServiceTitan transient retry fixes
+
+What changed:
+
+- ServiceTitan report fetch failures now preserve status, body excerpt, family, and retryability metadata.
+- The worker retries retryable ServiceTitan failures before failing the refresh.
+- Retryable statuses are `408`, `425`, all `5xx`, and network-level fetch failures.
+- Permanent client errors such as `400`, `401`, `403`, and `404` are not retried.
+- Failed `ingestionRun` and `jobRun` records now include structured error details for faster triage.
+
+Why this matters:
+
+- A temporary ServiceTitan 500 timeout no longer fails the whole refresh immediately.
+- Repeated upstream failures still fail visibly after the retry budget, which is correct for production.
+- The red/green Action status becomes more meaningful because transient upstream noise is absorbed, while real outages remain visible.
 
 ### Workflow status
 
@@ -203,7 +271,7 @@ Recommended action:
 
 - Avoid parallel manual refreshes.
 - Treat a 29 to 31 minute refresh duration as normal.
-- Investigate only if runs exceed the 90 minute workflow timeout or repeatedly fail on the same report.
+- Investigate if runs exceed the 90 minute workflow timeout or repeatedly fail on the same report after retry attempts.
 
 Production frontend synthetic checks are still missing.
 
@@ -232,6 +300,7 @@ Alert when:
 - Runs around 30 minutes are normal.
 - Repeated failures need investigation before trusting the dashboard.
 - Node runtime deprecation warnings should be treated as maintenance work and cleared before GitHub starts failing old action runtimes.
+- ServiceTitan `5xx` or network failures should show retry logs before the final workflow result.
 
 3. Keep scoped-date behavior strict:
 
@@ -243,13 +312,19 @@ Alert when:
 - Tiny numeric precision noise is tolerated.
 - Any remaining mismatch path should be investigated as a possible read-model bug.
 
-5. Keep secrets out of Git:
+5. Keep ServiceTitan retry behavior bounded:
+
+- Retry `408`, `425`, `5xx`, and network failures.
+- Do not retry permanent authorization/configuration errors.
+- Keep retry logs visible in GitHub Actions and worker job records.
+
+6. Keep secrets out of Git:
 
 - Railway owns runtime secrets.
 - GitHub Actions owns refresh secrets and variables.
 - `.env.example` is the only committed reference for variable names.
 
-6. Add operational documentation to each incident:
+7. Add operational documentation to each incident:
 
 - Date/time observed.
 - Affected dashboard path.

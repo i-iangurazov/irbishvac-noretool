@@ -22,6 +22,16 @@ type FetchReportOptions = {
   correlationId: string;
 };
 
+const ERROR_BODY_EXCERPT_LENGTH = 1_000;
+
+function compactErrorBody(body: string) {
+  if (body.length <= ERROR_BODY_EXCERPT_LENGTH) {
+    return body;
+  }
+
+  return `${body.slice(0, ERROR_BODY_EXCERPT_LENGTH)}... [truncated ${body.length - ERROR_BODY_EXCERPT_LENGTH} chars]`;
+}
+
 function parseRetryAfterSeconds(response: Response, body: string) {
   const retryAfterHeader = response.headers.get("retry-after");
   if (retryAfterHeader) {
@@ -62,6 +72,34 @@ export class ServiceTitanRateLimitError extends Error {
     this.family = options.family;
     this.retryAfterSeconds = options.retryAfterSeconds;
     this.body = options.body;
+  }
+}
+
+export function isRetryableServiceTitanStatus(status: number) {
+  return status === 408 || status === 425 || status >= 500;
+}
+
+export class ServiceTitanReportFetchError extends Error {
+  readonly family: ReportFamilyKey;
+  readonly status: number | null;
+  readonly body: string;
+  readonly retryable: boolean;
+
+  constructor(options: {
+    family: ReportFamilyKey;
+    status: number | null;
+    body: string;
+    retryable: boolean;
+  }) {
+    const statusLabel = options.status === null ? "network error" : String(options.status);
+    const bodySuffix = options.body ? `: ${compactErrorBody(options.body)}` : "";
+
+    super(`ServiceTitan report fetch failed (${statusLabel}) ${options.family}${bodySuffix}`);
+    this.name = "ServiceTitanReportFetchError";
+    this.family = options.family;
+    this.status = options.status;
+    this.body = options.body;
+    this.retryable = options.retryable;
   }
 }
 
@@ -147,18 +185,29 @@ export class ServiceTitanClient {
       reportId: options.reportId
     });
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "ST-App-Key": this.config.serviceTitan.appKey,
-        Authorization: `Bearer ${accessToken}`,
-        "X-Correlation-Id": options.correlationId
-      },
-      body: JSON.stringify({
-        parameters: options.parameters
-      })
-    });
+    let response: Response;
+
+    try {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ST-App-Key": this.config.serviceTitan.appKey,
+          Authorization: `Bearer ${accessToken}`,
+          "X-Correlation-Id": options.correlationId
+        },
+        body: JSON.stringify({
+          parameters: options.parameters
+        })
+      });
+    } catch (error) {
+      throw new ServiceTitanReportFetchError({
+        family: options.family,
+        status: null,
+        body: error instanceof Error ? error.message : String(error),
+        retryable: true
+      });
+    }
 
     if (!response.ok) {
       const body = await response.text();
@@ -170,9 +219,12 @@ export class ServiceTitanClient {
         });
       }
 
-      throw new Error(
-        `ServiceTitan report fetch failed (${response.status}) ${options.family}: ${body}`,
-      );
+      throw new ServiceTitanReportFetchError({
+        family: options.family,
+        status: response.status,
+        body,
+        retryable: isRetryableServiceTitanStatus(response.status)
+      });
     }
 
     return {

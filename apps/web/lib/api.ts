@@ -92,6 +92,13 @@ export const navItems: DashboardNavItem[] = [
     label: "Campaigns",
     shortLabel: "CM",
     section: "Demand"
+  },
+  {
+    id: "ops",
+    href: "/ops",
+    label: "Operations Docs",
+    shortLabel: "OP",
+    section: "Operations"
   }
 ];
 

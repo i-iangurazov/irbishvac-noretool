@@ -24,6 +24,14 @@ The web dashboard should be opened through the Railway web service URL or custom
 
 The web service must set `API_BASE_URL` to the Railway API service URL so browser page requests can proxy dashboard API calls correctly.
 
+Operations pages are built into the same web app:
+
+```text
+/ops
+/ops/user-manual
+/ops/condition-report
+```
+
 ## Dashboard Pages
 
 Use the menu button in the dashboard header to move between views.
@@ -138,6 +146,8 @@ pnpm snapshots:validate
 
 Do not run refresh commands repeatedly in parallel. The workflow has concurrency protection, and the worker uses a one-job limiter to avoid ServiceTitan rate-limit failures.
 
+The worker retries retryable ServiceTitan report fetch failures, including `408`, `425`, `5xx`, and network-level fetch errors. It does not retry permanent configuration or authorization errors such as `400`, `401`, `403`, or `404`.
+
 ## Railway Services
 
 Keep these services in the IRBIS Railway project:
@@ -219,6 +229,13 @@ ServiceTitan returns rate-limit errors:
 2. Let the current run finish. The worker waits and retries `429` responses.
 3. If repeated runs fail, reduce manual refresh frequency and check ServiceTitan API availability.
 
+ServiceTitan returns `500` timeout errors:
+
+1. Do not start another refresh immediately.
+2. Check whether the workflow logs show retry attempts for the failed report family.
+3. If retry succeeds, treat the run as recovered.
+4. If the same report fails after all retries across multiple runs, treat it as a ServiceTitan upstream incident and preserve the run ID, report family, and error body excerpt.
+
 API readiness is unavailable:
 
 1. Check Railway API service status.
@@ -244,4 +261,3 @@ After pushing to `main`:
 3. Run or wait for `Refresh Snapshots`.
 4. Open `/company-wide?preset=mtd`.
 5. Confirm the header date, Today sales, Yesterday sales, and freshness badge all match the expected business date.
-

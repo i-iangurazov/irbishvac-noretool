@@ -4,6 +4,7 @@ import { Prisma, RunStatus, prisma } from "@irbis/db";
 import {
   ServiceTitanClient,
   ServiceTitanRateLimitError,
+  ServiceTitanReportFetchError,
   getServiceTitanReportDefinitions,
   resolveReportRequest,
   type ReportFamilyKey,
@@ -18,7 +19,7 @@ export class DashboardRefreshRunner {
   private readonly config = getConfig();
 
   private readonly client = new ServiceTitanClient();
-  private readonly maxRateLimitRetries = 3;
+  private readonly maxRefreshAttempts = 3;
 
   isIngestionConfigured() {
     return this.client.isConfigured();
@@ -58,6 +59,10 @@ export class DashboardRefreshRunner {
     return new Promise<void>((resolve) => {
       setTimeout(resolve, ms);
     });
+  }
+
+  private getTransientRetryDelayMs(attempt: number) {
+    return Math.min(30_000 * 2 ** (attempt - 1), 120_000);
   }
 
   private async refreshFamilyOnce(
@@ -268,6 +273,14 @@ export class DashboardRefreshRunner {
                   retryAfterSeconds: error.retryAfterSeconds,
                   family
                 }
+              : error instanceof ServiceTitanReportFetchError
+                ? {
+                    message,
+                    status: error.status,
+                    retryable: error.retryable,
+                    family,
+                    bodyExcerpt: error.body.slice(0, 1_000)
+                  }
               : { message },
           finishedAt: new Date()
         }
@@ -285,6 +298,14 @@ export class DashboardRefreshRunner {
                   retryAfterSeconds: error.retryAfterSeconds,
                   family
                 }
+              : error instanceof ServiceTitanReportFetchError
+                ? {
+                    message,
+                    status: error.status,
+                    retryable: error.retryable,
+                    family,
+                    bodyExcerpt: error.body.slice(0, 1_000)
+                  }
               : { message },
           finishedAt: new Date()
         }
@@ -296,6 +317,14 @@ export class DashboardRefreshRunner {
           correlationId,
           message,
           retryAfterSeconds: error.retryAfterSeconds
+        });
+      } else if (error instanceof ServiceTitanReportFetchError) {
+        logger.warn("Dashboard refresh hit ServiceTitan report fetch error", {
+          family,
+          correlationId,
+          status: error.status,
+          retryable: error.retryable,
+          message
         });
       } else {
         logger.error("Dashboard refresh failed", { family, correlationId, message });
@@ -312,13 +341,13 @@ export class DashboardRefreshRunner {
   ) {
     let attempt = 0;
 
-    while (attempt < this.maxRateLimitRetries) {
+    while (attempt < this.maxRefreshAttempts) {
       attempt += 1;
 
       try {
         return await this.refreshFamilyOnce(family, correlationId, context, attempt);
       } catch (error) {
-        if (error instanceof ServiceTitanRateLimitError && attempt < this.maxRateLimitRetries) {
+        if (error instanceof ServiceTitanRateLimitError && attempt < this.maxRefreshAttempts) {
           const retryAfterSeconds = Math.max(error.retryAfterSeconds ?? 60, 60) + 2;
           logger.warn("Retrying dashboard refresh after ServiceTitan rate limit", {
             family,
@@ -327,6 +356,23 @@ export class DashboardRefreshRunner {
             retryAfterSeconds
           });
           await this.sleep(retryAfterSeconds * 1_000);
+          continue;
+        }
+
+        if (
+          error instanceof ServiceTitanReportFetchError &&
+          error.retryable &&
+          attempt < this.maxRefreshAttempts
+        ) {
+          const retryDelayMs = this.getTransientRetryDelayMs(attempt);
+          logger.warn("Retrying dashboard refresh after transient ServiceTitan error", {
+            family,
+            correlationId,
+            attempt,
+            status: error.status,
+            retryDelaySeconds: retryDelayMs / 1_000
+          });
+          await this.sleep(retryDelayMs);
           continue;
         }
 

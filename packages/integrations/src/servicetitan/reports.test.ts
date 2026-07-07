@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  ServiceTitanReportFetchError,
+  isRetryableServiceTitanStatus
+} from "./client";
 import { buildReportParameters } from "./reports";
 
 describe("buildReportParameters", () => {
@@ -91,5 +95,42 @@ describe("buildReportParameters", () => {
 
     expect(parameters[0]).toEqual({ name: "From", value: "2026-03-01" });
     expect(parameters[1]).toEqual({ name: "To", value: "2026-03-21" });
+  });
+});
+
+describe("isRetryableServiceTitanStatus", () => {
+  it("classifies transient report fetch statuses as retryable", () => {
+    expect(isRetryableServiceTitanStatus(408)).toBe(true);
+    expect(isRetryableServiceTitanStatus(425)).toBe(true);
+    expect(isRetryableServiceTitanStatus(500)).toBe(true);
+    expect(isRetryableServiceTitanStatus(502)).toBe(true);
+    expect(isRetryableServiceTitanStatus(503)).toBe(true);
+    expect(isRetryableServiceTitanStatus(504)).toBe(true);
+  });
+
+  it("does not retry permanent client errors", () => {
+    expect(isRetryableServiceTitanStatus(400)).toBe(false);
+    expect(isRetryableServiceTitanStatus(401)).toBe(false);
+    expect(isRetryableServiceTitanStatus(403)).toBe(false);
+    expect(isRetryableServiceTitanStatus(404)).toBe(false);
+  });
+});
+
+describe("ServiceTitanReportFetchError", () => {
+  it("keeps retry metadata and truncates long response bodies in the message", () => {
+    const body = "x".repeat(1_200);
+    const error = new ServiceTitanReportFetchError({
+      family: "campaigns",
+      status: 500,
+      body,
+      retryable: true
+    });
+
+    expect(error.status).toBe(500);
+    expect(error.retryable).toBe(true);
+    expect(error.body).toBe(body);
+    expect(error.message).toContain("ServiceTitan report fetch failed (500) campaigns");
+    expect(error.message).toContain("[truncated 200 chars]");
+    expect(error.message.length).toBeLessThan(body.length);
   });
 });
