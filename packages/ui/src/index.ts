@@ -1,5 +1,6 @@
 export * from "./lib/format";
 export * from "./components/capacity-bars";
+export * from "./components/dashboard-auto-refresh-runtime";
 export * from "./components/dashboard-shell";
 export * from "./components/data-freshness-badge";
 export * from "./components/empty-dashboard-state";

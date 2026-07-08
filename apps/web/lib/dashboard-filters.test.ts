@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildDashboardQueryString,
   buildRotationBoardHref,
   buildRotationHref,
   getDashboardRotationNavItems,
   resolveDashboardFilters,
-  supportsDashboardRotation
+  supportsDashboardRotation,
 } from "./dashboard-filters";
 
 describe("dashboard filter helpers", () => {
@@ -34,6 +35,20 @@ describe("dashboard filter helpers", () => {
     expect(unsupported.rotateMode).toBe(false);
   });
 
+  it("keeps generated dashboard links on relative presets", () => {
+    const query = buildDashboardQueryString({
+      preset: "mtd",
+      from: "2026-03-01",
+      to: "2026-03-21",
+      tvMode: true,
+      kioskMode: true,
+      rotateMode: true,
+      rotationBoardIds: ["technicians"],
+    });
+
+    expect(query).toBe("preset=mtd&tv=1&kiosk=1&rotate=1&boards=technicians");
+  });
+
   it("does not add rotate params for unsupported dashboard paths", () => {
     const href = buildRotationHref(
       "/campaigns",
@@ -42,13 +57,13 @@ describe("dashboard filter helpers", () => {
         from: "2026-03-01",
         to: "2026-03-21",
         tvMode: true,
-        rotateMode: true
+        rotateMode: true,
       },
       "ytd",
       true,
     );
 
-    expect(href).toBe("/campaigns?preset=ytd&from=2026-03-01&to=2026-03-21&tv=1");
+    expect(href).toBe("/campaigns?preset=ytd&tv=1");
   });
 
   it("parses and preserves selected TV rotation boards", async () => {
@@ -61,14 +76,15 @@ describe("dashboard filter helpers", () => {
       { id: "company-wide", href: "/company-wide" },
       { id: "technicians", href: "/technicians" },
       { id: "plumbing", href: "/plumbing" },
-      { id: "advisors", href: "/advisors" }
+      { id: "advisors", href: "/advisors" },
     ];
 
     expect(filters.rotationBoardIds).toEqual(["technicians", "plumbing"]);
-    expect(getDashboardRotationNavItems(navItems, filters.rotationBoardIds).map((item) => item.href)).toEqual([
-      "/technicians",
-      "/plumbing"
-    ]);
+    expect(
+      getDashboardRotationNavItems(navItems, filters.rotationBoardIds).map(
+        (item) => item.href,
+      ),
+    ).toEqual(["/technicians", "/plumbing"]);
   });
 
   it("builds board-selection links without allowing an empty rotation set", () => {
@@ -79,7 +95,7 @@ describe("dashboard filter helpers", () => {
         from: "2026-03-01",
         to: "2026-03-21",
         kioskMode: true,
-        rotationBoardIds: ["technicians", "plumbing"]
+        rotationBoardIds: ["technicians", "plumbing"],
       },
       "plumbing",
     );
@@ -90,16 +106,16 @@ describe("dashboard filter helpers", () => {
         from: "2026-03-01",
         to: "2026-03-21",
         kioskMode: false,
-        rotationBoardIds: ["technicians"]
+        rotationBoardIds: ["technicians"],
       },
       "technicians",
     );
 
     expect(href).toBe(
-      "/technicians?preset=mtd&from=2026-03-01&to=2026-03-21&tv=1&rotate=1&kiosk=1&boards=technicians",
+      "/technicians?preset=mtd&tv=1&rotate=1&kiosk=1&boards=technicians",
     );
     expect(unchangedHref).toBe(
-      "/technicians?preset=mtd&from=2026-03-01&to=2026-03-21&tv=1&rotate=1&boards=technicians",
+      "/technicians?preset=mtd&tv=1&rotate=1&boards=technicians",
     );
   });
 });
