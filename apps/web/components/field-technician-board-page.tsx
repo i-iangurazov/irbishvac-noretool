@@ -68,6 +68,9 @@ export async function FieldTechnicianBoardPage({
       subtitle={subtitle}
       freshness={data.snapshotTime}
       filters={filters}
+      layout="people-showcase"
+      maxVisibleItems={4}
+      showcaseColumns={4}
       useHeadshots={true}
       kpis={[
         { label: "Influenced Revenue", value: money(data.totals.totalInfluencedRevenue) },
@@ -84,10 +87,10 @@ export async function FieldTechnicianBoardPage({
         stats: [
           { label: "Completed Revenue", value: money(row.completedRevenue) },
           { label: "Close Rate", value: ratio(row.closeRate) },
-          { label: "Average Sale from Opportunities", value: money(row.avgSaleFromOpps) },
+          { label: "Avg Sale / Opp", value: money(row.avgSaleFromOpps) },
           { label: "Memberships Sold", value: count(row.membershipsSold) },
-          { label: "Replacement Lead Conversion Rate", value: ratio(row.replacementLeadConvRate) },
-          { label: "Total Tech Lead Sales", value: money(row.totalTechLeadSales) },
+          { label: "Lead Conv.", value: ratio(row.replacementLeadConvRate) },
+          { label: "Tech Lead Sales", value: money(row.totalTechLeadSales) },
           { label: "Total Sales", value: plainMetric(row.totalSales) }
         ]
       }))}

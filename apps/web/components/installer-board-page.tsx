@@ -25,6 +25,7 @@ export async function InstallerBoardPage({
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;
+      photoUrl?: string | null;
       installedRevenue: number;
       jobsCompleted: number;
       recallsCaused: number;
@@ -47,6 +48,9 @@ export async function InstallerBoardPage({
       subtitle={subtitle}
       freshness={data.snapshotTime}
       filters={filters}
+      layout="people-showcase"
+      maxVisibleItems={4}
+      showcaseColumns={4}
       useHeadshots={true}
       kpis={[
         { label: "Installed Revenue", value: money(data.totals.installedRevenue) },
@@ -56,11 +60,12 @@ export async function InstallerBoardPage({
       ]}
       items={data.rowsRanked.map((row) => ({
         title: row.name,
+        imageUrl: row.photoUrl,
         valueLabel: "Revenue",
         value: compactMoney(row.installedRevenue),
         stats: [
           { label: "Jobs Completed", value: String(row.jobsCompleted) },
-          { label: "Recalls", value: String(row.recallsCaused) },
+          { label: "Recalls Caused", value: String(row.recallsCaused) },
           { label: "Efficiency", value: ratio(row.billableEfficiency) },
           { label: "Average Install", value: money(row.averageInstall) }
         ]

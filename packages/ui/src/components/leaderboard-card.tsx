@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type Stat = {
   label: string;
@@ -16,6 +16,7 @@ type LeaderboardCardProps = {
   stats: Stat[];
   imageUrl?: string | null | undefined;
   featured?: boolean;
+  presentation?: "standard" | "photo-card";
   children?: ReactNode;
 };
 
@@ -46,7 +47,24 @@ function buildInitials(input: string) {
 
 function Avatar(props: { title: string; imageUrl?: string | null | undefined; featured: boolean }) {
   const [hasError, setHasError] = useState(false);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const initials = useMemo(() => buildInitials(props.title), [props.title]);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [props.imageUrl]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+
+    if (!props.imageUrl || !image) {
+      return;
+    }
+
+    if (image.complete && image.naturalWidth === 0) {
+      setHasError(true);
+    }
+  }, [props.imageUrl, hasError]);
 
   const wrapperClassName = props.featured
     ? "leaderboard-card__avatar leaderboard-card__avatar--featured aspect-square w-full overflow-hidden border border-[#e9edf2] bg-[#edf3f6]"
@@ -63,6 +81,7 @@ function Avatar(props: { title: string; imageUrl?: string | null | undefined; fe
           alt={props.title}
           className={imageClassName}
           loading="lazy"
+          ref={imageRef}
           src={props.imageUrl}
           onError={() => setHasError(true)}
         />
@@ -72,7 +91,7 @@ function Avatar(props: { title: string; imageUrl?: string | null | undefined; fe
 
   return (
     <div
-      className={`${wrapperClassName} flex items-center justify-center bg-[#0d4f5b] font-black tracking-tight text-white shadow-sm ${
+      className={`${wrapperClassName} leaderboard-card__avatar--initials flex items-center justify-center bg-[#0d4f5b] font-black tracking-tight text-white shadow-sm ${
         props.featured
           ? "leaderboard-card__avatar-text leaderboard-card__avatar-text--featured"
           : "leaderboard-card__avatar-text leaderboard-card__avatar-text--compact"
@@ -83,8 +102,71 @@ function Avatar(props: { title: string; imageUrl?: string | null | undefined; fe
   );
 }
 
+function StatRows(props: { stats: Stat[] }) {
+  return (
+    <div className="leaderboard-card__stats divide-y divide-[#edf0f3]">
+      {props.stats.map((stat) => (
+        <div
+          className="leaderboard-card__stat-row grid grid-cols-[minmax(0,1fr)_auto] items-center"
+          key={stat.label}
+        >
+          <div className="leaderboard-card__stat-label font-medium leading-tight text-[#111827]">
+            {stat.label}
+          </div>
+          <div className="leaderboard-card__stat-value text-right font-black leading-none text-[#111827]">
+            {stat.value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function LeaderboardCard(props: LeaderboardCardProps) {
   const featured = props.featured ?? props.rank === 1;
+
+  if (props.presentation === "photo-card") {
+    return (
+      <article
+        className="leaderboard-card leaderboard-card--photo h-full overflow-hidden border border-[#ece3da] bg-white transition"
+        data-stat-count={props.stats.length}
+      >
+        <div className="leaderboard-card__photo-frame">
+          <Avatar featured={false} imageUrl={props.imageUrl} title={props.title} />
+        </div>
+
+        <div className="leaderboard-card__photo-content">
+          <div className="leaderboard-card__header flex items-start justify-between">
+            <div className="min-w-0">
+              <h3 className="leaderboard-card__title font-black leading-[1.02] text-[#111827]">
+                {props.title}
+              </h3>
+              {props.subtitle ? (
+                <div className="leaderboard-card__subtitle font-semibold leading-tight text-slate-500">
+                  {props.subtitle}
+                </div>
+              ) : null}
+            </div>
+            <div className="leaderboard-card__rank inline-flex shrink-0 bg-[#ff7a1a] font-black text-white shadow-sm">
+              #{props.rank}
+            </div>
+          </div>
+
+          <div className="leaderboard-card__revenue min-w-0">
+            <div className="leaderboard-card__value-label font-black uppercase tracking-[0.08em] text-slate-500">
+              {props.valueLabel}
+            </div>
+            <div className="leaderboard-card__value font-black leading-none tracking-tight text-[#2d8c44]">
+              {props.value}
+            </div>
+          </div>
+
+          <StatRows stats={props.stats} />
+        </div>
+        {props.children}
+      </article>
+    );
+  }
 
   return (
     <article
@@ -127,21 +209,7 @@ export function LeaderboardCard(props: LeaderboardCardProps) {
               </div>
             </div>
           </div>
-          <div className="leaderboard-card__stats divide-y divide-[#edf0f3]">
-            {props.stats.map((stat) => (
-              <div
-                className="leaderboard-card__stat-row grid grid-cols-[minmax(0,1fr)_auto] items-center"
-                key={stat.label}
-              >
-                <div className="leaderboard-card__stat-label font-medium leading-tight text-[#111827]">
-                  {stat.label}
-                </div>
-                <div className="leaderboard-card__stat-value text-right font-black leading-none text-[#111827]">
-                  {stat.value}
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatRows stats={props.stats} />
         </div>
       ) : (
         <div className="leaderboard-card__body leaderboard-card__body--compact grid h-full grid-rows-[auto_1fr]">
@@ -154,21 +222,7 @@ export function LeaderboardCard(props: LeaderboardCardProps) {
               </div>
             </div>
           </div>
-          <div className="leaderboard-card__stats divide-y divide-[#edf0f3]">
-            {props.stats.map((stat) => (
-              <div
-                className="leaderboard-card__stat-row grid grid-cols-[minmax(0,1fr)_auto] items-center"
-                key={stat.label}
-              >
-                <div className="leaderboard-card__stat-label font-medium leading-tight text-[#111827]">
-                  {stat.label}
-                </div>
-                <div className="leaderboard-card__stat-value text-right font-black leading-none text-[#111827]">
-                  {stat.value}
-                </div>
-              </div>
-            ))}
-          </div>
+          <StatRows stats={props.stats} />
         </div>
       )}
       {props.children}

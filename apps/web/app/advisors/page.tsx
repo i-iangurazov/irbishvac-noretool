@@ -15,6 +15,7 @@ export default async function AdvisorsPage({ searchParams }: AdvisorsPageProps) 
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;
+      photoUrl?: string | null;
       totalSales: number;
       closedAverageSale: number;
       closedOpportunitiesCount: number;
@@ -38,6 +39,8 @@ export default async function AdvisorsPage({ searchParams }: AdvisorsPageProps) 
       subtitle="Advisor ranking and close-rate performance carried over from the exported board."
       freshness={data.snapshotTime}
       filters={filters}
+      layout="people-showcase"
+      maxVisibleItems={4}
       useHeadshots={true}
       kpis={[
         { label: "Total Sales", value: compactMoney(data.totals.totalSales) },
@@ -47,6 +50,7 @@ export default async function AdvisorsPage({ searchParams }: AdvisorsPageProps) 
       ]}
       items={data.rowsRanked.map((row) => ({
         title: row.name,
+        imageUrl: row.photoUrl,
         valueLabel: "Sales",
         value: compactMoney(row.totalSales),
         stats: [

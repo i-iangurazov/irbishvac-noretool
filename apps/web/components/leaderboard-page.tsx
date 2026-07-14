@@ -55,6 +55,8 @@ type LeaderboardPageProps = {
   kpis: KpiItem[];
   maxVisibleItems?: number;
   useHeadshots?: boolean;
+  layout?: "standard" | "people-showcase";
+  showcaseColumns?: 4;
 };
 
 export function money(value: number) {
@@ -82,7 +84,9 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
     DASHBOARD_ROTATION_BOARDS.every((board) =>
       props.filters.rotationBoardIds.includes(board.id),
     );
-  const maxVisibleItems = props.maxVisibleItems ?? 9;
+  const layout = props.layout ?? "standard";
+  const isPeopleShowcase = layout === "people-showcase";
+  const maxVisibleItems = props.maxVisibleItems ?? (isPeopleShowcase ? 4 : 9);
   const visibleItems = props.items.slice(0, maxVisibleItems);
   const items = visibleItems.map((item) => ({
     ...item,
@@ -177,46 +181,69 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
     >
       <div className="leaderboard-page flex h-full min-h-0 flex-col">
         {hasCachedData ? (
-          <div className="leaderboard-board grid items-stretch">
-            {featuredItem ? (
-              <LeaderboardCard
-                featured={true}
-                imageUrl={featuredItem.imageUrl}
-                rank={1}
-                stats={featuredItem.stats}
-                subtitle={featuredItem.subtitle}
-                title={featuredItem.title}
-                value={featuredItem.value}
-                valueLabel={featuredItem.valueLabel}
-              />
-            ) : null}
-
-            <section className="leaderboard-secondary-grid grid auto-rows-fr items-stretch md:grid-cols-2 xl:grid-cols-4 xl:grid-rows-2">
-              {secondaryItems.map((item, index) => (
-                <div
-                  className={
-                    index >= 4
-                      ? "hidden xl:block"
-                      : index >= 2
-                        ? "hidden md:block"
-                        : ""
-                  }
+          isPeopleShowcase ? (
+            <div
+              className="leaderboard-showcase-grid grid items-stretch"
+              data-card-count={items.length}
+              data-showcase-columns={props.showcaseColumns}
+            >
+              {items.map((item, index) => (
+                <LeaderboardCard
+                  featured={false}
+                  imageUrl={item.imageUrl}
                   key={`${item.title}-${index + 1}`}
-                >
-                  <LeaderboardCard
-                    featured={false}
-                    imageUrl={item.imageUrl}
-                    rank={index + 2}
-                    stats={item.stats}
-                    subtitle={item.subtitle}
-                    title={item.title}
-                    value={item.value}
-                    valueLabel={item.valueLabel}
-                  />
-                </div>
+                  presentation="photo-card"
+                  rank={index + 1}
+                  stats={item.stats}
+                  subtitle={item.subtitle}
+                  title={item.title}
+                  value={item.value}
+                  valueLabel={item.valueLabel}
+                />
               ))}
-            </section>
-          </div>
+            </div>
+          ) : (
+            <div className="leaderboard-board grid items-stretch">
+              {featuredItem ? (
+                <LeaderboardCard
+                  featured={true}
+                  imageUrl={featuredItem.imageUrl}
+                  rank={1}
+                  stats={featuredItem.stats}
+                  subtitle={featuredItem.subtitle}
+                  title={featuredItem.title}
+                  value={featuredItem.value}
+                  valueLabel={featuredItem.valueLabel}
+                />
+              ) : null}
+
+              <section className="leaderboard-secondary-grid grid auto-rows-fr items-stretch md:grid-cols-2 xl:grid-cols-4 xl:grid-rows-2">
+                {secondaryItems.map((item, index) => (
+                  <div
+                    className={
+                      index >= 4
+                        ? "hidden xl:block"
+                        : index >= 2
+                          ? "hidden md:block"
+                          : ""
+                    }
+                    key={`${item.title}-${index + 1}`}
+                  >
+                    <LeaderboardCard
+                      featured={false}
+                      imageUrl={item.imageUrl}
+                      rank={index + 2}
+                      stats={item.stats}
+                      subtitle={item.subtitle}
+                      title={item.title}
+                      value={item.value}
+                      valueLabel={item.valueLabel}
+                    />
+                  </div>
+                ))}
+              </section>
+            </div>
+          )
         ) : (
           <EmptyDashboardState
             title="No cached snapshot for this range yet"

@@ -16,6 +16,7 @@ export default async function CallCenterByCsrPage({ searchParams }: CallCenterBy
     rowsRanked: Array<{
       name: string;
       role: string | null;
+      photoUrl?: string | null;
       leadsReceived: number;
       inboundCallsBooked: number;
       manualCallsBooked: number;
@@ -43,6 +44,8 @@ export default async function CallCenterByCsrPage({ searchParams }: CallCenterBy
       subtitle="CSR-by-CSR leaderboard preserving the current ranking and booking-rate semantics."
       freshness={data.snapshotTime}
       filters={filters}
+      layout="people-showcase"
+      maxVisibleItems={3}
       useHeadshots={true}
       kpis={[
         { label: "Lead Calls", value: String(data.summary.leadCalls) },
@@ -54,6 +57,7 @@ export default async function CallCenterByCsrPage({ searchParams }: CallCenterBy
       items={data.rowsRanked.map((row) => ({
         title: row.name,
         subtitle: row.role ?? undefined,
+        imageUrl: row.photoUrl,
         valueLabel: "Call Booking Rate",
         value: ratio(row.callBookingRate),
         stats: [
