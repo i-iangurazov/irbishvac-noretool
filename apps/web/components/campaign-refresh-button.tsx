@@ -17,7 +17,15 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function CampaignRefreshButton({ month, enabled }: { month: string; enabled: boolean }) {
+export function CampaignRefreshButton({
+  month,
+  enabled,
+  disabledReason,
+}: {
+  month: string;
+  enabled: boolean;
+  disabledReason: string;
+}) {
   const router = useRouter();
   const [state, setState] = useState<RefreshState>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +78,7 @@ export function CampaignRefreshButton({ month, enabled }: { month: string; enabl
         className={`campaign-refresh__button campaign-refresh__button--${state}`}
         disabled={!enabled || state === "queued" || state === "running"}
         onClick={refresh}
-        title={enabled ? "Refresh Google Sheet and ServiceTitan actuals" : "Historical months are locked"}
+        title={enabled ? "Refresh Google Sheet and ServiceTitan actuals" : disabledReason}
         type="button"
       >
         <span aria-hidden="true" className="campaign-refresh__icon">↻</span>

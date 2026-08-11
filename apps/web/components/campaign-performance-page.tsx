@@ -192,7 +192,10 @@ export function CampaignPerformancePage({
               <small>{sourceTimestamp(data.generatedAt)}</small>
             </div>
             <CampaignRefreshButton
-              enabled={refreshEnabled}
+              disabledReason={refreshEnabled
+                ? "Live refresh becomes available after the first Worker snapshot"
+                : "Historical months are locked"}
+              enabled={refreshEnabled && data.dataStatus === "LIVE"}
               month={data.period.id ?? data.period.from.slice(0, 7)}
             />
             <PrintReportButton />
