@@ -1,0 +1,520 @@
+{
+  "schemaVersion": 3,
+  "generatedAt": "2026-08-04T16:35:37+00:00",
+  "period": {
+    "id": "2026-07",
+    "label": "July 2026",
+    "from": "2026-07-01",
+    "to": "2026-07-31",
+    "elapsedCalendarDays": 31,
+    "calendarDaysInMonth": 31
+  },
+  "plan": {
+    "status": "RETROSPECTIVE MODEL",
+    "companyRevenueGoal": 2000000,
+    "marketingBudgetRate": 0.07,
+    "marketingBudgetGoal": 140000,
+    "qualifiedLeadGoal": 1125,
+    "planningDays": 25,
+    "capacityAssumptions": [
+      {
+        "team": "HVAC Service",
+        "people": 5,
+        "opportunitiesPerDay": 3
+      },
+      {
+        "team": "Maintenance",
+        "people": 2,
+        "opportunitiesPerDay": 3
+      },
+      {
+        "team": "Commercial",
+        "people": 1,
+        "opportunitiesPerDay": 3
+      },
+      {
+        "team": "Plumbing Service",
+        "people": 3,
+        "opportunitiesPerDay": 3
+      },
+      {
+        "team": "Comfort Advisors",
+        "people": 3,
+        "opportunitiesPerDay": 4
+      }
+    ],
+    "channelLeadGoalMethod": "Retrospective capacity model; no approved July channel plan was supplied.",
+    "channelBudgetGoalStatus": "Model allocation by July actual mix completed revenue share",
+    "opportunityGoal": 675,
+    "targetBookingRate": 0.6
+  },
+  "actual": {
+    "calls": 507,
+    "forms": 1159,
+    "qualifiedLeads": 1165,
+    "bookedJobs": 700,
+    "spend": 29493.754816999997,
+    "soldJobs": 300,
+    "soldAmount": 1257876.1599999997,
+    "completedRevenue": 1630559.0300000005,
+    "bookingRate": 0.6008583690987125,
+    "costPerLead": 25.31652773991416,
+    "roi": 54.284891330966026
+  },
+  "pace": {
+    "expectedToDateRatio": 1,
+    "qualifiedLeadPace": 1.0355555555555556,
+    "spendPace": 0.2106696772642857,
+    "opportunityPace": 1.037037037037037,
+    "projectedOpportunities": 700,
+    "opportunityGap": 0,
+    "requiredOpportunitiesPerRemainingDay": null
+  },
+  "alerts": [
+    {
+      "severity": "warning",
+      "channel": "Yelp",
+      "message": "Booking rate is 40% on 620 qualified leads."
+    },
+    {
+      "severity": "warning",
+      "channel": "Facebook",
+      "message": "Booking rate is 40% on 55 qualified leads."
+    }
+  ],
+  "rows": [
+    {
+      "channel": "Yelp",
+      "plan": {
+        "qualifiedLeads": 599,
+        "bookedJobs": 239,
+        "spend": 27243.91,
+        "soldAmount": null,
+        "completedRevenue": 389198.75
+      },
+      "actual": {
+        "calls": 63,
+        "forms": 798,
+        "qualifiedLeads": 620,
+        "bookedJobs": 247,
+        "bookingRate": 0.39838709677419354,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 87,
+        "soldAmount": 230331.55000000008,
+        "completedRevenue": 317305.77,
+        "roi": null
+      },
+      "leadAttainment": 1.0350584307178632,
+      "pace": 1.0334728033472804,
+      "status": "on-track",
+      "opportunityAttainment": 1.0334728033472804
+    },
+    {
+      "channel": "Miscellaneous",
+      "plan": {
+        "qualifiedLeads": 81,
+        "bookedJobs": 60,
+        "spend": 219.16,
+        "soldAmount": null,
+        "completedRevenue": 3130.79
+      },
+      "actual": {
+        "calls": 72,
+        "forms": 53,
+        "qualifiedLeads": 84,
+        "bookedJobs": 62,
+        "bookingRate": 0.7380952380952381,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 2,
+        "soldAmount": 15396.980000000001,
+        "completedRevenue": 2552.47,
+        "roi": null
+      },
+      "leadAttainment": 1.037037037037037,
+      "pace": 1.0333333333333334,
+      "status": "on-track",
+      "opportunityAttainment": 1.0333333333333334
+    },
+    {
+      "channel": "Google Ads",
+      "plan": {
+        "qualifiedLeads": 80,
+        "bookedJobs": 69,
+        "spend": 26579.84,
+        "soldAmount": null,
+        "completedRevenue": 379712.05
+      },
+      "actual": {
+        "calls": 87,
+        "forms": 23,
+        "qualifiedLeads": 83,
+        "bookedJobs": 72,
+        "bookingRate": 0.8674698795180723,
+        "spend": 29493.754816999997,
+        "costPerLead": 355.3464435783132,
+        "soldJobs": 39,
+        "soldAmount": 225748.06999999998,
+        "completedRevenue": 309571.4600000001,
+        "roi": 9.496169847508368
+      },
+      "leadAttainment": 1.0375,
+      "pace": 1.0434782608695652,
+      "status": "on-track",
+      "opportunityAttainment": 1.0434782608695652
+    },
+    {
+      "channel": "Website",
+      "plan": {
+        "qualifiedLeads": 78,
+        "bookedJobs": 77,
+        "spend": 28499.7,
+        "soldAmount": null,
+        "completedRevenue": 407138.61
+      },
+      "actual": {
+        "calls": 64,
+        "forms": 53,
+        "qualifiedLeads": 81,
+        "bookedJobs": 80,
+        "bookingRate": 0.9876543209876543,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 68,
+        "soldAmount": 366791.30000000005,
+        "completedRevenue": 331931.77,
+        "roi": null
+      },
+      "leadAttainment": 1.0384615384615385,
+      "pace": 1.0389610389610389,
+      "status": "on-track",
+      "opportunityAttainment": 1.0389610389610389
+    },
+    {
+      "channel": "GBP San Jose",
+      "plan": {
+        "qualifiedLeads": 60,
+        "bookedJobs": 58,
+        "spend": 10645.9,
+        "soldAmount": null,
+        "completedRevenue": 152084.25
+      },
+      "actual": {
+        "calls": 96,
+        "forms": 0,
+        "qualifiedLeads": 62,
+        "bookedJobs": 60,
+        "bookingRate": 0.967741935483871,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 42,
+        "soldAmount": 140865.96000000002,
+        "completedRevenue": 123991.17,
+        "roi": null
+      },
+      "leadAttainment": 1.0333333333333334,
+      "pace": 1.0344827586206897,
+      "status": "on-track",
+      "opportunityAttainment": 1.0344827586206897
+    },
+    {
+      "channel": "Facebook",
+      "plan": {
+        "qualifiedLeads": 53,
+        "bookedJobs": 21,
+        "spend": 5957.11,
+        "soldAmount": null,
+        "completedRevenue": 85101.62
+      },
+      "actual": {
+        "calls": 7,
+        "forms": 103,
+        "qualifiedLeads": 55,
+        "bookedJobs": 22,
+        "bookingRate": 0.4,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 1,
+        "soldAmount": 12725.2,
+        "completedRevenue": 69381.61,
+        "roi": null
+      },
+      "leadAttainment": 1.0377358490566038,
+      "pace": 1.0476190476190477,
+      "status": "on-track",
+      "opportunityAttainment": 1.0476190476190477
+    },
+    {
+      "channel": "Scheduling Pro",
+      "plan": {
+        "qualifiedLeads": 35,
+        "bookedJobs": 33,
+        "spend": null,
+        "soldAmount": null,
+        "completedRevenue": null
+      },
+      "actual": {
+        "calls": 1,
+        "forms": 41,
+        "qualifiedLeads": 36,
+        "bookedJobs": 34,
+        "bookingRate": 0.9444444444444444,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 0,
+        "soldAmount": 0,
+        "completedRevenue": 0,
+        "roi": null
+      },
+      "leadAttainment": 1.0285714285714285,
+      "pace": 1.0303030303030303,
+      "status": "on-track",
+      "opportunityAttainment": 1.0303030303030303
+    },
+    {
+      "channel": "669-COOLING",
+      "plan": {
+        "qualifiedLeads": 29,
+        "bookedJobs": 26,
+        "spend": 12869.77,
+        "soldAmount": null,
+        "completedRevenue": 183853.91
+      },
+      "actual": {
+        "calls": 56,
+        "forms": 1,
+        "qualifiedLeads": 30,
+        "bookedJobs": 27,
+        "bookingRate": 0.9,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 18,
+        "soldAmount": 53562.22,
+        "completedRevenue": 149892.33,
+        "roi": null
+      },
+      "leadAttainment": 1.0344827586206897,
+      "pace": 1.0384615384615385,
+      "status": "on-track",
+      "opportunityAttainment": 1.0384615384615385
+    },
+    {
+      "channel": "Workfuel",
+      "plan": {
+        "qualifiedLeads": 29,
+        "bookedJobs": 14,
+        "spend": 2782.61,
+        "soldAmount": null,
+        "completedRevenue": 39751.52
+      },
+      "actual": {
+        "calls": 0,
+        "forms": 47,
+        "qualifiedLeads": 30,
+        "bookedJobs": 15,
+        "bookingRate": 0.5,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 1,
+        "soldAmount": 17496.9,
+        "completedRevenue": 32408.6,
+        "roi": null
+      },
+      "leadAttainment": 1.0344827586206897,
+      "pace": 1.0714285714285714,
+      "status": "on-track",
+      "opportunityAttainment": 1.0714285714285714
+    },
+    {
+      "channel": "Home Care Plan",
+      "plan": {
+        "qualifiedLeads": 21,
+        "bookedJobs": 21,
+        "spend": null,
+        "soldAmount": null,
+        "completedRevenue": null
+      },
+      "actual": {
+        "calls": 14,
+        "forms": 9,
+        "qualifiedLeads": 22,
+        "bookedJobs": 22,
+        "bookingRate": 1,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 0,
+        "soldAmount": 0,
+        "completedRevenue": 0,
+        "roi": null
+      },
+      "leadAttainment": 1.0476190476190477,
+      "pace": 1.0476190476190477,
+      "status": "on-track",
+      "opportunityAttainment": 1.0476190476190477
+    },
+    {
+      "channel": "Hatch Campaigns",
+      "plan": {
+        "qualifiedLeads": 20,
+        "bookedJobs": 20,
+        "spend": 3041.42,
+        "soldAmount": null,
+        "completedRevenue": 43448.84
+      },
+      "actual": {
+        "calls": 1,
+        "forms": 22,
+        "qualifiedLeads": 21,
+        "bookedJobs": 21,
+        "bookingRate": 1,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 9,
+        "soldAmount": 60936.57,
+        "completedRevenue": 35422.95,
+        "roi": null
+      },
+      "leadAttainment": 1.05,
+      "pace": 1.05,
+      "status": "on-track",
+      "opportunityAttainment": 1.05
+    },
+    {
+      "channel": "Google LSA",
+      "plan": {
+        "qualifiedLeads": 19,
+        "bookedJobs": 17,
+        "spend": 259.57,
+        "soldAmount": null,
+        "completedRevenue": 3708.18
+      },
+      "actual": {
+        "calls": 24,
+        "forms": 4,
+        "qualifiedLeads": 20,
+        "bookedJobs": 18,
+        "bookingRate": 0.9,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 6,
+        "soldAmount": 2933.15,
+        "completedRevenue": 3023.2,
+        "roi": null
+      },
+      "leadAttainment": 1.0526315789473684,
+      "pace": 1.0588235294117647,
+      "status": "on-track",
+      "opportunityAttainment": 1.0588235294117647
+    },
+    {
+      "channel": "Carrier",
+      "plan": {
+        "qualifiedLeads": 13,
+        "bookedJobs": 12,
+        "spend": 408.83,
+        "soldAmount": null,
+        "completedRevenue": 5840.46
+      },
+      "actual": {
+        "calls": 13,
+        "forms": 5,
+        "qualifiedLeads": 13,
+        "bookedJobs": 12,
+        "bookingRate": 0.9230769230769231,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 2,
+        "soldAmount": 5486.38,
+        "completedRevenue": 4761.61,
+        "roi": null
+      },
+      "leadAttainment": 1,
+      "pace": 1,
+      "status": "on-track",
+      "opportunityAttainment": 1
+    },
+    {
+      "channel": "Mail Shark",
+      "plan": {
+        "qualifiedLeads": 8,
+        "bookedJobs": 8,
+        "spend": 15.8,
+        "soldAmount": null,
+        "completedRevenue": 225.69
+      },
+      "actual": {
+        "calls": 9,
+        "forms": 0,
+        "qualifiedLeads": 8,
+        "bookedJobs": 8,
+        "bookingRate": 1,
+        "spend": 0,
+        "costPerLead": 0,
+        "soldJobs": 0,
+        "soldAmount": 0,
+        "completedRevenue": 184,
+        "roi": null
+      },
+      "leadAttainment": 1,
+      "pace": 1,
+      "status": "on-track",
+      "opportunityAttainment": 1
+    },
+    {
+      "channel": "Existing Customers",
+      "plan": {
+        "qualifiedLeads": 0,
+        "bookedJobs": null,
+        "spend": 21476.37,
+        "soldAmount": null,
+        "completedRevenue": 306805.32
+      },
+      "actual": {
+        "calls": 0,
+        "forms": 0,
+        "qualifiedLeads": 0,
+        "bookedJobs": 0,
+        "bookingRate": null,
+        "spend": 0,
+        "costPerLead": null,
+        "soldJobs": 25,
+        "soldAmount": 125601.87999999998,
+        "completedRevenue": 250132.09,
+        "roi": null
+      },
+      "leadAttainment": null,
+      "pace": null,
+      "status": "unplanned",
+      "opportunityAttainment": null
+    }
+  ],
+  "sources": [
+    {
+      "name": "July 2026 Call Center Report",
+      "role": "Calls, forms, qualified leads, booked jobs",
+      "cutoffApplied": "2026-07-31"
+    },
+    {
+      "name": "ServiceTitan Campaign Summary Report",
+      "reportId": "898",
+      "role": "Spend and completed revenue"
+    },
+    {
+      "name": "ServiceTitan Sold Estimates",
+      "reportId": "7148368",
+      "role": "Sold jobs and sold amount by parent job campaign"
+    },
+    {
+      "name": "ServiceTitan Revenue By Campaign",
+      "reportId": "101394656",
+      "role": "Campaign revenue verification"
+    }
+  ],
+  "dataNotes": [
+    "Call Center rows dated after the MTD cutoff are excluded.",
+    "Calls and forms are combined as leads on the executive dashboard.",
+    "Granular ServiceTitan campaign names are normalized to the call-center channels.",
+    "Retrospective capacity model; no approved July channel plan was supplied."
+  ]
+}

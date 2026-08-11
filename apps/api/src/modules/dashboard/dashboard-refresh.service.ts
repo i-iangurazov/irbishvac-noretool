@@ -13,6 +13,9 @@ type RefreshJob = {
   type: "refresh-family";
   family: ReportFamilyKey;
   context?: DashboardRequestContext;
+} | {
+  type: "refresh-campaign-performance";
+  month: string;
 };
 
 function getBullConnection(urlString: string): ConnectionOptions {
@@ -66,5 +69,35 @@ export class DashboardRefreshService {
       this.logger.warn("Failed to enqueue dashboard refresh", { family, message });
       return false;
     }
+  }
+
+  async enqueueCampaignPerformanceRefresh(month: string) {
+    const pendingJobs = await this.queue.getJobs(["active", "waiting", "delayed"], 0, 100, true);
+    const existing = pendingJobs.find(
+      (job) => job.data.type === "refresh-campaign-performance" && job.data.month === month,
+    );
+    if (existing) {
+      return { jobId: String(existing.id), state: await existing.getState(), reused: true };
+    }
+
+    const job = await this.queue.add(
+      `refresh-campaign-performance-${month}`,
+      { type: "refresh-campaign-performance", month },
+      { jobId: `campaign-performance-${month}-${Date.now()}`, attempts: 1 },
+    );
+    return { jobId: String(job.id), state: "waiting", reused: false };
+  }
+
+  async getRefreshStatus(jobId: string) {
+    const job = await this.queue.getJob(jobId);
+    if (!job || job.data.type !== "refresh-campaign-performance") {
+      return { jobId, state: "not-found", failedReason: null };
+    }
+    return {
+      jobId,
+      state: await job.getState(),
+      failedReason: job.failedReason || null,
+      result: job.returnvalue ?? null
+    };
   }
 }

@@ -117,6 +117,16 @@ export function getConfig() {
           category: "operations",
           reportId: env.ST_REPORT_REVENUE_MONTHLY_PACE
         },
+        campaignSoldEstimates: {
+          tenantId: env.SERVICETITAN_TENANT_ID,
+          category: "operations",
+          reportId: env.ST_REPORT_CAMPAIGN_SOLD_ESTIMATES
+        },
+        campaignRevenue: {
+          tenantId: env.SERVICETITAN_TENANT_ID,
+          category: "marketing",
+          reportId: env.ST_REPORT_CAMPAIGN_REVENUE
+        },
         capacity: {
           tenantId: env.SERVICETITAN_TENANT_ID,
           category: env.ST_REPORT_CAPACITY_CATEGORY || "UNRESOLVED",
@@ -146,6 +156,17 @@ export function getConfig() {
       logoKey: env.R2_LOGO_KEY || null,
       technicianPhotoFolder: env.ASSET_FOLDER_TECHNICIAN_PHOTOS,
       logoFolder: env.ASSET_FOLDER_LOGOS
+    },
+    campaignPerformance: {
+      companyRevenueGoal: env.CAMPAIGN_COMPANY_REVENUE_GOAL,
+      marketingBudgetRate: env.CAMPAIGN_MARKETING_BUDGET_RATE,
+      opportunityGoal: env.CAMPAIGN_OPPORTUNITY_GOAL,
+      targetBookingRate: env.CAMPAIGN_TARGET_BOOKING_RATE,
+      google: {
+        spreadsheetId: env.GOOGLE_CALL_CENTER_SPREADSHEET_ID,
+        serviceAccountEmail: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        serviceAccountPrivateKey: env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+      }
     }
   };
 }

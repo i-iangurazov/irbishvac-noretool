@@ -22,6 +22,12 @@ type FetchReportOptions = {
   correlationId: string;
 };
 
+type FetchReportDefinitionOptions = Pick<FetchReportOptions, "family" | "category" | "reportId" | "correlationId">;
+
+type FetchPaginatedReportOptions = FetchReportOptions & {
+  pageSize?: number;
+};
+
 const ERROR_BODY_EXCERPT_LENGTH = 1_000;
 
 function compactErrorBody(body: string) {
@@ -231,5 +237,111 @@ export class ServiceTitanClient {
       endpoint,
       payload: await response.json()
     };
+  }
+
+  private async authorizedRequest(
+    endpoint: string,
+    options: Pick<FetchReportOptions, "family" | "correlationId">,
+    init?: RequestInit,
+  ) {
+    const accessToken = await this.getAccessToken();
+    let response: Response;
+
+    try {
+      response = await fetch(endpoint, {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          "ST-App-Key": this.config.serviceTitan.appKey,
+          Authorization: `Bearer ${accessToken}`,
+          "X-Correlation-Id": options.correlationId,
+          ...(init?.headers ?? {})
+        }
+      });
+    } catch (error) {
+      throw new ServiceTitanReportFetchError({
+        family: options.family,
+        status: null,
+        body: error instanceof Error ? error.message : String(error),
+        retryable: true
+      });
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      if (response.status === 429) {
+        throw new ServiceTitanRateLimitError({
+          family: options.family,
+          body,
+          retryAfterSeconds: parseRetryAfterSeconds(response, body)
+        });
+      }
+      throw new ServiceTitanReportFetchError({
+        family: options.family,
+        status: response.status,
+        body,
+        retryable: isRetryableServiceTitanStatus(response.status)
+      });
+    }
+
+    return response;
+  }
+
+  async fetchReportDefinition(options: FetchReportDefinitionOptions) {
+    this.assertConfigured();
+    const endpoint = `https://api.servicetitan.io/reporting/v2/tenant/${this.config.serviceTitan.tenantId}/report-category/${options.category}/reports/${options.reportId}`;
+    const response = await this.authorizedRequest(endpoint, options);
+    return { endpoint, payload: await response.json() };
+  }
+
+  async fetchPaginatedReport(options: FetchPaginatedReportOptions) {
+    this.assertConfigured();
+    const pageSize = options.pageSize ?? 500;
+    const baseEndpoint = `https://api.servicetitan.io/reporting/v2/tenant/${this.config.serviceTitan.tenantId}/report-category/${options.category}/reports/${options.reportId}/data`;
+    const rows: unknown[][] = [];
+    let fields: unknown[] = [];
+    let page = 1;
+    let totalCount: number | null = null;
+
+    while (page <= 100) {
+      const endpoint = new URL(baseEndpoint);
+      endpoint.searchParams.set("page", String(page));
+      endpoint.searchParams.set("pageSize", String(pageSize));
+      endpoint.searchParams.set("includeTotal", "true");
+      const response = await this.authorizedRequest(endpoint.toString(), options, {
+        method: "POST",
+        body: JSON.stringify({ parameters: options.parameters })
+      });
+      const payload = (await response.json()) as {
+        fields?: unknown[];
+        data?: unknown[][];
+        totalCount?: number;
+        hasMore?: boolean;
+      };
+
+      if (fields.length === 0) {
+        fields = payload.fields ?? [];
+      }
+      rows.push(...(payload.data ?? []));
+      if (payload.totalCount != null) {
+        totalCount = Number(payload.totalCount);
+      }
+      if (!payload.hasMore) {
+        return {
+          endpoint: baseEndpoint,
+          payload: {
+            fields,
+            data: rows,
+            page: 1,
+            pageSize,
+            hasMore: false,
+            totalCount: totalCount ?? rows.length
+          }
+        };
+      }
+      page += 1;
+    }
+
+    throw new Error(`ServiceTitan report ${options.reportId} exceeded 100 pages`);
   }
 }

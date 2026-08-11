@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Query } from "@nestjs/common";
+import { Controller, Get, Inject, Param, Post, Query } from "@nestjs/common";
 import { parseDatePreset } from "@irbis/utils";
 import {
   DashboardService,
@@ -49,6 +49,9 @@ export class DashboardController {
     this.getCallCenterByCsr = this.getCallCenterByCsr.bind(this);
     this.getLeads = this.getLeads.bind(this);
     this.getCampaigns = this.getCampaigns.bind(this);
+    this.getCampaignPerformance = this.getCampaignPerformance.bind(this);
+    this.refreshCampaignPerformance = this.refreshCampaignPerformance.bind(this);
+    this.getCampaignPerformanceRefreshStatus = this.getCampaignPerformanceRefreshStatus.bind(this);
     this.getTrending = this.getTrending.bind(this);
   }
 
@@ -110,6 +113,21 @@ export class DashboardController {
   @Get("campaigns")
   async getCampaigns(@Query() query: DashboardQuery) {
     return this.dashboardService.getCampaigns(toRequestContext(query));
+  }
+
+  @Get("campaigns/performance")
+  async getCampaignPerformance(@Query("month") month = "2026-08") {
+    return this.dashboardService.getCampaignPerformance(month);
+  }
+
+  @Post("campaigns/performance/refresh")
+  async refreshCampaignPerformance(@Query("month") month = "2026-08") {
+    return this.dashboardService.requestCampaignPerformanceRefresh(month);
+  }
+
+  @Get("campaigns/performance/refresh/:jobId")
+  async getCampaignPerformanceRefreshStatus(@Param("jobId") jobId: string) {
+    return this.dashboardService.getCampaignPerformanceRefreshStatus(jobId);
   }
 
   @Get("trending")

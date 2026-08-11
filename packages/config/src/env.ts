@@ -99,6 +99,8 @@ const envSchema = z.object({
   ST_REPORT_TRENDING: z.string().min(1),
   ST_REPORT_SALES: z.string().min(1),
   ST_REPORT_REVENUE_MONTHLY_PACE: z.string().min(1),
+  ST_REPORT_CAMPAIGN_SOLD_ESTIMATES: z.string().optional().default("7148368"),
+  ST_REPORT_CAMPAIGN_REVENUE: z.string().optional().default("101394656"),
   ST_REPORT_CAPACITY_CATEGORY: z.string().optional().default(""),
   ST_REPORT_CAPACITY_ID: z.string().optional().default(""),
   ST_REPORT_JOB_COSTING_CATEGORY: z.string().optional().default(""),
@@ -116,7 +118,14 @@ const envSchema = z.object({
     .default("space"),
   R2_LOGO_KEY: z.string().optional().default("irbis-logo_new_cmyk.png"),
   ASSET_FOLDER_TECHNICIAN_PHOTOS: z.string().optional().default("technicians_photos"),
-  ASSET_FOLDER_LOGOS: z.string().optional().default("")
+  ASSET_FOLDER_LOGOS: z.string().optional().default(""),
+  GOOGLE_CALL_CENTER_SPREADSHEET_ID: z.string().optional().default(""),
+  GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().optional().default(""),
+  GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z.string().optional().default(""),
+  CAMPAIGN_COMPANY_REVENUE_GOAL: z.coerce.number().positive().optional().default(2_000_000),
+  CAMPAIGN_MARKETING_BUDGET_RATE: z.coerce.number().min(0).max(1).optional().default(0.07),
+  CAMPAIGN_OPPORTUNITY_GOAL: z.coerce.number().int().positive().optional().default(1_125),
+  CAMPAIGN_TARGET_BOOKING_RATE: z.coerce.number().positive().max(1).optional().default(0.6)
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

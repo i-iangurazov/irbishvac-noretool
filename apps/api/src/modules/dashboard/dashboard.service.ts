@@ -24,6 +24,7 @@ import {
   buildSalesSummary,
   buildTechnicianDashboard,
   buildTrendingModel,
+  type CampaignPerformanceSnapshot,
   type FieldStaffDepartment
 } from "@irbis/domain";
 import {
@@ -375,6 +376,40 @@ export class DashboardService {
       (payload) => buildCampaignDashboard(payload),
       context,
     );
+  }
+
+  async getCampaignPerformance(month: string): Promise<CampaignPerformanceSnapshot | null> {
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      throw new Error("Campaign month must use YYYY-MM format");
+    }
+    const readModel = await this.safeQuery(`campaign-performance:${month}`, null, () =>
+      prisma.dashboardReadModel.findUnique({
+        where: {
+          family_scopeKey: {
+            family: DashboardFamily.CAMPAIGNS,
+            scopeKey: `campaign-performance:${month}`
+          }
+        }
+      }),
+    );
+    return (readModel?.payloadJson as unknown as CampaignPerformanceSnapshot | undefined) ?? null;
+  }
+
+  async requestCampaignPerformanceRefresh(month: string) {
+    if (!/^\d{4}-\d{2}$/.test(month)) {
+      throw new Error("Campaign month must use YYYY-MM format");
+    }
+    if (!this.refreshService) {
+      throw new Error("Dashboard refresh queue is unavailable");
+    }
+    return this.refreshService.enqueueCampaignPerformanceRefresh(month);
+  }
+
+  async getCampaignPerformanceRefreshStatus(jobId: string) {
+    if (!this.refreshService) {
+      throw new Error("Dashboard refresh queue is unavailable");
+    }
+    return this.refreshService.getRefreshStatus(jobId);
   }
 
   async getTrending(context?: DashboardRequestContext): Promise<ReturnType<typeof buildTrendingModel>> {

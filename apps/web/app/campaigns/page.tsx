@@ -1,54 +1,62 @@
-import { compactMoney, LeaderboardPage, ratio } from "../../components/leaderboard-page";
+import augustCampaignData from "../../data/campaign-performance-august.json";
+import julyCampaignData from "../../data/campaign-performance-july.json";
+import {
+  CampaignPerformancePage,
+  type CampaignPerformanceData,
+} from "../../components/campaign-performance-page";
 import { fetchApi } from "../../lib/api";
-import { resolveDashboardFilters } from "../../lib/dashboard-filters";
 
 type CampaignsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function CampaignsPage({ searchParams }: CampaignsPageProps) {
-  const filters = await resolveDashboardFilters(
-    searchParams,
-    "America/Los_Angeles",
-    "/campaigns",
+  const fallbackDatasets = [
+    augustCampaignData as CampaignPerformanceData,
+    julyCampaignData as CampaignPerformanceData,
+  ];
+  const params: Record<string, string | string[] | undefined> = await (
+    searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>)
   );
-  const data = await fetchApi<{
-    rowsRanked: Array<{
-      name: string;
-      leadCalls: number;
-      bookedJobsByCall: number;
-      bookingRate: number | null;
-      campaignCost: number;
-      completedRevenue: number;
-      roi: number | null;
-    }>;
-    snapshotTime: string | null;
-  }>(`/dashboard/campaigns?${filters.apiQueryString}`);
+  const requestedMonth = typeof params.month === "string" ? params.month : "2026-08";
+  const currentMonth = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    timeZone: process.env.APP_TIMEZONE ?? "America/Los_Angeles"
+  }).format(new Date());
+  const fallback = fallbackDatasets.find((dataset) => dataset.period.id === requestedMonth) ?? fallbackDatasets[0]!;
+  let liveData: CampaignPerformanceData | null = null;
+  try {
+    liveData = await fetchApi<CampaignPerformanceData | null>(
+      `/dashboard/campaigns/performance?month=${encodeURIComponent(requestedMonth)}`,
+    );
+  } catch {
+    liveData = null;
+  }
+  const data = liveData && Date.parse(liveData.generatedAt) >= Date.parse(fallback.generatedAt)
+    ? liveData
+    : {
+        ...fallback,
+        dataStatus: "SNAPSHOT" as const,
+        plan: {
+          ...fallback.plan,
+          status: requestedMonth === "2026-08" ? "MODEL PLAN" : fallback.plan.status
+        },
+        sources: fallback.sources.map((source) => ({
+          ...source,
+          status: "stale" as const,
+          refreshedAt: fallback.generatedAt
+        }))
+      };
+  const periodDatasets = liveData && !fallbackDatasets.some((dataset) => dataset.period.id === liveData?.period.id)
+    ? [liveData, ...fallbackDatasets]
+    : fallbackDatasets;
 
   return (
-    <LeaderboardPage
-      path="/campaigns"
-      title="Campaign Summary Report"
-      subtitle="Campaign leaderboards preserving lead-call sorting and ROI handling."
-      freshness={data.snapshotTime}
-      filters={filters}
-      kpis={[
-        { label: "Top Campaign", value: data.rowsRanked[0]?.name ?? "N/A" },
-        { label: "Lead Calls", value: String(data.rowsRanked[0]?.leadCalls ?? 0) },
-        { label: "Completed Revenue", value: compactMoney(data.rowsRanked[0]?.completedRevenue ?? 0) },
-        { label: "ROI", value: `${(data.rowsRanked[0]?.roi ?? 0).toFixed(1)}%` }
-      ]}
-      items={data.rowsRanked.map((row) => ({
-        title: row.name,
-        valueLabel: "Calls",
-        value: String(row.leadCalls),
-        stats: [
-          { label: "Booked By Call", value: String(row.bookedJobsByCall) },
-          { label: "Booking Rate", value: row.bookingRate == null ? "N/A" : ratio(row.bookingRate) },
-          { label: "Cost", value: compactMoney(row.campaignCost) },
-          { label: "Revenue", value: compactMoney(row.completedRevenue) }
-        ]
-      }))}
+    <CampaignPerformancePage
+      data={data}
+      periods={periodDatasets.map((dataset) => ({ id: dataset.period.id ?? dataset.period.from, from: dataset.period.from }))}
+      refreshEnabled={(data.period.id ?? data.period.from.slice(0, 7)) === currentMonth}
     />
   );
 }

@@ -8,6 +8,7 @@ import {
   PEOPLE_REFRESH_FAMILIES
 } from "./runner";
 import { buildLatestSnapshotPlan } from "./snapshot-plan";
+import { CampaignPerformanceRefreshRunner } from "./campaign-performance";
 
 type RefreshJob =
   | {
@@ -15,6 +16,7 @@ type RefreshJob =
       family: Parameters<DashboardRefreshRunner["refreshFamily"]>[0];
       context?: Pick<ReportRequestContext, "preset" | "from" | "to">;
     }
+  | { type: "refresh-campaign-performance"; month?: string }
   | { type: "refresh-pipeline"; pipeline: "people" | "company" };
 
 const logger = createLogger("worker-main");
@@ -40,6 +42,15 @@ const refreshQueue = new Queue<RefreshJob, unknown, string>(queueName, {
   }
 });
 const runner = new DashboardRefreshRunner();
+const campaignPerformanceRunner = new CampaignPerformanceRefreshRunner();
+
+function currentBusinessMonth() {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    timeZone: config.app.timezone
+  }).format(new Date());
+}
 
 const worker = new Worker<RefreshJob, unknown, string>(
   queueName,
@@ -70,6 +81,10 @@ const worker = new Worker<RefreshJob, unknown, string>(
     }
 
     const correlationId = `${job.id ?? "job"}:${Date.now()}`;
+
+    if (job.data.type === "refresh-campaign-performance") {
+      return campaignPerformanceRunner.refresh(job.data.month ?? currentBusinessMonth(), correlationId);
+    }
 
     if (job.data.type === "refresh-family") {
       return runner.refreshFamily(job.data.family, correlationId, job.data.context);
@@ -118,6 +133,26 @@ worker.on("failed", (job, error) => {
 
 async function bootstrap() {
   logger.info("Worker started", { queueName });
+
+  const campaignMissing = campaignPerformanceRunner.getMissingConfiguration();
+  if (campaignMissing.length === 0) {
+    await refreshQueue.upsertJobScheduler(
+      "campaign-performance-every-two-hours",
+      { pattern: "15 */2 * * *", tz: config.app.timezone },
+      {
+        name: "scheduled-campaign-performance",
+        data: { type: "refresh-campaign-performance" }
+      },
+    );
+    logger.info("Campaign performance scheduler enabled", {
+      pattern: "15 */2 * * *",
+      timezone: config.app.timezone
+    });
+  } else {
+    logger.warn("Campaign performance scheduler disabled until source access is configured", {
+      missing: campaignMissing
+    });
+  }
 
   if (!config.worker.bootstrapOnStart) {
     logger.info("Worker bootstrap refresh is disabled for this environment");
