@@ -72,18 +72,20 @@ export class DashboardRefreshService {
   }
 
   async enqueueCampaignPerformanceRefresh(month: string) {
-    const pendingJobs = await this.queue.getJobs(["active", "waiting", "delayed"], 0, 100, true);
-    const existing = pendingJobs.find(
-      (job) => job.data.type === "refresh-campaign-performance" && job.data.month === month,
-    );
+    const jobId = `campaign-performance-${month}`;
+    const existing = await this.queue.getJob(jobId);
     if (existing) {
-      return { jobId: String(existing.id), state: await existing.getState(), reused: true };
+      const state = await existing.getState();
+      if (["active", "waiting", "delayed", "prioritized", "waiting-children"].includes(state)) {
+        return { jobId: String(existing.id), state, reused: true };
+      }
+      await existing.remove();
     }
 
     const job = await this.queue.add(
       `refresh-campaign-performance-${month}`,
       { type: "refresh-campaign-performance", month },
-      { jobId: `campaign-performance-${month}-${Date.now()}`, attempts: 1 },
+      { jobId, attempts: 1, removeOnComplete: true },
     );
     return { jobId: String(job.id), state: "waiting", reused: false };
   }
