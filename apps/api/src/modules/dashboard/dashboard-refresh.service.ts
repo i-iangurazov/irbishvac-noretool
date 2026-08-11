@@ -85,7 +85,7 @@ export class DashboardRefreshService {
     const job = await this.queue.add(
       `refresh-campaign-performance-${month}`,
       { type: "refresh-campaign-performance", month },
-      { jobId, attempts: 1, removeOnComplete: true },
+      { jobId, attempts: 1, removeOnComplete: 100, removeOnFail: 100 },
     );
     return { jobId: String(job.id), state: "waiting", reused: false };
   }
