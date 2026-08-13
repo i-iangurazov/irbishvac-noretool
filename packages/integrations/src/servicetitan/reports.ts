@@ -24,7 +24,9 @@ export type ReportFamilyKey =
   | "salesYesterday"
   | "salesMonthlyPace"
   | "revenueMonthlyPace"
-  | "bookingRate";
+  | "bookingRate"
+  | "fieldProTechnicianActivity"
+  | "fieldProJobRecordings";
 
 export type ReportParameter = {
   name: string;
@@ -51,6 +53,8 @@ export type ServiceTitanReportDefinition = {
   defaultPreset: DatePreset;
   businessUnitGroup?: "installers" | "advisors" | "company";
   extraParameters?: Array<{ name: string; value: string | number | boolean }>;
+  dateParameterNames?: Array<{ from: string; to: string }>;
+  includeDefaultInactiveParameter?: boolean;
   rangeResolver?: (input: {
     preset: DatePreset;
     context?: ReportRequestContext;
@@ -259,6 +263,45 @@ export function getServiceTitanReportDefinitions(): Record<
       rangeResolver: ({ context, referenceDate, timeZone }) =>
         buildMonthToDateRange(referenceDate, timeZone, context?.to)
     },
+    fieldProTechnicianActivity: {
+      family: "fieldProTechnicianActivity",
+      category: config.serviceTitan.reports.fieldProTechnicianActivity.category,
+      reportId: config.serviceTitan.reports.fieldProTechnicianActivity.reportId,
+      legacyTableName: "st_field_pro_technician_activity",
+      defaultPreset: "mtd",
+      dateParameterNames: [
+        { from: "Technicians_From", to: "Technicians_To" },
+        {
+          from: "FieldProTechnicianRecordingPerformance_From",
+          to: "FieldProTechnicianRecordingPerformance_To"
+        }
+      ],
+      extraParameters: [
+        { name: "Technicians_IncludeInactive", value: false },
+        {
+          name: "FieldProTechnicianRecordingPerformance_ProcessingStatus",
+          value: "complete"
+        }
+      ],
+      includeDefaultInactiveParameter: false
+    },
+    fieldProJobRecordings: {
+      family: "fieldProJobRecordings",
+      category: config.serviceTitan.reports.fieldProJobRecordings.category,
+      reportId: config.serviceTitan.reports.fieldProJobRecordings.reportId,
+      legacyTableName: "st_field_pro_job_recordings",
+      defaultPreset: "mtd",
+      dateParameterNames: [
+        { from: "Jobs_From", to: "Jobs_To" },
+        { from: "FieldProJobRecordings_From", to: "FieldProJobRecordings_To" }
+      ],
+      extraParameters: [
+        { name: "Jobs_DateType", value: 1 },
+        { name: "Jobs_IncludeAdjustmentInvoices", value: false },
+        { name: "FieldProJobRecordings_ProcessingStatus", value: "complete" }
+      ],
+      includeDefaultInactiveParameter: false
+    },
     bookingRate: {
       family: "bookingRate",
       category: "marketing",
@@ -291,10 +334,12 @@ export function resolveReportRequest(
         to: context?.to ?? presetRange.to
       };
 
-  const parameters: ReportParameter[] = [
-    { name: "From", value: range.from },
-    { name: "To", value: range.to }
-  ];
+  const parameters: ReportParameter[] = (
+    definition.dateParameterNames ?? [{ from: "From", to: "To" }]
+  ).flatMap((parameterNames) => [
+    { name: parameterNames.from, value: range.from },
+    { name: parameterNames.to, value: range.to }
+  ]);
 
   const businessUnits =
     context?.businessUnitIds ??
@@ -319,10 +364,12 @@ export function resolveReportRequest(
     parameters.push(...definition.extraParameters);
   }
 
-  parameters.push({
-    name: "IncludeInactive",
-    value: "false"
-  });
+  if (definition.includeDefaultInactiveParameter !== false) {
+    parameters.push({
+      name: "IncludeInactive",
+      value: "false"
+    });
+  }
 
   return {
     preset,

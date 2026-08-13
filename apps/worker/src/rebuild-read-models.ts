@@ -6,6 +6,8 @@ import {
   buildCallCenterDashboard,
   buildCampaignDashboard,
   buildCapacitySummary,
+  buildFieldProJobRecordings,
+  buildFieldProTechnicianActivity,
   buildInstallerDashboard,
   buildJobCostingSummary,
   buildLeadGenerationDashboard,
@@ -45,7 +47,9 @@ const REPORT_FAMILY_BY_DASHBOARD_FAMILY: Partial<Record<DashboardFamily, ReportF
   [DashboardFamily.SALES_YESTERDAY]: "salesYesterday",
   [DashboardFamily.SALES_MONTHLY_PACE]: "salesMonthlyPace",
   [DashboardFamily.REVENUE_MONTHLY_PACE]: "revenueMonthlyPace",
-  [DashboardFamily.BOOKING_RATE]: "bookingRate"
+  [DashboardFamily.BOOKING_RATE]: "bookingRate",
+  [DashboardFamily.FIELD_PRO_TECHNICIAN_ACTIVITY]: "fieldProTechnicianActivity",
+  [DashboardFamily.FIELD_PRO_JOB_RECORDINGS]: "fieldProJobRecordings"
 };
 
 function resolveBusinessDate(value: Date | null | undefined) {
@@ -102,6 +106,10 @@ function buildReadModel(family: DashboardFamily, payload: unknown, businessDateI
       return buildRevenueMonthlyPace(payload);
     case DashboardFamily.BOOKING_RATE:
       return buildBookingRateSummary(payload);
+    case DashboardFamily.FIELD_PRO_TECHNICIAN_ACTIVITY:
+      return buildFieldProTechnicianActivity(payload);
+    case DashboardFamily.FIELD_PRO_JOB_RECORDINGS:
+      return buildFieldProJobRecordings(payload);
     case DashboardFamily.TRENDING:
       return buildTrendingModel(payload);
   }

@@ -6,6 +6,8 @@ import {
   buildCallCenterDashboard,
   buildCampaignDashboard,
   buildCapacitySummary,
+  buildFieldProJobRecordings,
+  buildFieldProTechnicianActivity,
   buildInstallerDashboard,
   buildJobCostingSummary,
   buildLeadGenerationDashboard,
@@ -44,7 +46,9 @@ export const DASHBOARD_FAMILY_MAP: Record<ReportFamilyKey, DashboardFamily> = {
   salesYesterday: DashboardFamily.SALES_YESTERDAY,
   salesMonthlyPace: DashboardFamily.SALES_MONTHLY_PACE,
   revenueMonthlyPace: DashboardFamily.REVENUE_MONTHLY_PACE,
-  bookingRate: DashboardFamily.BOOKING_RATE
+  bookingRate: DashboardFamily.BOOKING_RATE,
+  fieldProTechnicianActivity: DashboardFamily.FIELD_PRO_TECHNICIAN_ACTIVITY,
+  fieldProJobRecordings: DashboardFamily.FIELD_PRO_JOB_RECORDINGS
 };
 
 function resolveBusinessDate(value: Date | string | null | undefined) {
@@ -114,6 +118,10 @@ export function buildDashboardReadModel(
       return buildRevenueMonthlyPace(payload);
     case "bookingRate":
       return buildBookingRateSummary(payload);
+    case "fieldProTechnicianActivity":
+      return buildFieldProTechnicianActivity(payload);
+    case "fieldProJobRecordings":
+      return buildFieldProJobRecordings(payload);
     case "trending":
       return buildTrendingModel(payload);
     default:

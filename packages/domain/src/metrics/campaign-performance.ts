@@ -1,14 +1,85 @@
 import { pickFirst, resolveTabularReport, toNumber } from "../shared/report";
 
 export type CampaignPerformanceStatus = "on-track" | "watch" | "off-track" | "risk" | "unplanned";
+export type CampaignChannelCategory = "paid" | "organic" | "partner" | "retention" | "other";
+export type CampaignBudgetType = "platform" | "manual" | "prepaid" | "none";
 
-export type CampaignPlanRow = {
-  channel: string;
+export type CampaignMetricTargets = {
   qualifiedLeads: number;
   bookedJobs: number | null;
   spend: number | null;
   soldAmount: number | null;
   completedRevenue: number | null;
+};
+
+export type CampaignPlanRow = CampaignMetricTargets & {
+  channel: string;
+  category?: CampaignChannelCategory;
+  budgetType?: CampaignBudgetType;
+  notes?: string | null;
+};
+
+export type CampaignForecastRow = CampaignPlanRow & {
+  effectiveFrom?: string | null;
+  reason?: string | null;
+};
+
+export type CampaignCapacityAssumption = {
+  team: string;
+  headcount: number;
+  opportunitiesPerDay: number;
+  planningDays: number;
+  effectiveFrom?: string | null;
+  notes?: string | null;
+};
+
+export type CampaignPlanApproval = {
+  approvalStatus: "approved" | "draft" | "required";
+  version: string;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+};
+
+export type CampaignActual = {
+  calls: number;
+  forms: number;
+  qualifiedLeads: number;
+  bookedJobs: number;
+  bookingRate: number | null;
+  spend: number;
+  costPerLead: number | null;
+  costPerBookedJob: number | null;
+  soldJobs: number;
+  soldAmount: number;
+  completedRevenue: number;
+  roi: number | null;
+  roas: number | null;
+};
+
+export type CampaignPerformanceRow = {
+  channel: string;
+  category: CampaignChannelCategory;
+  budgetType: CampaignBudgetType;
+  plan: CampaignMetricTargets;
+  forecast: CampaignMetricTargets | null;
+  effectivePlan: CampaignMetricTargets;
+  forecastEffectiveFrom: string | null;
+  forecastReason: string | null;
+  actual: CampaignActual;
+  leadAttainment: number | null;
+  opportunityAttainment: number | null;
+  pace: number | null;
+  budgetPace: number | null;
+  status: CampaignPerformanceStatus;
+};
+
+export type CampaignPerformanceSource = {
+  name: string;
+  role: string;
+  reportId?: string;
+  status: "connected" | "blocked" | "stale";
+  refreshedAt: string;
+  rowCount?: number;
 };
 
 export type CampaignPerformanceSnapshot = {
@@ -22,9 +93,12 @@ export type CampaignPerformanceSnapshot = {
     to: string;
     elapsedCalendarDays: number;
     calendarDaysInMonth: number;
+    elapsedWorkingDays: number;
+    workingDaysInMonth: number;
   };
-  plan: {
+  plan: CampaignPlanApproval & {
     status: string;
+    originalPlanLocked: boolean;
     companyRevenueGoal: number;
     marketingBudgetRate: number;
     marketingBudgetGoal: number;
@@ -34,9 +108,33 @@ export type CampaignPerformanceSnapshot = {
     channelBudgetGoalStatus: string;
     channelLeadGoalMethod: string;
   };
+  capacity: {
+    status: "connected" | "model";
+    planningDays: number;
+    dailyOpportunityCapacity: number;
+    monthlyOpportunityCapacity: number;
+    assumptions: CampaignCapacityAssumption[];
+  };
+  forecast: {
+    status: "active" | "not-set";
+    effectiveFrom: string | null;
+    reason: string | null;
+    changedChannelCount: number;
+  };
+  nextMonthDraft: {
+    month: string;
+    status: "recommendation";
+    opportunityGoal: number;
+    qualifiedLeadGoal: number;
+    targetBookingRate: number;
+    rows: CampaignPlanRow[];
+    note: string;
+  };
   actual: CampaignActual;
   pace: {
     expectedToDateRatio: number;
+    expectedWorkingDayRatio: number;
+    expectedCalendarDayRatio: number;
     opportunityPace: number | null;
     qualifiedLeadPace: number | null;
     spendPace: number | null;
@@ -50,40 +148,7 @@ export type CampaignPerformanceSnapshot = {
   dataNotes: string[];
 };
 
-export type CampaignPerformanceSource = {
-  name: string;
-  role: string;
-  reportId?: string;
-  status: "connected" | "blocked" | "stale";
-  refreshedAt: string;
-  rowCount?: number;
-};
-
-type CampaignActual = {
-  calls: number;
-  forms: number;
-  qualifiedLeads: number;
-  bookedJobs: number;
-  bookingRate: number | null;
-  spend: number;
-  costPerLead: number | null;
-  soldJobs: number;
-  soldAmount: number;
-  completedRevenue: number;
-  roi?: number | null;
-};
-
-type CampaignPerformanceRow = {
-  channel: string;
-  plan: Omit<CampaignPlanRow, "channel">;
-  actual: CampaignActual;
-  leadAttainment: number | null;
-  opportunityAttainment: number | null;
-  pace: number | null;
-  status: CampaignPerformanceStatus;
-};
-
-type BuildCampaignPerformanceInput = {
+export type BuildCampaignPerformanceInput = {
   month: string;
   cutoff: string;
   generatedAt?: string;
@@ -92,6 +157,11 @@ type BuildCampaignPerformanceInput = {
   soldEstimates: unknown;
   revenueByCampaign: unknown;
   planRows: CampaignPlanRow[];
+  forecastRows?: CampaignForecastRow[];
+  capacityAssumptions?: CampaignCapacityAssumption[];
+  capacityStatus?: "connected" | "model";
+  planApproval?: CampaignPlanApproval;
+  forecastReason?: string | null;
   companyRevenueGoal: number;
   marketingBudgetRate: number;
   qualifiedLeadGoal: number;
@@ -107,7 +177,7 @@ type BuildCampaignPerformanceInput = {
   };
 };
 
-type MutableActual = Omit<CampaignActual, "bookingRate" | "costPerLead" | "roi">;
+type MutableActual = Omit<CampaignActual, "bookingRate" | "costPerLead" | "costPerBookedJob" | "roi" | "roas">;
 
 const EMPTY_ACTUAL: MutableActual = {
   calls: 0,
@@ -118,6 +188,14 @@ const EMPTY_ACTUAL: MutableActual = {
   soldJobs: 0,
   soldAmount: 0,
   completedRevenue: 0
+};
+
+const EMPTY_TARGETS: CampaignMetricTargets = {
+  qualifiedLeads: 0,
+  bookedJobs: null,
+  spend: null,
+  soldAmount: null,
+  completedRevenue: null
 };
 
 const SUMMARY_ALIASES = {
@@ -135,13 +213,26 @@ function ratio(numerator: number, denominator: number) {
   return denominator > 0 ? numerator / denominator : null;
 }
 
-function roi(revenue: number, spend: number) {
-  return spend > 0 ? (revenue - spend) / spend : null;
-}
-
 function daysInMonth(month: string) {
   const [year = 0, monthNumber = 0] = month.split("-").map(Number);
   return new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+}
+
+function nextMonth(month: string) {
+  const [year = 0, monthNumber = 0] = month.split("-").map(Number);
+  const date = new Date(Date.UTC(year, monthNumber, 1));
+  return date.toISOString().slice(0, 7);
+}
+
+export function countWeekdays(from: string, to: string) {
+  const start = new Date(`${from}T12:00:00.000Z`);
+  const end = new Date(`${to}T12:00:00.000Z`);
+  let result = 0;
+  for (let cursor = start; cursor <= end; cursor = new Date(cursor.getTime() + 86_400_000)) {
+    const day = cursor.getUTCDay();
+    if (day !== 0 && day !== 6) result += 1;
+  }
+  return result;
 }
 
 function normalizeText(value: unknown) {
@@ -158,12 +249,13 @@ export function normalizeCampaignChannel(value: unknown) {
     ["Website", ["direct web traffic", "google organic", "website"]],
     ["GBP San Jose", ["gbp san jose", "google business"]],
     ["Google Ads", ["google ads", "maxconv", "pmax", "irbis |"]],
-    ["Facebook", ["facebook", "paid social", "social"]],
+    ["Paid Social", ["facebook", "paid social", "instagram", "social"]],
+    ["Radio", ["radio"]],
+    ["Direct Mail", ["mail shark", "direct mail", "letterlabs", "postcard"]],
     ["Hatch Campaigns", ["hatch"]],
     ["Workfuel", ["workfuel", "work fuel"]],
     ["Carrier", ["carrier"]],
     ["669-COOLING", ["669-cooling", "669 cooling"]],
-    ["Mail Shark", ["mail shark", "direct mail"]],
     ["Scheduling Pro", ["scheduling pro"]],
     ["Home Care Plan", ["home care plan"]],
     ["Existing Customers", ["existing customer"]],
@@ -174,19 +266,27 @@ export function normalizeCampaignChannel(value: unknown) {
   return rules.find(([, markers]) => markers.some((marker) => normalized.includes(marker)))?.[0] ?? "Other";
 }
 
+export function inferCampaignCategory(channel: string): CampaignChannelCategory {
+  if (["Yelp", "Google LSA", "Google Ads", "Paid Social", "Radio", "Direct Mail", "Workfuel"].includes(channel)) return "paid";
+  if (["Website", "GBP San Jose", "669-COOLING"].includes(channel)) return "organic";
+  if (["Existing Customers", "Home Care Plan", "Hatch Campaigns", "Scheduling Pro"].includes(channel)) return "retention";
+  if (["Carrier", "Now Operator"].includes(channel)) return "partner";
+  return "other";
+}
+
+function inferBudgetType(category: CampaignChannelCategory): CampaignBudgetType {
+  return category === "paid" ? "platform" : "none";
+}
+
 function parseSheetDateKey(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) {
     return new Date(Date.UTC(1899, 11, 30) + value * 86_400_000).toISOString().slice(0, 10);
   }
   const raw = String(value ?? "").trim();
   const iso = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (iso) {
-    return `${iso[1]}-${String(iso[2]).padStart(2, "0")}-${String(iso[3]).padStart(2, "0")}`;
-  }
+  if (iso) return `${iso[1]}-${String(iso[2]).padStart(2, "0")}-${String(iso[3]).padStart(2, "0")}`;
   const us = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (us) {
-    return `${us[3]}-${String(us[1]).padStart(2, "0")}-${String(us[2]).padStart(2, "0")}`;
-  }
+  if (us) return `${us[3]}-${String(us[1]).padStart(2, "0")}-${String(us[2]).padStart(2, "0")}`;
   return null;
 }
 
@@ -207,8 +307,7 @@ function callCenterActuals(values: unknown[][], month: string, cutoff: string) {
 
   for (const row of values.slice(1)) {
     const dateKey = parseSheetDateKey(row[dateIndex]);
-    if (!dateKey) continue;
-    if (!dateKey.startsWith(month) || dateKey > cutoff) continue;
+    if (!dateKey || !dateKey.startsWith(month) || dateKey > cutoff) continue;
     const channel = normalizeCampaignChannel(row[channelIndex]);
     if (channel === "Other") continue;
     const actual = map.get(channel) ?? { ...EMPTY_ACTUAL };
@@ -266,6 +365,16 @@ function applySoldEstimates(target: Map<string, MutableActual>, payload: unknown
   return report.rows.length;
 }
 
+function metricTargets(row: CampaignPlanRow | CampaignForecastRow | undefined): CampaignMetricTargets {
+  return row ? {
+    qualifiedLeads: row.qualifiedLeads,
+    bookedJobs: row.bookedJobs,
+    spend: row.spend,
+    soldAmount: row.soldAmount,
+    completedRevenue: row.completedRevenue
+  } : { ...EMPTY_TARGETS };
+}
+
 function statusFor(pace: number | null, spend: number, soldJobs: number): CampaignPerformanceStatus {
   if (spend >= 500 && soldJobs === 0) return "risk";
   if (pace == null) return "unplanned";
@@ -274,17 +383,69 @@ function statusFor(pace: number | null, spend: number, soldJobs: number): Campai
   return "off-track";
 }
 
+function allocateWholeGoal(goal: number, weights: number[]) {
+  const total = weights.reduce((sum, value) => sum + Math.max(0, value), 0);
+  if (total <= 0) return weights.map(() => 0);
+  const exact = weights.map((weight) => goal * Math.max(0, weight) / total);
+  const result = exact.map(Math.floor);
+  let remaining = goal - result.reduce((sum, value) => sum + value, 0);
+  for (const item of exact.map((value, index) => ({ index, part: value - Math.floor(value) })).sort((a, b) => b.part - a.part)) {
+    if (remaining <= 0) break;
+    result[item.index] = (result[item.index] ?? 0) + 1;
+    remaining -= 1;
+  }
+  return result;
+}
+
+function buildNextMonthDraft(
+  month: string,
+  rows: CampaignPerformanceRow[],
+  opportunityGoal: number,
+  qualifiedLeadGoal: number,
+  targetBookingRate: number,
+) {
+  const bookedWeights = rows.map((row) => row.actual.bookedJobs || row.effectivePlan.bookedJobs || 0);
+  const leadWeights = rows.map((row) => row.actual.qualifiedLeads || row.effectivePlan.qualifiedLeads || 0);
+  const booked = allocateWholeGoal(opportunityGoal, bookedWeights);
+  const leads = allocateWholeGoal(qualifiedLeadGoal, leadWeights);
+  return {
+    month: nextMonth(month),
+    status: "recommendation" as const,
+    opportunityGoal,
+    qualifiedLeadGoal,
+    targetBookingRate,
+    rows: rows.map((row, index) => ({
+      channel: row.channel,
+      category: row.category,
+      budgetType: row.budgetType,
+      qualifiedLeads: leads[index] ?? 0,
+      bookedJobs: booked[index] ?? 0,
+      spend: null,
+      soldAmount: null,
+      completedRevenue: null,
+      notes: "Generated recommendation; approval required."
+    })),
+    note: "Generated from current channel lead and booking mix. It is not an approved plan."
+  };
+}
+
 export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformanceInput): CampaignPerformanceSnapshot {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const actuals = callCenterActuals(input.callCenterValues, input.month, input.cutoff);
   const campaignRows = applyCampaignSummary(actuals, input.campaignSummary);
   const revenueRows = applyRevenueByCampaign(actuals, input.revenueByCampaign);
   const soldRows = applySoldEstimates(actuals, input.soldEstimates);
-  const plans = new Map(input.planRows.map((row) => [row.channel, row]));
+  const plans = new Map(input.planRows.map((row) => [normalizeCampaignChannel(row.channel), row]));
+  const forecasts = new Map((input.forecastRows ?? []).map((row) => [normalizeCampaignChannel(row.channel), row]));
   const elapsedCalendarDays = Number(input.cutoff.slice(8, 10));
   const calendarDaysInMonth = daysInMonth(input.month);
-  const expectedToDateRatio = elapsedCalendarDays / calendarDaysInMonth;
-  const channels = new Set([...actuals.keys(), ...plans.keys()]);
+  const from = `${input.month}-01`;
+  const through = `${input.month}-${String(calendarDaysInMonth).padStart(2, "0")}`;
+  const elapsedWorkingDays = countWeekdays(from, input.cutoff);
+  const workingDaysInMonth = countWeekdays(from, through);
+  const expectedWorkingDayRatio = workingDaysInMonth > 0 ? elapsedWorkingDays / workingDaysInMonth : 0;
+  const expectedCalendarDayRatio = elapsedCalendarDays / calendarDaysInMonth;
+  const channels = new Set([...actuals.keys(), ...plans.keys(), ...forecasts.keys()]);
 
   const rows: CampaignPerformanceRow[] = [...channels].map((channel) => {
     const raw = actuals.get(channel) ?? { ...EMPTY_ACTUAL };
@@ -292,39 +453,41 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
       ...raw,
       bookingRate: ratio(raw.bookedJobs, raw.qualifiedLeads),
       costPerLead: ratio(raw.spend, raw.qualifiedLeads),
-      roi: roi(raw.completedRevenue, raw.spend)
+      costPerBookedJob: ratio(raw.spend, raw.bookedJobs),
+      roi: raw.spend > 0 ? (raw.completedRevenue - raw.spend) / raw.spend : null,
+      roas: ratio(raw.completedRevenue, raw.spend)
     };
     const seed = plans.get(channel);
-    const plan = {
-      qualifiedLeads: seed?.qualifiedLeads ?? 0,
-      bookedJobs: seed?.bookedJobs ?? null,
-      spend: seed?.spend ?? null,
-      soldAmount: seed?.soldAmount ?? null,
-      completedRevenue: seed?.completedRevenue ?? null
-    };
-    const leadAttainment = ratio(actual.qualifiedLeads, plan.qualifiedLeads);
-    const opportunityAttainment = plan.bookedJobs == null
+    const forecastSeed = forecasts.get(channel);
+    const plan = metricTargets(seed);
+    const forecast = forecastSeed ? metricTargets(forecastSeed) : null;
+    const effectivePlan = forecast ?? plan;
+    const category = forecastSeed?.category ?? seed?.category ?? inferCampaignCategory(channel);
+    const budgetType = forecastSeed?.budgetType ?? seed?.budgetType ?? inferBudgetType(category);
+    const leadAttainment = ratio(actual.qualifiedLeads, effectivePlan.qualifiedLeads);
+    const opportunityAttainment = effectivePlan.bookedJobs == null ? null : ratio(actual.bookedJobs, effectivePlan.bookedJobs);
+    const pace = opportunityAttainment == null || expectedWorkingDayRatio <= 0 ? null : opportunityAttainment / expectedWorkingDayRatio;
+    const budgetPace = effectivePlan.spend == null || expectedCalendarDayRatio <= 0
       ? null
-      : ratio(actual.bookedJobs, plan.bookedJobs);
-    const pace = opportunityAttainment == null
-      ? null
-      : opportunityAttainment / expectedToDateRatio;
+      : ratio(actual.spend, effectivePlan.spend * expectedCalendarDayRatio);
     return {
       channel,
+      category,
+      budgetType,
       plan,
+      forecast,
+      effectivePlan,
+      forecastEffectiveFrom: forecastSeed?.effectiveFrom ?? null,
+      forecastReason: forecastSeed?.reason ?? null,
       actual,
       leadAttainment,
       opportunityAttainment,
       pace,
+      budgetPace,
       status: statusFor(pace, actual.spend, actual.soldJobs)
     };
   });
-  rows.sort((left, right) =>
-    right.actual.bookedJobs - left.actual.bookedJobs ||
-    right.actual.qualifiedLeads - left.actual.qualifiedLeads ||
-    right.actual.completedRevenue - left.actual.completedRevenue ||
-    left.channel.localeCompare(right.channel),
-  );
+  rows.sort((left, right) => right.actual.bookedJobs - left.actual.bookedJobs || right.actual.qualifiedLeads - left.actual.qualifiedLeads || right.actual.completedRevenue - left.actual.completedRevenue || left.channel.localeCompare(right.channel));
 
   const totals = rows.reduce<MutableActual>((sum, row) => ({
     calls: sum.calls + row.actual.calls,
@@ -340,35 +503,58 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     ...totals,
     bookingRate: ratio(totals.bookedJobs, totals.qualifiedLeads),
     costPerLead: ratio(totals.spend, totals.qualifiedLeads),
-    roi: roi(totals.completedRevenue, totals.spend)
+    costPerBookedJob: ratio(totals.spend, totals.bookedJobs),
+    roi: totals.spend > 0 ? (totals.completedRevenue - totals.spend) / totals.spend : null,
+    roas: ratio(totals.completedRevenue, totals.spend)
   };
-  const remainingCalendarDays = Math.max(0, calendarDaysInMonth - elapsedCalendarDays);
+  const remainingWorkingDays = Math.max(0, workingDaysInMonth - elapsedWorkingDays);
   const opportunityGap = Math.max(0, input.opportunityGoal - actual.bookedJobs);
   const alerts = rows.flatMap((row) => {
     const result: CampaignPerformanceSnapshot["alerts"] = [];
     if (row.actual.spend >= 500 && row.actual.soldJobs === 0) {
       result.push({ severity: "critical", channel: row.channel, message: `$${row.actual.spend.toLocaleString("en-US", { maximumFractionDigits: 0 })} spent with no sold estimates MTD.` });
     }
-    if (row.actual.qualifiedLeads >= 5 && row.actual.bookingRate != null && row.actual.bookingRate < 0.5) {
-      result.push({ severity: "warning", channel: row.channel, message: `Booking rate is ${Math.round(row.actual.bookingRate * 100)}% on ${row.actual.qualifiedLeads} qualified leads.` });
+    if (row.budgetPace != null && row.budgetPace > 1.15 && (row.pace ?? 0) < 1) {
+      result.push({ severity: "critical", channel: row.channel, message: `Spend is ${Math.round(row.budgetPace * 100)}% of pace while opportunities are ${Math.round((row.pace ?? 0) * 100)}%.` });
+    }
+    if (row.actual.qualifiedLeads >= 5 && row.actual.bookingRate != null && row.actual.bookingRate < input.targetBookingRate) {
+      result.push({ severity: "warning", channel: row.channel, message: `Booking rate is ${Math.round(row.actual.bookingRate * 100)}% versus ${Math.round(input.targetBookingRate * 100)}% target.` });
+    }
+    if (row.status === "unplanned" && row.actual.qualifiedLeads > 0) {
+      result.push({ severity: "warning", channel: row.channel, message: `${row.actual.qualifiedLeads} qualified leads have no approved channel target.` });
+    }
+    if (row.category === "paid" && row.actual.qualifiedLeads > 0 && row.actual.spend === 0) {
+      result.push({ severity: "warning", channel: row.channel, message: "Paid channel has lead activity but no tracked spend; manual or platform cost is missing." });
     }
     return result;
-  }).sort((left, right) => Number(left.severity === "warning") - Number(right.severity === "warning")).slice(0, 4);
+  }).sort((left, right) => Number(left.severity === "warning") - Number(right.severity === "warning"));
+
+  const capacityAssumptions = input.capacityAssumptions ?? [];
+  const planningDays = capacityAssumptions[0]?.planningDays ?? 25;
+  const dailyOpportunityCapacity = capacityAssumptions.reduce((sum, row) => sum + row.headcount * row.opportunitiesPerDay, 0);
+  const monthlyOpportunityCapacity = capacityAssumptions.reduce((sum, row) => sum + row.headcount * row.opportunitiesPerDay * row.planningDays, 0);
+  const forecastRows = input.forecastRows ?? [];
+  const forecastEffectiveDates = forecastRows.map((row) => row.effectiveFrom).filter((value): value is string => Boolean(value)).sort();
+  const planApproval = input.planApproval ?? { approvalStatus: "required" as const, version: `${input.month}-unapproved` };
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     generatedAt,
     dataStatus: "LIVE",
     period: {
       id: input.month,
       label: new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${input.month}-01T12:00:00Z`)) + " MTD",
-      from: `${input.month}-01`,
+      from,
       to: input.cutoff,
       elapsedCalendarDays,
-      calendarDaysInMonth
+      calendarDaysInMonth,
+      elapsedWorkingDays,
+      workingDaysInMonth
     },
     plan: {
+      ...planApproval,
       status: input.planStatus,
+      originalPlanLocked: true,
       companyRevenueGoal: input.companyRevenueGoal,
       marketingBudgetRate: input.marketingBudgetRate,
       marketingBudgetGoal: input.companyRevenueGoal * input.marketingBudgetRate,
@@ -378,17 +564,31 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
       channelBudgetGoalStatus: input.channelBudgetGoalStatus,
       channelLeadGoalMethod: input.channelLeadGoalMethod
     },
+    capacity: {
+      status: input.capacityStatus ?? "model",
+      planningDays,
+      dailyOpportunityCapacity,
+      monthlyOpportunityCapacity: monthlyOpportunityCapacity || input.opportunityGoal,
+      assumptions: capacityAssumptions
+    },
+    forecast: {
+      status: forecastRows.length > 0 ? "active" : "not-set",
+      effectiveFrom: forecastEffectiveDates[0] ?? null,
+      reason: input.forecastReason ?? forecastRows.find((row) => row.reason)?.reason ?? null,
+      changedChannelCount: forecastRows.length
+    },
+    nextMonthDraft: buildNextMonthDraft(input.month, rows, input.opportunityGoal, input.qualifiedLeadGoal, input.targetBookingRate),
     actual,
     pace: {
-      expectedToDateRatio,
-      opportunityPace: ratio(actual.bookedJobs, input.opportunityGoal * expectedToDateRatio),
-      qualifiedLeadPace: ratio(actual.qualifiedLeads, input.qualifiedLeadGoal * expectedToDateRatio),
-      spendPace: ratio(actual.spend, input.companyRevenueGoal * input.marketingBudgetRate * expectedToDateRatio),
-      projectedOpportunities: expectedToDateRatio > 0 ? actual.bookedJobs / expectedToDateRatio : null,
+      expectedToDateRatio: expectedWorkingDayRatio,
+      expectedWorkingDayRatio,
+      expectedCalendarDayRatio,
+      opportunityPace: ratio(actual.bookedJobs, input.opportunityGoal * expectedWorkingDayRatio),
+      qualifiedLeadPace: ratio(actual.qualifiedLeads, input.qualifiedLeadGoal * expectedWorkingDayRatio),
+      spendPace: ratio(actual.spend, input.companyRevenueGoal * input.marketingBudgetRate * expectedCalendarDayRatio),
+      projectedOpportunities: expectedWorkingDayRatio > 0 ? actual.bookedJobs / expectedWorkingDayRatio : null,
       opportunityGap,
-      requiredOpportunitiesPerRemainingDay: remainingCalendarDays > 0
-        ? opportunityGap / remainingCalendarDays
-        : null
+      requiredOpportunitiesPerRemainingDay: remainingWorkingDays > 0 ? opportunityGap / remainingWorkingDays : null
     },
     alerts,
     rows,
@@ -396,12 +596,15 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
       { name: "Google Call Center Sheet", role: "Calls, forms, qualified leads, booked jobs", status: "connected", refreshedAt: generatedAt, rowCount: Math.max(0, input.callCenterValues.length - 1) },
       { name: "ServiceTitan Campaign Summary", role: "Tracked spend", reportId: input.sourceReportIds.campaignSummary, status: "connected", refreshedAt: generatedAt, rowCount: campaignRows },
       { name: "ServiceTitan Sold Estimates", role: "Sold jobs and sold amount", reportId: input.sourceReportIds.soldEstimates, status: "connected", refreshedAt: generatedAt, rowCount: soldRows },
-      { name: "ServiceTitan Revenue By Campaign", role: "Completed revenue", reportId: input.sourceReportIds.revenueByCampaign, status: "connected", refreshedAt: generatedAt, rowCount: revenueRows }
+      { name: "ServiceTitan Revenue By Campaign", role: "Completed revenue", reportId: input.sourceReportIds.revenueByCampaign, status: "connected", refreshedAt: generatedAt, rowCount: revenueRows },
+      { name: "Google Campaign Plan", role: "Approved channel plan, capacity and forecast", status: planApproval.approvalStatus === "approved" ? "connected" : "blocked", refreshedAt: generatedAt, rowCount: input.planRows.length }
     ],
     dataNotes: [
       "Google Sheet rows after the MTD cutoff are excluded.",
       "ServiceTitan campaign names are normalized into executive channels.",
-      "Tracked spend only includes costs available in ServiceTitan.",
+      "Lead and opportunity pace uses weekdays; spend pace uses calendar days.",
+      "Tracked spend only includes costs available in ServiceTitan or the approved manual plan.",
+      "The original approved plan remains locked; mid-month changes are shown as forecast revisions.",
       input.channelLeadGoalMethod
     ]
   };

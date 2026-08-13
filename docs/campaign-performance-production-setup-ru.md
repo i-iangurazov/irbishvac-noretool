@@ -6,10 +6,10 @@
 - Worker читает `Master Sheet!A:N` из Google Sheets и ServiceTitan reports `898`, `7148368`, `101394656`.
 - Последний успешный snapshot хранится в Postgres; неудачный refresh его не перезаписывает.
 - Worker планирует refresh текущего месяца каждые два часа в `America/Los_Angeles`.
-- Push в `main` автоматически запускает Railway deploy; отдельный Railway CLI access для code release не требуется.
+- Production API работает, но campaign endpoint еще не развернут: campaign-код отсутствует в `main`.
 - Google service account подключен локально с read-only scope. Live refresh успешно выполнен 2026-08-11 с business cutoff `2026-08-10`.
 - Проверенный live snapshot: 473 Google rows, 425 Campaign Summary rows, 111 Sold Estimates rows и 425 Revenue By Campaign rows.
-- Проверенный August snapshot входит в Web fallback, поэтому production page остается доступной даже до первого Worker refresh.
+- Railway CLI авторизован как `ilias.iangurazov@gmail.com`, но этот account пока не является member IRBIS Railway project, поэтому production variables и deployment недоступны.
 
 ## 1. Создать Google Cloud project
 
@@ -154,7 +154,7 @@ Opportunity pace = actual booked opportunities / expected opportunities MTD
 4. Проверить `git diff --check`.
 5. Создать отдельный campaign commit и push в `main` только после успешного live test.
 
-Railway production API сейчас здоров, но до автоматического deployment campaign endpoint возвращает `404`. После push в `main` он должен возвращать `200`.
+Railway production API сейчас здоров, но до deployment campaign endpoint возвращает `404`. После deployment он должен возвращать `200`.
 
 ## 11. Railway production variables
 
@@ -181,7 +181,9 @@ Worker также должен использовать существующие
 
 Не добавлять Google private key в Web service или browser-visible `NEXT_PUBLIC_*` variables.
 
-Если эти variables уже заданы в Worker, дополнительных действий в Railway не требуется. Если их нет, владелец project добавляет их через Railway UI; code release и автоматический deploy от этого не зависят. Без Google variables UI использует проверенный snapshot, а Worker корректно отключает scheduled live refresh.
+После изменения variables Railway показывает staged changes: проверить их и нажать `Deploy`.
+
+Если IRBIS project не виден в Railway CLI, владелец project должен открыть project access settings и пригласить `ilias.iangurazov@gmail.com`. После принятия приглашения выполнить `railway link` в repository и проверить `railway status` до изменения variables.
 
 ## 12. Production deployment и smoke test
 
@@ -201,7 +203,7 @@ curl -sS "https://irbisapi-production.up.railway.app/api/dashboard/campaigns/per
 
 5. Открыть production `/campaigns?month=2026-08` и выполнить один manual refresh.
 6. В Worker logs найти `Campaign performance snapshot refreshed`.
-7. После успешного Worker refresh убедиться, что `LIVE DATA`, свежий cutoff и четыре зеленых sources видны в UI. До утверждения channel plan статус остается `MODEL PLAN`.
+7. Убедиться, что `LIVE DATA`, `CONNECTED PLAN`, свежий cutoff и четыре зеленых sources видны в UI.
 8. Через два часа проверить следующий automatic refresh.
 
 ## Definition of Done
@@ -209,7 +211,7 @@ curl -sS "https://irbisapi-production.up.railway.app/api/dashboard/campaigns/per
 - Google Sheet закрыт от публичного доступа и доступен service account только как Viewer.
 - Live refresh успешно прочитал Google Sheet и три ServiceTitan reports.
 - Opportunity pace и status согласованы и протестированы.
-- Текущая модель целей явно показывается как `MODEL PLAN`; после добавления утвержденного `Campaign Plan` tab статус меняется на `CONNECTED PLAN`.
+- Утвержденные channel goals показываются как `CONNECTED PLAN`.
 - Production campaign endpoint возвращает `200`.
 - Manual и scheduled refresh работают через Railway Worker.
 - July остается immutable historical snapshot, текущий месяц обновляется.

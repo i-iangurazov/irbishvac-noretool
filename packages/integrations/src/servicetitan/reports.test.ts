@@ -26,6 +26,34 @@ describe("buildReportParameters", () => {
     expect(parameters.at(-1)).toEqual({ name: "IncludeInactive", value: "false" });
   });
 
+  it("builds both date scopes for multi-template Field Pro reports", () => {
+    const parameters = buildReportParameters(
+      {
+        family: "fieldProTechnicianActivity",
+        category: "operations",
+        reportId: "125959497",
+        legacyTableName: "st_field_pro_technician_activity",
+        defaultPreset: "mtd",
+        dateParameterNames: [
+          { from: "Technicians_From", to: "Technicians_To" },
+          {
+            from: "FieldProTechnicianRecordingPerformance_From",
+            to: "FieldProTechnicianRecordingPerformance_To"
+          }
+        ],
+        includeDefaultInactiveParameter: false
+      },
+      { from: "2026-07-13", to: "2026-07-19" },
+    );
+
+    expect(parameters).toEqual([
+      { name: "Technicians_From", value: "2026-07-13" },
+      { name: "Technicians_To", value: "2026-07-19" },
+      { name: "FieldProTechnicianRecordingPerformance_From", value: "2026-07-13" },
+      { name: "FieldProTechnicianRecordingPerformance_To", value: "2026-07-19" }
+    ]);
+  });
+
   it("keys fixed today-style report ranges by the selected to-date", () => {
     const parameters = buildReportParameters(
       {

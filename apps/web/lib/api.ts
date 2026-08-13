@@ -17,6 +17,13 @@ export const navItems: DashboardNavItem[] = [
     section: "Overview"
   },
   {
+    id: "performance",
+    href: "/performance",
+    label: "Performance Coaching",
+    shortLabel: "PC",
+    section: "Coaching"
+  },
+  {
     id: "technicians",
     href: "/technicians",
     label: "HVAC Service",

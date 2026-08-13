@@ -87,7 +87,12 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
   const layout = props.layout ?? "standard";
   const isPeopleShowcase = layout === "people-showcase";
   const maxVisibleItems = props.maxVisibleItems ?? (isPeopleShowcase ? 4 : 9);
-  const visibleItems = props.items.slice(0, maxVisibleItems);
+  const pageCount = isPeopleShowcase
+    ? Math.max(1, Math.ceil(props.items.length / maxVisibleItems))
+    : 1;
+  const currentPage = Math.min(props.filters.page, pageCount);
+  const itemOffset = isPeopleShowcase ? (currentPage - 1) * maxVisibleItems : 0;
+  const visibleItems = props.items.slice(itemOffset, itemOffset + maxVisibleItems);
   const items = visibleItems.map((item) => ({
     ...item,
     imageUrl: props.useHeadshots
@@ -108,6 +113,7 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
       kioskMode={props.filters.kioskMode}
       navQueryString={buildDashboardQueryString(props.filters)}
       rotationNavItems={rotationNavItems}
+      rotationPage={{ current: currentPage, total: pageCount }}
       tvMenu={{
         enabled: tvMode,
         toggleHref: buildTvModeHref(props.path, props.filters, !tvMode),
@@ -176,6 +182,11 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
             ]}
           />
           <DataFreshnessBadge value={props.freshness} />
+          {isPeopleShowcase && props.items.length > maxVisibleItems ? (
+            <div className="leaderboard-page__page-indicator font-black text-slate-600">
+              {itemOffset + 1}–{Math.min(itemOffset + items.length, props.items.length)} of {props.items.length}
+            </div>
+          ) : null}
         </div>
       }
     >
@@ -185,15 +196,15 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
             <div
               className="leaderboard-showcase-grid grid items-stretch"
               data-card-count={items.length}
-              data-showcase-columns={props.showcaseColumns}
+              data-showcase-columns={props.showcaseColumns ?? 4}
             >
               {items.map((item, index) => (
                 <LeaderboardCard
                   featured={false}
                   imageUrl={item.imageUrl}
-                  key={`${item.title}-${index + 1}`}
+                  key={`${item.title}-${itemOffset + index + 1}`}
                   presentation="photo-card"
-                  rank={index + 1}
+                  rank={itemOffset + index + 1}
                   stats={item.stats}
                   subtitle={item.subtitle}
                   title={item.title}

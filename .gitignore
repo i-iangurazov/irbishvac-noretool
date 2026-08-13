@@ -1,6 +1,7 @@
 node_modules
 .turbo
 .next
+apps/web/.next-report-delivery
 dist
 coverage
 .pnpm-store
@@ -13,3 +14,5 @@ packages/db/generated
 packages/db/prisma/migrations
 playwright-report
 test-results
+var/
+reports/service-tech-mtd-*/

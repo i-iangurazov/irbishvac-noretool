@@ -17,8 +17,7 @@ export function getBrandLogoUrl() {
 
 export function resolveStaffHeadshotUrl(name: string, photoUrl?: string | null) {
   const assets = getAssetConfig();
-
-  return resolveTechnicianPhotoUrl({
+  const resolved = resolveTechnicianPhotoUrl({
     publicBaseUrl: assets.publicBaseUrl,
     folder: assets.technicianPhotoFolder,
     name,
@@ -26,4 +25,14 @@ export function resolveStaffHeadshotUrl(name: string, photoUrl?: string | null) 
     nameStyle: assets.technicianPhotoNameStyle,
     ...(photoUrl === undefined ? {} : { photoUrl }),
   });
+
+  if (
+    !resolved ||
+    !assets.publicBaseUrl ||
+    !resolved.startsWith(assets.publicBaseUrl)
+  ) {
+    return resolved;
+  }
+
+  return `/_next/image?url=${encodeURIComponent(resolved)}&w=640&q=82`;
 }

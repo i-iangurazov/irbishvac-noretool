@@ -20,6 +20,10 @@ type DashboardShellProps = {
   kioskMode?: boolean | undefined;
   navQueryString?: string | undefined;
   rotationNavItems?: NavItem[] | undefined;
+  rotationPage?: {
+    current: number;
+    total: number;
+  } | undefined;
   tvMenu?:
     | {
         enabled: boolean;
@@ -147,9 +151,15 @@ export function DashboardShell(props: DashboardShellProps) {
       <DashboardAutoRefreshRuntime enabled={Boolean(props.tvMode)} />
       <TvRotationRuntime
         activePath={props.activePath}
-        enabled={Boolean(props.tvMode && props.tvMenu?.rotateMode)}
+        currentPage={props.rotationPage?.current}
+        enabled={Boolean(
+          props.tvMode &&
+            (props.tvMenu?.rotateMode || (props.rotationPage?.total ?? 1) > 1),
+        )}
         navItems={props.rotationNavItems ?? props.navItems}
+        pageCount={props.rotationPage?.total}
         presetQuery={props.navQueryString ?? ""}
+        rotateBoards={Boolean(props.tvMenu?.rotateMode)}
       />
       <div
         className={`dashboard-shell__inner mx-auto flex h-[100dvh] w-full flex-col overflow-hidden ${

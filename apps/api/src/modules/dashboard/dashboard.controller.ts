@@ -38,6 +38,7 @@ export class DashboardController {
   constructor(@Inject(DashboardService) dashboardService: DashboardService) {
     this.dashboardService = dashboardService;
     this.getTechnicians = this.getTechnicians.bind(this);
+    this.getPerformanceTechnicians = this.getPerformanceTechnicians.bind(this);
     this.getPlumbing = this.getPlumbing.bind(this);
     this.getElectrical = this.getElectrical.bind(this);
     this.getInstallers = this.getInstallers.bind(this);
@@ -45,6 +46,8 @@ export class DashboardController {
     this.getElectricalInstallers = this.getElectricalInstallers.bind(this);
     this.getCompanyWide = this.getCompanyWide.bind(this);
     this.getAdvisors = this.getAdvisors.bind(this);
+    this.getPerformanceAdvisors = this.getPerformanceAdvisors.bind(this);
+    this.getPerformanceFieldPro = this.getPerformanceFieldPro.bind(this);
     this.getCallCenterSummary = this.getCallCenterSummary.bind(this);
     this.getCallCenterByCsr = this.getCallCenterByCsr.bind(this);
     this.getLeads = this.getLeads.bind(this);
@@ -58,6 +61,11 @@ export class DashboardController {
   @Get("technicians")
   async getTechnicians(@Query() query: DashboardQuery) {
     return this.dashboardService.getTechnicians(toRequestContext(query));
+  }
+
+  @Get("performance/technicians")
+  async getPerformanceTechnicians(@Query() query: DashboardQuery) {
+    return this.dashboardService.getPerformanceTechnicians(toRequestContext(query));
   }
 
   @Get("plumbing")
@@ -93,6 +101,16 @@ export class DashboardController {
   @Get("advisors")
   async getAdvisors(@Query() query: DashboardQuery) {
     return this.dashboardService.getAdvisors(toRequestContext(query));
+  }
+
+  @Get("performance/advisors")
+  async getPerformanceAdvisors(@Query() query: DashboardQuery) {
+    return this.dashboardService.getPerformanceAdvisors(toRequestContext(query));
+  }
+
+  @Get("performance/field-pro")
+  async getPerformanceFieldPro(@Query() query: DashboardQuery) {
+    return this.dashboardService.getPerformanceFieldPro(toRequestContext(query));
   }
 
   @Get("call-center/summary")

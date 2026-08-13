@@ -1,25 +1,31 @@
 import { DashboardShell } from "@irbis/ui";
-import {
-  formatCompactCurrency,
-  formatNumber,
-  formatPercent,
-} from "@irbis/utils";
+import { formatCompactCurrency, formatNumber, formatPercent } from "@irbis/utils";
 import { getBrandLogoUrl } from "../lib/assets";
 import { navItems } from "../lib/api";
-import { PrintReportButton } from "./print-report-button";
 import { CampaignRefreshButton } from "./campaign-refresh-button";
+import { PrintReportButton } from "./print-report-button";
 
 type CampaignStatus = "on-track" | "watch" | "off-track" | "risk" | "unplanned";
+type CampaignView = "overview" | "channels" | "plan" | "history";
+type CampaignCategory = "paid" | "organic" | "partner" | "retention" | "other";
+
+type CampaignTargets = {
+  qualifiedLeads: number;
+  bookedJobs: number | null;
+  spend: number | null;
+  soldAmount: number | null;
+  completedRevenue: number | null;
+};
 
 type CampaignRow = {
   channel: string;
-  plan: {
-    qualifiedLeads: number;
-    bookedJobs: number | null;
-    spend: number | null;
-    soldAmount: number | null;
-    completedRevenue: number | null;
-  };
+  category?: CampaignCategory;
+  budgetType?: "platform" | "manual" | "prepaid" | "none";
+  plan: CampaignTargets;
+  forecast?: CampaignTargets | null;
+  effectivePlan?: CampaignTargets;
+  forecastEffectiveFrom?: string | null;
+  forecastReason?: string | null;
   actual: {
     calls: number;
     forms: number;
@@ -28,15 +34,27 @@ type CampaignRow = {
     bookingRate: number | null;
     spend: number;
     costPerLead: number | null;
+    costPerBookedJob?: number | null;
     soldJobs: number;
     soldAmount: number;
     completedRevenue: number;
     roi: number | null;
+    roas?: number | null;
   };
   leadAttainment: number | null;
   opportunityAttainment: number | null;
   pace: number | null;
+  budgetPace?: number | null;
   status: CampaignStatus;
+};
+
+type CapacityAssumption = {
+  team: string;
+  headcount: number;
+  opportunitiesPerDay: number;
+  planningDays: number;
+  effectiveFrom?: string | null;
+  notes?: string | null;
 };
 
 export type CampaignPerformanceData = {
@@ -50,9 +68,16 @@ export type CampaignPerformanceData = {
     to: string;
     elapsedCalendarDays: number;
     calendarDaysInMonth: number;
+    elapsedWorkingDays?: number;
+    workingDaysInMonth?: number;
   };
   plan: {
     status: string;
+    approvalStatus?: "approved" | "draft" | "required";
+    version?: string;
+    approvedBy?: string | null;
+    approvedAt?: string | null;
+    originalPlanLocked?: boolean;
     companyRevenueGoal: number;
     marketingBudgetRate: number;
     marketingBudgetGoal: number;
@@ -62,18 +87,44 @@ export type CampaignPerformanceData = {
     channelBudgetGoalStatus: string;
     channelLeadGoalMethod?: string;
   };
+  capacity?: {
+    status: "connected" | "model";
+    planningDays: number;
+    dailyOpportunityCapacity: number;
+    monthlyOpportunityCapacity: number;
+    assumptions: CapacityAssumption[];
+  };
+  forecast?: {
+    status: "active" | "not-set";
+    effectiveFrom: string | null;
+    reason: string | null;
+    changedChannelCount: number;
+  };
+  nextMonthDraft?: {
+    month: string;
+    status: "recommendation";
+    opportunityGoal: number;
+    qualifiedLeadGoal: number;
+    targetBookingRate: number;
+    rows: Array<{ channel: string; qualifiedLeads: number; bookedJobs: number | null }>;
+    note: string;
+  };
   actual: {
     qualifiedLeads: number;
     bookedJobs: number;
     bookingRate: number | null;
     spend: number;
     costPerLead: number | null;
+    costPerBookedJob?: number | null;
     soldJobs: number;
     soldAmount: number;
     completedRevenue: number;
+    roas?: number | null;
   };
   pace: {
     expectedToDateRatio: number;
+    expectedWorkingDayRatio?: number;
+    expectedCalendarDayRatio?: number;
     opportunityPace: number | null;
     qualifiedLeadPace: number | null;
     spendPace: number | null;
@@ -81,11 +132,7 @@ export type CampaignPerformanceData = {
     opportunityGap: number;
     requiredOpportunitiesPerRemainingDay: number | null;
   };
-  alerts: Array<{
-    severity: string;
-    channel: string;
-    message: string;
-  }>;
+  alerts: Array<{ severity: string; channel: string; message: string }>;
   rows: CampaignRow[];
   sources: Array<{
     name: string;
@@ -95,6 +142,7 @@ export type CampaignPerformanceData = {
     refreshedAt?: string;
     rowCount?: number;
   }>;
+  dataNotes?: string[];
 };
 
 const STATUS_LABEL: Record<CampaignStatus, string> = {
@@ -105,8 +153,16 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
   unplanned: "Unplanned",
 };
 
-function formatMaybePercent(value: number | null, digits = 0) {
-  return value == null ? "—" : formatPercent(value, digits);
+const CATEGORY_LABEL: Record<CampaignCategory, string> = {
+  paid: "Paid",
+  organic: "Organic",
+  retention: "Retention",
+  partner: "Partner",
+  other: "Other",
+};
+
+function formatMaybePercent(value: number | null | undefined, digits = 0) {
+  return value == null ? "-" : formatPercent(value, digits);
 }
 
 function sourceTimestamp(value: string) {
@@ -120,228 +176,232 @@ function sourceTimestamp(value: string) {
   }).format(new Date(value));
 }
 
-export function CampaignPerformancePage({
-  data,
-  periods,
-  refreshEnabled,
-}: {
+function monthLabel(value: string, style: "short" | "long" = "short") {
+  return new Intl.DateTimeFormat("en-US", { month: style, year: style === "long" ? "numeric" : undefined, timeZone: "UTC" })
+    .format(new Date(`${value}-01T12:00:00.000Z`));
+}
+
+function rowCategory(row: CampaignRow): CampaignCategory {
+  if (row.category) return row.category;
+  if (["Yelp", "Google LSA", "Google Ads", "Facebook", "Paid Social", "Radio", "Mail Shark", "Direct Mail", "Workfuel"].includes(row.channel)) return "paid";
+  if (["Website", "GBP San Jose", "669-COOLING"].includes(row.channel)) return "organic";
+  if (["Existing Customers", "Home Care Plan", "Hatch Campaigns", "Scheduling Pro"].includes(row.channel)) return "retention";
+  if (["Carrier", "Now Operator"].includes(row.channel)) return "partner";
+  return "other";
+}
+
+function effectiveTargets(row: CampaignRow) {
+  return row.effectivePlan ?? row.forecast ?? row.plan;
+}
+
+function periodId(data: CampaignPerformanceData) {
+  return data.period.id ?? data.period.from.slice(0, 7);
+}
+
+function viewHref(month: string, view: CampaignView) {
+  return `/campaigns?month=${encodeURIComponent(month)}&view=${view}`;
+}
+
+function ChannelTable({ rows, mode = "actual" }: { rows: CampaignRow[]; mode?: "actual" | "plan" }) {
+  return (
+    <div className="campaign-table-wrap">
+      <table className={`campaign-table campaign-table--${mode}`}>
+        <thead>
+          {mode === "actual" ? (
+            <tr>
+              <th>Channel</th><th>Opportunities / target</th><th>Pace</th><th>Qualified / booking</th>
+              <th>Spend / cost</th><th>Sold</th><th>Revenue / ROAS</th><th>Status</th>
+            </tr>
+          ) : (
+            <tr>
+              <th>Channel</th><th>Class</th><th>Original leads</th><th>Original opportunities</th>
+              <th>Approved budget</th><th>Forecast revision</th><th>Effective from</th><th>Reason</th>
+            </tr>
+          )}
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const target = effectiveTargets(row);
+            const progress = Math.max(0, Math.min(100, (row.opportunityAttainment ?? 0) * 100));
+            return mode === "actual" ? (
+              <tr key={row.channel}>
+                <td><strong>{row.channel}</strong><span>{CATEGORY_LABEL[rowCategory(row)]} · {row.actual.calls} calls · {row.actual.forms} forms</span></td>
+                <td><strong>{formatNumber(row.actual.bookedJobs)} / {target.bookedJobs ?? "-"}</strong><div className="campaign-progress"><span style={{ width: `${progress}%` }} /></div></td>
+                <td><strong>{formatMaybePercent(row.pace)}</strong><span>working-day pace</span></td>
+                <td><strong>{formatNumber(row.actual.qualifiedLeads)} / {target.qualifiedLeads || "-"}</strong><span>{formatMaybePercent(row.actual.bookingRate)} booked</span></td>
+                <td><strong>{formatCompactCurrency(row.actual.spend)}</strong><span>CPL {row.actual.costPerLead == null ? "-" : formatCompactCurrency(row.actual.costPerLead)} · CPB {row.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(row.actual.costPerBookedJob)}</span></td>
+                <td><strong>{formatNumber(row.actual.soldJobs)}</strong><span>{formatCompactCurrency(row.actual.soldAmount)}</span></td>
+                <td><strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong><span>ROAS {row.actual.roas == null ? "-" : `${row.actual.roas.toFixed(1)}x`}</span></td>
+                <td><span className={`campaign-status campaign-status--${row.status}`}>{STATUS_LABEL[row.status]}</span></td>
+              </tr>
+            ) : (
+              <tr key={row.channel}>
+                <td><strong>{row.channel}</strong><span>{row.budgetType ?? "source-derived"} cost</span></td>
+                <td><span className={`campaign-category campaign-category--${rowCategory(row)}`}>{CATEGORY_LABEL[rowCategory(row)]}</span></td>
+                <td><strong>{formatNumber(row.plan.qualifiedLeads)}</strong></td>
+                <td><strong>{row.plan.bookedJobs == null ? "-" : formatNumber(row.plan.bookedJobs)}</strong></td>
+                <td><strong>{row.plan.spend == null ? "-" : formatCompactCurrency(row.plan.spend)}</strong></td>
+                <td><strong>{row.forecast ? `${formatNumber(row.forecast.qualifiedLeads)} / ${row.forecast.bookedJobs ?? "-"}` : "No revision"}</strong><span>{row.forecast?.spend == null ? "" : formatCompactCurrency(row.forecast.spend)}</span></td>
+                <td><strong>{row.forecastEffectiveFrom ?? "-"}</strong></td>
+                <td><span>{row.forecastReason ?? "-"}</span></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function OverviewView({ data }: { data: CampaignPerformanceData }) {
+  const opportunityAttainment = data.plan.opportunityGoal > 0 ? data.actual.bookedJobs / data.plan.opportunityGoal : null;
+  const revenueAttainment = data.plan.companyRevenueGoal > 0 ? data.actual.completedRevenue / data.plan.companyRevenueGoal : null;
+  return (
+    <>
+      <section className="campaign-scoreboard" aria-label="Marketing month-to-date summary">
+        <div className="campaign-scoreboard__primary">
+          <span>Booked opportunities</span>
+          <div><strong>{formatNumber(data.actual.bookedJobs)}</strong><em>/ {formatNumber(data.plan.opportunityGoal)}</em></div>
+          <small>{formatMaybePercent(opportunityAttainment)} achieved · {formatMaybePercent(data.pace.opportunityPace)} working-day pace</small>
+          <div className="campaign-scoreboard__bar"><span style={{ width: `${Math.min(100, Math.max(0, (opportunityAttainment ?? 0) * 100))}%` }} /></div>
+        </div>
+        <div><span>Qualified lead supply</span><strong>{formatNumber(data.actual.qualifiedLeads)} / {formatNumber(data.plan.qualifiedLeadGoal)}</strong><small>{formatMaybePercent(data.pace.qualifiedLeadPace)} pace · {formatMaybePercent(data.actual.bookingRate)} booked</small></div>
+        <div><span>Sales outcome</span><strong>{formatNumber(data.actual.soldJobs)} sold</strong><small>{formatCompactCurrency(data.actual.soldAmount)} sold amount</small></div>
+        <div><span>Completed revenue</span><strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong><small>{formatMaybePercent(revenueAttainment)} of {formatCompactCurrency(data.plan.companyRevenueGoal)}</small></div>
+        <div className="campaign-scoreboard__spend"><span>Tracked spend</span><strong>{formatCompactCurrency(data.actual.spend)}</strong><small>{formatMaybePercent(data.pace.spendPace)} calendar pace · partial coverage</small></div>
+      </section>
+
+      <section className="campaign-alerts" aria-label="Campaign alerts">
+        <div className="campaign-alerts__label"><span>Action queue</span><strong>{data.alerts.length}</strong></div>
+        {data.alerts.slice(0, 4).map((alert) => <div className={`campaign-alert campaign-alert--${alert.severity}`} key={`${alert.channel}-${alert.message}`}><strong>{alert.channel}</strong><span>{alert.message}</span></div>)}
+        {data.alerts.length === 0 ? <div className="campaign-alert campaign-alert--source"><strong>No active alerts</strong><span>All connected rules are clear at this cutoff.</span></div> : null}
+      </section>
+
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Priority channel performance</h3><p>Seven highest-volume channels. Open Channels for the complete list.</p></div><div className="campaign-table-panel__plan"><span>Plan authority</span><strong>{data.plan.approvalStatus === "approved" ? "Approved" : "Not approved"}</strong><small>{data.plan.status}</small></div></div>
+        <ChannelTable rows={data.rows.slice(0, 7)} />
+      </section>
+    </>
+  );
+}
+
+function ChannelsView({ data }: { data: CampaignPerformanceData }) {
+  const categories = (["paid", "organic", "retention", "partner", "other"] as CampaignCategory[]).map((category) => {
+    const rows = data.rows.filter((row) => rowCategory(row) === category);
+    return {
+      category,
+      count: rows.length,
+      leads: rows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0),
+      booked: rows.reduce((sum, row) => sum + row.actual.bookedJobs, 0),
+      spend: rows.reduce((sum, row) => sum + row.actual.spend, 0),
+      revenue: rows.reduce((sum, row) => sum + row.actual.completedRevenue, 0),
+    };
+  }).filter((item) => item.count > 0);
+  return (
+    <>
+      <section className="campaign-category-strip">
+        {categories.map((item) => <div key={item.category}><span>{CATEGORY_LABEL[item.category]}</span><strong>{formatNumber(item.booked)} booked</strong><small>{formatNumber(item.leads)} leads · {formatCompactCurrency(item.spend)} spend · {formatCompactCurrency(item.revenue)} revenue</small></div>)}
+      </section>
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>All campaign channels</h3><p>Paid and unpaid channels are separated; missing paid costs are surfaced as alerts.</p></div><div className="campaign-table-panel__plan"><span>Channels</span><strong>{data.rows.length}</strong><small>Google Sheet + ServiceTitan</small></div></div>
+        <ChannelTable rows={data.rows} />
+      </section>
+    </>
+  );
+}
+
+function PlanView({ data }: { data: CampaignPerformanceData }) {
+  const assumptions = data.capacity?.assumptions ?? [];
+  return (
+    <>
+      <section className={`campaign-plan-banner campaign-plan-banner--${data.plan.approvalStatus ?? "required"}`}>
+        <div><span>Original monthly plan</span><strong>{data.plan.status}</strong><small>Version {data.plan.version ?? "not connected"} · original baseline remains locked</small></div>
+        <div><span>Forecast</span><strong>{data.forecast?.status === "active" ? `${data.forecast.changedChannelCount} revised channels` : "No revision"}</strong><small>{data.forecast?.effectiveFrom ? `Effective ${data.forecast.effectiveFrom}` : "Original plan remains effective"}</small></div>
+        <div><span>Capacity requirement</span><strong>{formatNumber(data.capacity?.monthlyOpportunityCapacity ?? data.plan.opportunityGoal)} opportunities</strong><small>{formatNumber(data.capacity?.dailyOpportunityCapacity ?? 0)} per production day · {data.capacity?.status ?? "model"}</small></div>
+      </section>
+
+      <section className="campaign-plan-grid">
+        <div className="campaign-table-panel">
+          <div className="campaign-table-panel__heading"><div><h3>Capacity assumptions</h3><p>Editable in Google Sheet Capacity Plan. Changes must have an effective date.</p></div></div>
+          <div className="campaign-table-wrap"><table className="campaign-table campaign-table--capacity"><thead><tr><th>Team</th><th>Headcount</th><th>Opp / day</th><th>Planning days</th><th>Monthly demand</th></tr></thead><tbody>
+            {assumptions.length > 0 ? assumptions.map((row) => <tr key={row.team}><td><strong>{row.team}</strong><span>{row.notes ?? ""}</span></td><td><strong>{formatNumber(row.headcount)}</strong></td><td><strong>{row.opportunitiesPerDay}</strong></td><td><strong>{row.planningDays}</strong></td><td><strong>{formatNumber(row.headcount * row.opportunitiesPerDay * row.planningDays)}</strong></td></tr>) : <tr><td colSpan={5}><strong>Capacity Plan tab not connected</strong><span>Dashboard is using the explicitly labeled model target.</span></td></tr>}
+          </tbody></table></div>
+        </div>
+        <div className="campaign-next-plan">
+          <span>Next-month draft</span>
+          <strong>{data.nextMonthDraft ? monthLabel(data.nextMonthDraft.month, "long") : "Not generated"}</strong>
+          <div><b>{formatNumber(data.nextMonthDraft?.opportunityGoal ?? data.plan.opportunityGoal)}</b><small>opportunities</small></div>
+          <div><b>{formatNumber(data.nextMonthDraft?.qualifiedLeadGoal ?? data.plan.qualifiedLeadGoal)}</b><small>qualified leads</small></div>
+          <p>{data.nextMonthDraft?.note ?? "A recommendation will appear after the next live refresh."}</p>
+          <em>Recommendation only. Tim/Emil approval is required before it becomes the original plan.</em>
+        </div>
+      </section>
+
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Original plan and forecast ledger</h3><p>Mid-month changes never overwrite the approved original values.</p></div><div className="campaign-table-panel__plan"><span>Budget basis</span><strong>{formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong><small>{data.plan.channelBudgetGoalStatus}</small></div></div>
+        <ChannelTable rows={data.rows} mode="plan" />
+      </section>
+    </>
+  );
+}
+
+function HistoryView({ history }: { history: CampaignPerformanceData[] }) {
+  const sorted = [...history].sort((a, b) => periodId(a).localeCompare(periodId(b)));
+  const channels = [...new Set(sorted.flatMap((period) => period.rows.map((row) => row.channel)))].map((channel) => ({
+    channel,
+    booked: sorted.map((period) => period.rows.find((row) => row.channel === channel)?.actual.bookedJobs ?? 0),
+    revenue: sorted.map((period) => period.rows.find((row) => row.channel === channel)?.actual.completedRevenue ?? 0),
+  })).sort((a, b) => b.booked.reduce((x, y) => x + y, 0) - a.booked.reduce((x, y) => x + y, 0)).slice(0, 10);
+  return (
+    <>
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Monthly executive history</h3><p>Completed months and current MTD are kept separate.</p></div></div>
+        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--history"><thead><tr><th>Month</th><th>Qualified leads</th><th>Booked</th><th>Booking rate</th><th>Tracked spend</th><th>Sold</th><th>Completed revenue</th><th>Plan status</th></tr></thead><tbody>
+          {sorted.map((period) => <tr key={periodId(period)}><td><strong>{monthLabel(periodId(period), "long")}</strong><span>through {period.period.to}</span></td><td><strong>{formatNumber(period.actual.qualifiedLeads)}</strong></td><td><strong>{formatNumber(period.actual.bookedJobs)}</strong></td><td><strong>{formatMaybePercent(period.actual.bookingRate)}</strong></td><td><strong>{formatCompactCurrency(period.actual.spend)}</strong></td><td><strong>{formatNumber(period.actual.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(period.actual.completedRevenue)}</strong></td><td><span className={`campaign-plan-state campaign-plan-state--${period.plan.approvalStatus ?? "required"}`}>{period.plan.status}</span></td></tr>)}
+        </tbody></table></div>
+      </section>
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Channel comparison</h3><p>Top channels by booked opportunities across available months.</p></div></div>
+        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--comparison"><thead><tr><th>Channel</th>{sorted.map((period) => <th key={periodId(period)}>{monthLabel(periodId(period))} booked</th>)}{sorted.map((period) => <th key={`${periodId(period)}-revenue`}>{monthLabel(periodId(period))} revenue</th>)}</tr></thead><tbody>
+          {channels.map((row) => <tr key={row.channel}><td><strong>{row.channel}</strong></td>{row.booked.map((value, index) => <td key={`${row.channel}-b-${periodId(sorted[index]!)}`}><strong>{formatNumber(value)}</strong></td>)}{row.revenue.map((value, index) => <td key={`${row.channel}-r-${periodId(sorted[index]!)}`}><strong>{formatCompactCurrency(value)}</strong></td>)}</tr>)}
+        </tbody></table></div>
+      </section>
+    </>
+  );
+}
+
+export function CampaignPerformancePage({ data, periods, refreshEnabled, view, history }: {
   data: CampaignPerformanceData;
   periods: Array<{ id: string; from: string }>;
   refreshEnabled: boolean;
+  view: CampaignView;
+  history: CampaignPerformanceData[];
 }) {
-  const visibleRows = data.rows.slice(0, 7);
-  const alertRows = data.alerts.slice(0, 3);
-  const opportunityAttainment = data.plan.opportunityGoal > 0
-    ? data.actual.bookedJobs / data.plan.opportunityGoal
-    : null;
-  const revenueAttainment = data.plan.companyRevenueGoal > 0
-    ? data.actual.completedRevenue / data.plan.companyRevenueGoal
-    : null;
-
+  const month = periodId(data);
   return (
-    <DashboardShell
-      activePath="/campaigns"
-      brandLogoUrl={getBrandLogoUrl()}
-      contentClassName="campaign-performance__main"
-      navItems={navItems}
-      title="Marketing Performance"
-      subtitle="Campaign command center"
-      headerContent={
-        <div className="campaign-performance__header-meta">
-          <span>{data.period.label}</span>
-          <strong className={`campaign-data-status campaign-data-status--${(data.dataStatus ?? "SNAPSHOT").toLowerCase()}`}>
-            {data.dataStatus ?? "SNAPSHOT"} DATA
-          </strong>
-          <em>{data.plan.status}</em>
-        </div>
-      }
-    >
+    <DashboardShell activePath="/campaigns" brandLogoUrl={getBrandLogoUrl()} contentClassName="campaign-performance__main" navItems={navItems} title="Marketing Performance" subtitle="Campaign command center" headerContent={<div className="campaign-performance__header-meta"><span>{data.period.label}</span><strong className={`campaign-data-status campaign-data-status--${(data.dataStatus ?? "SNAPSHOT").toLowerCase()}`}>{data.dataStatus ?? "SNAPSHOT"} DATA</strong><em>{data.plan.status}</em></div>}>
       <div className="campaign-performance" data-campaign-performance="true">
-        <div className="campaign-performance__print-brand">
-          <img alt="IRBIS HVAC" src={getBrandLogoUrl() ?? undefined} />
-          <div>
-            <span>IRBIS Heating Air Plumbing</span>
-            <strong>Marketing Campaign Performance</strong>
-          </div>
-        </div>
+        <div className="campaign-performance__print-brand"><img alt="IRBIS HVAC" src={getBrandLogoUrl() ?? undefined} /><div><span>IRBIS Heating Air Plumbing</span><strong>Marketing Campaign Performance</strong></div></div>
         <section className="campaign-performance__intro">
-          <div>
-            <div className="campaign-performance__eyebrow">Plan / actual / pace</div>
-            <h2>Campaign command center</h2>
-            <p>{data.period.label} · ServiceTitan and Call Center actuals</p>
-          </div>
+          <div><div className="campaign-performance__eyebrow">Plan / actual / forecast</div><h2>Campaign command center</h2><p>{data.period.label} through {data.period.to} · {data.period.elapsedWorkingDays ?? "-"}/{data.period.workingDaysInMonth ?? "-"} working days</p></div>
           <div className="campaign-performance__controls">
-            <div className="campaign-period-switch" aria-label="Reporting month">
-              {periods.map((period) => {
-                const periodId = period.id;
-                return (
-                  <a
-                    aria-pressed={periodId === (data.period.id ?? data.period.from)}
-                    className={periodId === (data.period.id ?? data.period.from) ? "is-active" : ""}
-                    href={`/campaigns?month=${periodId}`}
-                    key={periodId}
-                  >
-                    {new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(`${period.from}T12:00:00`))}
-                  </a>
-                );
-              })}
-            </div>
-            <div className="campaign-cutoff">
-              <span>MTD cutoff</span>
-              <strong>{data.period.to}</strong>
-              <small>{sourceTimestamp(data.generatedAt)}</small>
-            </div>
-            <CampaignRefreshButton
-              disabledReason={refreshEnabled
-                ? "Live refresh becomes available after the first Worker snapshot"
-                : "Historical months are locked"}
-              enabled={refreshEnabled && data.dataStatus === "LIVE"}
-              month={data.period.id ?? data.period.from.slice(0, 7)}
-            />
+            <div className="campaign-period-switch" aria-label="Reporting month">{periods.map((period) => <a aria-pressed={period.id === month} className={period.id === month ? "is-active" : ""} href={viewHref(period.id, view)} key={period.id}>{monthLabel(period.id)}</a>)}</div>
+            <div className="campaign-cutoff"><span>MTD cutoff</span><strong>{data.period.to}</strong><small>{sourceTimestamp(data.generatedAt)}</small></div>
+            <CampaignRefreshButton enabled={refreshEnabled} month={month} />
             <PrintReportButton />
           </div>
         </section>
 
-        <section className="campaign-source-strip" aria-label="Connected data sources">
-          {data.sources.map((source) => (
-            <div className="campaign-source" key={`${source.name}-${source.reportId ?? "sheet"}`}>
-              <span className={`campaign-source__state campaign-source__state--${source.status ?? "stale"}`} aria-hidden="true" />
-              <div>
-                <strong>{source.name}</strong>
-                <small>
-                  {source.status === "connected" ? "Live" : "Snapshot"}
-                  {source.rowCount == null ? "" : ` · ${formatNumber(source.rowCount)} rows`}
-                </small>
-              </div>
-            </div>
-          ))}
-        </section>
+        <nav className="campaign-view-tabs" aria-label="Campaign workspace views">{(["overview", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & capacity" : item === "history" ? "History" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>
 
-        <section className="campaign-scoreboard" aria-label="Marketing month-to-date summary">
-          <div className="campaign-scoreboard__primary">
-            <span>Booked opportunities</span>
-            <div><strong>{formatNumber(data.actual.bookedJobs)}</strong><em>/ {formatNumber(data.plan.opportunityGoal)}</em></div>
-            <small>{formatMaybePercent(opportunityAttainment)} achieved · {formatMaybePercent(data.pace.opportunityPace)} to month pace</small>
-            <div className="campaign-scoreboard__bar"><span style={{ width: `${Math.min(100, Math.max(0, (opportunityAttainment ?? 0) * 100))}%` }} /></div>
-          </div>
-          <div>
-            <span>Qualified lead supply</span>
-            <strong>{formatNumber(data.actual.qualifiedLeads)} / {formatNumber(data.plan.qualifiedLeadGoal)}</strong>
-            <small>{formatMaybePercent(data.pace.qualifiedLeadPace)} pace · {formatMaybePercent(data.actual.bookingRate)} booked</small>
-          </div>
-          <div>
-            <span>Sales outcome</span>
-            <strong>{formatNumber(data.actual.soldJobs)} sold</strong>
-            <small>{formatCompactCurrency(data.actual.soldAmount)} sold amount</small>
-          </div>
-          <div>
-            <span>Completed revenue</span>
-            <strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong>
-            <small>{formatMaybePercent(revenueAttainment)} of {formatCompactCurrency(data.plan.companyRevenueGoal)}</small>
-          </div>
-          <div className="campaign-scoreboard__spend">
-            <span>Tracked spend</span>
-            <strong>{formatCompactCurrency(data.actual.spend)}</strong>
-            <small>of {formatCompactCurrency(data.plan.marketingBudgetGoal)} · partial coverage</small>
-          </div>
-        </section>
+        <section className="campaign-source-strip" aria-label="Connected data sources">{data.sources.map((source) => <div className="campaign-source" key={`${source.name}-${source.reportId ?? "sheet"}`}><span className={`campaign-source__state campaign-source__state--${source.status ?? "stale"}`} /><div><strong>{source.name}</strong><small>{source.status === "connected" ? "Live" : source.status === "blocked" ? "Input required" : "Snapshot"}{source.rowCount == null ? "" : ` · ${formatNumber(source.rowCount)} rows`}</small></div></div>)}</section>
 
-        <section className="campaign-alerts" aria-label="Campaign alerts">
-          <div className="campaign-alerts__label">
-            <span>Action queue</span>
-            <strong>{data.alerts.length}</strong>
-          </div>
-          {alertRows.map((alert) => (
-            <div className={`campaign-alert campaign-alert--${alert.severity}`} key={`${alert.channel}-${alert.message}`}>
-              <strong>{alert.channel}</strong>
-              <span>{alert.message}</span>
-            </div>
-          ))}
-          <div className="campaign-alert campaign-alert--source">
-            <strong>Cost coverage</strong>
-            <span>Manual channel spend is still pending.</span>
-          </div>
-        </section>
+        {view === "overview" ? <OverviewView data={data} /> : null}
+        {view === "channels" ? <ChannelsView data={data} /> : null}
+        {view === "plan" ? <PlanView data={data} /> : null}
+        {view === "history" ? <HistoryView history={history} /> : null}
 
-        <section className="campaign-table-panel" aria-label="Campaign performance table">
-          <div className="campaign-table-panel__heading">
-            <div>
-              <h3>Priority channel performance</h3>
-              <p>Live actuals · {data.plan.status.toLowerCase()} · seven highest-volume channels</p>
-            </div>
-            <div className="campaign-table-panel__plan">
-              <span>Marketing budget</span>
-              <strong>{formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong>
-              <small>{formatPercent(data.plan.marketingBudgetRate, 0)} of {formatCompactCurrency(data.plan.companyRevenueGoal)} · {data.plan.status.toLowerCase()}</small>
-            </div>
-          </div>
-
-          <div className="campaign-table-wrap">
-            <table className="campaign-table">
-              <thead>
-                <tr>
-                  <th>Channel</th>
-                  <th>Opportunities / plan</th>
-                  <th>Pace</th>
-                  <th>Qualified leads</th>
-                  <th>Spend / CPL</th>
-                  <th>Sold</th>
-                  <th>Completed revenue</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRows.map((row) => {
-                  const progress = Math.max(0, Math.min(100, (row.opportunityAttainment ?? 0) * 100));
-                  return (
-                    <tr key={row.channel}>
-                      <td>
-                        <strong>{row.channel}</strong>
-                        <span>{row.actual.calls} calls · {row.actual.forms} forms</span>
-                      </td>
-                      <td>
-                        <strong>{formatNumber(row.actual.bookedJobs)} / {row.plan.bookedJobs ?? "—"}</strong>
-                        <div className="campaign-progress" aria-label={`${Math.round(progress)}% of opportunity goal`}>
-                          <span style={{ width: `${progress}%` }} />
-                        </div>
-                      </td>
-                      <td>
-                        <strong>{formatMaybePercent(row.pace)}</strong>
-                        <span>month pace</span>
-                      </td>
-                      <td>
-                        <strong>{formatNumber(row.actual.qualifiedLeads)} / {row.plan.qualifiedLeads || "—"}</strong>
-                        <span>{formatMaybePercent(row.actual.bookingRate)} booking rate</span>
-                      </td>
-                      <td>
-                        <strong>{formatCompactCurrency(row.actual.spend)}</strong>
-                        <span>CPL {row.actual.spend > 0 && row.actual.costPerLead != null ? formatCompactCurrency(row.actual.costPerLead) : "—"} · plan {row.plan.spend == null ? "—" : formatCompactCurrency(row.plan.spend)}</span>
-                      </td>
-                      <td>
-                        <strong>{formatNumber(row.actual.soldJobs)}</strong>
-                        <span>{formatCompactCurrency(row.actual.soldAmount)}</span>
-                      </td>
-                      <td>
-                        <strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong>
-                        <span>plan {row.plan.completedRevenue == null ? "—" : formatCompactCurrency(row.plan.completedRevenue)} · ROI {row.actual.roi == null ? "—" : formatPercent(row.actual.roi, 0)}</span>
-                      </td>
-                      <td>
-                        <span className={`campaign-status campaign-status--${row.status}`}>
-                          {STATUS_LABEL[row.status]}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <footer className="campaign-performance__footer">
-          <span>{data.sources.filter((source) => source.status === "connected").length}/{data.sources.length} sources live · actuals refreshed {sourceTimestamp(data.generatedAt)}</span>
-          <span>{data.plan.channelLeadGoalMethod ?? data.plan.channelBudgetGoalStatus}</span>
-        </footer>
+        <footer className="campaign-performance__footer"><span>{data.sources.filter((source) => source.status === "connected").length}/{data.sources.length} sources connected · refreshed {sourceTimestamp(data.generatedAt)}</span><span>Lead pace: weekdays · spend pace: calendar days · original plan locked</span></footer>
       </div>
     </DashboardShell>
   );

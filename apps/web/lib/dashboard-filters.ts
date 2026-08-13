@@ -15,10 +15,12 @@ export type ResolvedDashboardFilters = {
   to: string;
   fromLabel: string;
   toLabel: string;
+  customRange: boolean;
   tvMode: boolean;
   kioskMode: boolean;
   rotateMode: boolean;
   rotationBoardIds: DashboardRotationBoardId[];
+  page: number;
   apiQueryString: string;
 };
 
@@ -27,6 +29,7 @@ export type DashboardFilterState = Pick<
   | "preset"
   | "from"
   | "to"
+  | "customRange"
   | "tvMode"
   | "kioskMode"
   | "rotateMode"
@@ -83,6 +86,12 @@ function parseBooleanFlag(value: string | undefined) {
     normalized === "yes" ||
     normalized === "on"
   );
+}
+
+function parsePage(value: string | undefined) {
+  const parsed = Number.parseInt(value ?? "", 10);
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
 export function supportsDashboardRotation(path: string) {
@@ -187,7 +196,7 @@ export function buildDashboardQueryString(
     Partial<
       Pick<
         DashboardFilterState,
-        "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
+        "customRange" | "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
       >
     >,
   overrides?: Partial<DashboardFilterState>,
@@ -201,6 +210,15 @@ export function buildDashboardQueryString(
   const rotateMode = overrides?.rotateMode ?? filters.rotateMode ?? false;
   const rotationBoardIds =
     overrides?.rotationBoardIds ?? filters.rotationBoardIds;
+  const customRange =
+    overrides?.customRange ??
+    (overrides?.preset ? false : filters.customRange ?? false);
+
+  if (customRange) {
+    params.set("from", overrides?.from ?? filters.from);
+    params.set("to", overrides?.to ?? filters.to);
+    params.set("range", "fixed");
+  }
 
   if (tvMode) {
     params.set("tv", "1");
@@ -225,7 +243,7 @@ export function buildDashboardHref(
     Partial<
       Pick<
         DashboardFilterState,
-        "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
+        "customRange" | "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
       >
     >,
   overrides?: Partial<DashboardFilterState>,
@@ -239,7 +257,7 @@ export function buildTvModeHref(
     Partial<
       Pick<
         DashboardFilterState,
-        "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
+        "customRange" | "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
       >
     >,
   enabled: boolean,
@@ -253,7 +271,7 @@ export function buildKioskHref(
     Partial<
       Pick<
         DashboardFilterState,
-        "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
+        "customRange" | "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
       >
     >,
   enabled: boolean,
@@ -270,7 +288,7 @@ export function buildRotationHref(
     Partial<
       Pick<
         DashboardFilterState,
-        "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
+        "customRange" | "tvMode" | "kioskMode" | "rotateMode" | "rotationBoardIds"
       >
     >,
   preset: DatePreset,
@@ -286,6 +304,12 @@ export function buildRotationHref(
 
   const params = new URLSearchParams({ preset });
   params.set("tv", "1");
+
+  if (filters.customRange) {
+    params.set("from", filters.from);
+    params.set("to", filters.to);
+    params.set("range", "fixed");
+  }
 
   if (filters.kioskMode) {
     params.set("kiosk", "1");
@@ -305,7 +329,7 @@ export function buildRotationBoardHref(
   filters: Pick<
     DashboardFilterState,
     "preset" | "from" | "to" | "kioskMode" | "rotationBoardIds"
-  >,
+  > & Partial<Pick<DashboardFilterState, "customRange">>,
   boardId: DashboardRotationBoardId | "all",
 ) {
   const currentIds = uniqueRotationBoardIds(filters.rotationBoardIds);
@@ -322,6 +346,12 @@ export function buildRotationBoardHref(
   });
   params.set("tv", "1");
   params.set("rotate", "1");
+
+  if (filters.customRange) {
+    params.set("from", filters.from);
+    params.set("to", filters.to);
+    params.set("range", "fixed");
+  }
 
   if (filters.kioskMode) {
     params.set("kiosk", "1");
@@ -350,12 +380,14 @@ export async function resolveDashboardFilters(
   const rotationBoardIds = parseRotationBoardIds(
     takeFirst(resolvedSearchParams.boards),
   );
+  const page = parsePage(takeFirst(resolvedSearchParams.page));
   const explicitFrom = takeFirst(resolvedSearchParams.from);
   const explicitTo = takeFirst(resolvedSearchParams.to);
   const range =
     explicitFrom && explicitTo
       ? { from: explicitFrom, to: explicitTo }
       : getPresetRange(preset, timeZone);
+  const customRange = Boolean(explicitFrom && explicitTo);
 
   return {
     preset,
@@ -363,10 +395,12 @@ export async function resolveDashboardFilters(
     to: range.to,
     fromLabel: formatBusinessDateLabel(range.from),
     toLabel: formatBusinessDateLabel(range.to),
+    customRange,
     tvMode,
     kioskMode,
     rotateMode,
     rotationBoardIds,
+    page,
     apiQueryString: new URLSearchParams({
       preset,
       from: range.from,

@@ -23,7 +23,9 @@ vi.mock("@irbis/db", () => ({
     SALES_YESTERDAY: "SALES_YESTERDAY",
     SALES_MONTHLY_PACE: "SALES_MONTHLY_PACE",
     REVENUE_MONTHLY_PACE: "REVENUE_MONTHLY_PACE",
-    BOOKING_RATE: "BOOKING_RATE"
+    BOOKING_RATE: "BOOKING_RATE",
+    FIELD_PRO_TECHNICIAN_ACTIVITY: "FIELD_PRO_TECHNICIAN_ACTIVITY",
+    FIELD_PRO_JOB_RECORDINGS: "FIELD_PRO_JOB_RECORDINGS"
   },
   prisma: {
     rawReportSnapshot: {
@@ -57,7 +59,12 @@ vi.mock("@irbis/integrations", () => ({
     salesYesterday: { family: "salesYesterday", defaultPreset: "yesterday" },
     salesMonthlyPace: { family: "salesMonthlyPace", defaultPreset: "mtd" },
     revenueMonthlyPace: { family: "revenueMonthlyPace", defaultPreset: "mtd" },
-    bookingRate: { family: "bookingRate", defaultPreset: "today" }
+    bookingRate: { family: "bookingRate", defaultPreset: "today" },
+    fieldProTechnicianActivity: {
+      family: "fieldProTechnicianActivity",
+      defaultPreset: "mtd"
+    },
+    fieldProJobRecordings: { family: "fieldProJobRecordings", defaultPreset: "mtd" }
   }),
   resolveReportRequest: (definition: { family: string }, context?: { preset?: string; from?: string; to?: string }) => ({
     parameters: [
@@ -111,6 +118,90 @@ describe("DashboardService", () => {
     const result = await service.getTechnicians();
 
     expect(result.rowsRanked[0]?.name).toBe("A");
+  });
+
+  it("returns the full advisor roster for performance coaching", async () => {
+    findUnique.mockResolvedValue(null);
+    findFirst.mockResolvedValue({
+      payloadJson: {
+        fields: [
+          { name: "Name" },
+          { name: "TechnicianBusinessUnit" },
+          { name: "TotalSales" },
+          { name: "SalesOpportunity" },
+          { name: "CloseRateRolling" }
+        ],
+        data: [
+          ["HVAC Advisor", "HVAC Sales", 1000, 2, 0.5],
+          ["Plumbing Advisor", "Plumbing Sales", 800, 2, 0.4]
+        ]
+      }
+    });
+
+    const { DashboardService } = await import("./dashboard.service");
+    const service = new DashboardService();
+    const result = await service.getPerformanceAdvisors();
+
+    expect(result.rowsRanked.map((row) => row.name)).toEqual([
+      "HVAC Advisor",
+      "Plumbing Advisor"
+    ]);
+  });
+
+  it("merges Field Pro activity with job recording durations", async () => {
+    findUnique
+      .mockResolvedValueOnce({
+        payloadJson: {
+          rows: [
+            {
+              name: "Matthew Stalcup",
+              email: "mstalcup@irbishvac.com",
+              businessUnit: "HVAC - Sales",
+              completedJobs: 15,
+              completedRevenue: 0,
+              closedOpportunities: 5,
+              team: "SALES TEAM",
+              totalRecordings: 10,
+              qualityRecordings: 8,
+              qualityRecordingRate: 0.8,
+              recordingCoverage: 10 / 15
+            }
+          ],
+          totals: { completedJobs: 15, totalRecordings: 10, qualityRecordings: 8 },
+          snapshotTime: "2026-07-20T12:00:00.000Z"
+        }
+      })
+      .mockResolvedValueOnce({
+        payloadJson: {
+          rows: [
+            {
+              jobId: "132620437",
+              technician: "Matthew Stalcup",
+              durationMinutes: 85.77
+            },
+            {
+              jobId: "132578823",
+              technician: "Matthew Stalcup",
+              durationMinutes: 74.71
+            }
+          ],
+          snapshotTime: "2026-07-20T12:00:00.000Z"
+        }
+      });
+
+    const { DashboardService } = await import("./dashboard.service");
+    const service = new DashboardService();
+    const result = await service.getPerformanceFieldPro({
+      from: "2026-07-13",
+      to: "2026-07-19"
+    });
+
+    expect(result.rows[0]).toMatchObject({
+      name: "Matthew Stalcup",
+      totalRecordings: 10,
+      qualityRecordingRate: 0.8,
+      averageRecordingMinutes: 80.24
+    });
   });
 
   it("does not fall back to a different cached date when the exact scope is missing", async () => {

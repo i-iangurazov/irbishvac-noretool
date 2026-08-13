@@ -61,6 +61,10 @@ export function shouldRemoveDashboardRangeParams(
   const preset = params.get("preset") ?? "mtd";
   const to = params.get("to");
 
+  if (params.get("range") === "fixed") {
+    return false;
+  }
+
   return Boolean(
     to && RELATIVE_PRESETS.has(preset) && to !== currentBusinessDate,
   );
@@ -70,6 +74,7 @@ export function removeDashboardRangeParams(href: string) {
   const url = new URL(href);
   url.searchParams.delete("from");
   url.searchParams.delete("to");
+  url.searchParams.delete("range");
 
   return url.toString();
 }

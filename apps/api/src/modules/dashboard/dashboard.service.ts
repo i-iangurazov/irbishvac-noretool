@@ -11,6 +11,9 @@ import {
   buildCallCenterDashboard,
   buildCampaignDashboard,
   buildCapacitySummary,
+  buildFieldProJobRecordings,
+  buildFieldProPerformance,
+  buildFieldProTechnicianActivity,
   filterAdvisorDashboardByDepartment,
   filterInstallerDashboardByDepartment,
   filterTechnicianDashboardByDepartment,
@@ -283,14 +286,18 @@ export class DashboardService {
     department: FieldStaffDepartment,
     context?: DashboardRequestContext,
   ) {
-    const dashboard = await this.resolveMetricFamily(
+    const dashboard = await this.getPerformanceTechnicians(context);
+
+    return filterTechnicianDashboardByDepartment(dashboard, department);
+  }
+
+  async getPerformanceTechnicians(context?: DashboardRequestContext) {
+    return this.resolveMetricFamily(
       DashboardFamily.TECHNICIANS,
       "technicians",
       (payload) => buildTechnicianDashboard(payload),
       context,
     );
-
-    return filterTechnicianDashboardByDepartment(dashboard, department);
   }
 
   async getTechnicians(context?: DashboardRequestContext) {
@@ -332,6 +339,12 @@ export class DashboardService {
   }
 
   async getAdvisors(context?: DashboardRequestContext) {
+    const dashboard = await this.getPerformanceAdvisors(context);
+
+    return filterAdvisorDashboardByDepartment(dashboard, "hvac-comfort-advisor");
+  }
+
+  async getPerformanceAdvisors(context?: DashboardRequestContext) {
     const dashboard = await this.resolveMetricFamily(
       DashboardFamily.ADVISORS,
       "advisors",
@@ -339,7 +352,26 @@ export class DashboardService {
       context,
     );
 
-    return filterAdvisorDashboardByDepartment(dashboard, "hvac-comfort-advisor");
+    return dashboard;
+  }
+
+  async getPerformanceFieldPro(context?: DashboardRequestContext) {
+    const [activity, recordings] = await Promise.all([
+      this.resolveMetricFamily(
+        DashboardFamily.FIELD_PRO_TECHNICIAN_ACTIVITY,
+        "fieldProTechnicianActivity",
+        (payload) => buildFieldProTechnicianActivity(payload),
+        context,
+      ),
+      this.resolveMetricFamily(
+        DashboardFamily.FIELD_PRO_JOB_RECORDINGS,
+        "fieldProJobRecordings",
+        (payload) => buildFieldProJobRecordings(payload),
+        context,
+      )
+    ]);
+
+    return buildFieldProPerformance(activity, recordings);
   }
 
   async getCallCenterSummary(context?: DashboardRequestContext) {

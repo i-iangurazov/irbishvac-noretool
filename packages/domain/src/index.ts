@@ -4,6 +4,7 @@ export * from "./metrics/campaigns";
 export * from "./metrics/campaign-performance";
 export * from "./metrics/company";
 export * from "./metrics/field-staff-departments";
+export * from "./metrics/field-pro";
 export * from "./metrics/installers";
 export * from "./metrics/lead-generation";
 export * from "./metrics/technicians";

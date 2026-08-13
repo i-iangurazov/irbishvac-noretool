@@ -1,0 +1,19 @@
+month,approval_status,report_department,technician,pdf_june_actual,monthly_sales_goal,target_opportunities_monthly,target_rate,target_rate_type,target_average,formula_goal_rounded,goal_minus_formula,turnover_quota,membership_monthly_goal,membership_source_name,membership_source_department,review_note
+2026-07,DRAFT,HVAC Sales,Raymond Porras,453846,575000,87,0.32,close,20700,576288,-1288,,8,Raymond Porras,HVAC Sales,Confirm approved rounding
+2026-07,DRAFT,HVAC Sales,Rudy-Noel Zapien,397235,500000,81,0.30,close,20600,500580,-580,,8,Rudy-Noel Zapien,HVAC Sales,Confirm approved rounding
+2026-07,DRAFT,HVAC Sales,Matthew Stalcup,261214,380000,78,0.28,close,17400,380016,-16,,8,Matthew Stalcup,HVAC Sales,
+2026-07,DRAFT,Commercial HVAC,Kenneth Cox,0,70000,12,0.30,close,19500,70200,-200,,5,Kenneth Cox,Commercial Service/Sales,Confirm canonical department label
+2026-07,DRAFT,HVAC Service,Jonathan Camargo,32669,36000,26,0.65,conversion,2130,35997,3,5,10,Jonathan Camargo,HVAC Service,
+2026-07,DRAFT,HVAC Service,Ivan Avila,30128,34000,30,0.78,conversion,1450,33930,70,6,10,Ivan Avila Oliveira,HVAC Service,Confirm canonical name and ServiceTitan technician ID
+2026-07,DRAFT,HVAC Service,Eduardo Loera-Gaeta,27836,35000,45,0.62,conversion,1250,34875,125,6,10,Eduardo Loera-Gaeta,HVAC Service,
+2026-07,DRAFT,HVAC Service,Christian Lopez,24265,30000,35,0.56,conversion,1530,29988,12,5,10,Christian Lopez,HVAC Service,
+2026-07,DRAFT,HVAC Service,Almaz Shamsharbek,18737,24000,26,0.58,conversion,1590,23977,23,4,10,Almaz Shamsharbek,HVAC Maintenance,Department conflict between PDF and membership workbook
+2026-07,DRAFT,HVAC Service,Winston Reyes,1743,16000,12,0.60,conversion,2200,15840,160,2,5,Winston Reyes,Recalls/Warranty,Department conflict between PDF and membership workbook
+2026-07,MISSING_SALES_GOAL,HVAC Service,Bahruz Brian Rasulov,,,,,,,,,,5,Bahruz Brian Rasulov,HVAC Service,Present in membership workbook but absent from PDF goal seed
+2026-07,MISSING_SALES_GOAL,HVAC Maintenance,Ethan Peters,,,,,,,,,,5,Ethan Peters,HVAC Maintenance,Present in membership workbook but absent from PDF goal seed
+2026-07,DRAFT,Plumbing Sales,Shaislam Shabiev,82733,130000,55,0.23,close,10300,130295,-295,,6,Shaislam Shabiev,Plumbing Sales,Confirm approved rounding
+2026-07,DRAFT,Plumbing Service,Azat Akynov,83231,90000,38,0.48,conversion,3050,55632,34368,4,10,Azat Akynov,Plumbing Service,CRITICAL: stated goal does not match target_opportunities x target_rate x target_average
+2026-07,DRAFT,Plumbing Service,Bekbol Kenzheev,26848,34000,43,0.53,conversion,1490,33957,43,4,10,Bekbol Kenzheev,Plumbing Service,
+2026-07,DRAFT,Plumbing Service,Christian Vasquez,25514,32000,28,0.54,conversion,2120,32054,-54,4,10,Christian Vasquez,Plumbing Service,
+2026-07,DRAFT,Plumbing Service,Brian Mota,658,14000,15,0.40,conversion,2330,13980,20,1,10,Brian Mota,Plumbing Service,
+2026-07,MISSING_SALES_GOAL,Plumbing Service,Le'Jhavani De La Cruz-Robello,,,,,,,,,,5,Le'Jhavani De La Cruz-Robello,Plumbing Service,Present in membership workbook but absent from PDF goal seed

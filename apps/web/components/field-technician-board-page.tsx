@@ -2,6 +2,7 @@ import { formatNumber } from "@irbis/utils";
 import { compactMoney, LeaderboardPage, money, ratio } from "./leaderboard-page";
 import { fetchApi } from "../lib/api";
 import { resolveDashboardFilters, type DashboardSearchParams } from "../lib/dashboard-filters";
+import { getTvPerformanceGoal } from "../lib/performance-goals";
 
 type FieldTechnicianBoardPageProps = {
   searchParams?: DashboardSearchParams | undefined;
@@ -13,15 +14,6 @@ type FieldTechnicianBoardPageProps = {
 
 function count(value: number) {
   return formatNumber(value);
-}
-
-function plainMetric(value: number) {
-  const integer = Number.isInteger(value);
-
-  return formatNumber(value, {
-    minimumFractionDigits: integer ? 0 : 2,
-    maximumFractionDigits: integer ? 0 : 2
-  });
 }
 
 export async function FieldTechnicianBoardPage({
@@ -51,6 +43,7 @@ export async function FieldTechnicianBoardPage({
       totalSales: number;
       membershipsSold: number;
       closeRate: number;
+      salesOpportunity: number;
     }>;
     totals: {
       totalInfluencedRevenue: number;
@@ -78,22 +71,29 @@ export async function FieldTechnicianBoardPage({
         { label: "Average Close Rate", value: ratio(Number(data.totals.avgCloseRate)) },
         { label: "Membership Conversion", value: ratio(Number(data.totals.avgMembershipConv)) }
       ]}
-      items={data.rowsRanked.map((row) => ({
-        title: row.name,
-        subtitle: row.position ?? row.businessUnit,
-        imageUrl: row.photoUrl,
-        valueLabel: "Total Revenue",
-        value: compactMoney(row.totalInfluencedRevenue),
-        stats: [
-          { label: "Completed Revenue", value: money(row.completedRevenue) },
-          { label: "Close Rate", value: ratio(row.closeRate) },
-          { label: "Avg Sale / Opp", value: money(row.avgSaleFromOpps) },
-          { label: "Memberships Sold", value: count(row.membershipsSold) },
-          { label: "Lead Conv.", value: ratio(row.replacementLeadConvRate) },
-          { label: "Tech Lead Sales", value: money(row.totalTechLeadSales) },
-          { label: "Total Sales", value: plainMetric(row.totalSales) }
-        ]
-      }))}
+      items={data.rowsRanked.map((row) => {
+        const goal = getTvPerformanceGoal(row.name);
+        const goalValue = (value: string, target: string | null) =>
+          target ? `${value} / ${target}` : goal?.status === "UPDATED_GOAL_PENDING" ? `${value} / Pending` : value;
+
+        return {
+          title: row.name,
+          subtitle: row.position ?? row.businessUnit,
+          imageUrl: row.photoUrl,
+          valueLabel: "Total Revenue",
+          value: compactMoney(row.totalInfluencedRevenue),
+          stats: [
+            { label: "Completed Revenue", value: money(row.completedRevenue) },
+            { label: "Close / Goal", value: goalValue(ratio(row.closeRate), goal?.targetRate != null ? ratio(goal.targetRate) : null) },
+            { label: "Avg Sale / Goal", value: goalValue(money(row.avgSaleFromOpps), goal?.targetAverage != null ? money(goal.targetAverage) : null) },
+            { label: "Opps / Goal", value: goalValue(count(row.salesOpportunity), goal?.targetOpportunitiesMonthly != null ? count(goal.targetOpportunitiesMonthly) : null) },
+            { label: "Memberships Sold", value: count(row.membershipsSold) },
+            { label: "Lead Conv.", value: ratio(row.replacementLeadConvRate) },
+            { label: "Tech Lead Sales", value: money(row.totalTechLeadSales) },
+            { label: "Sales / Goal", value: goalValue(compactMoney(row.totalSales), goal?.monthlySalesGoal != null ? compactMoney(goal.monthlySalesGoal) : null) }
+          ]
+        };
+      })}
     />
   );
 }

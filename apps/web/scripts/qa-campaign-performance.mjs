@@ -4,64 +4,59 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
 const baseUrl = process.env.CAMPAIGN_QA_BASE_URL ?? "http://127.0.0.1:3000";
-const chromePath =
-  process.env.PLAYWRIGHT_CHROME_PATH ??
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const chromePath = process.env.PLAYWRIGHT_CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const workspaceRoot = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
-const outputDir = resolve(
-  workspaceRoot,
-  process.env.CAMPAIGN_QA_OUTPUT_DIR ?? "reports/campaign-production-2026-08-06/qa",
-);
+const outputDir = resolve(workspaceRoot, process.env.CAMPAIGN_QA_OUTPUT_DIR ?? "reports/campaign-production/qa");
 
 await mkdir(outputDir, { recursive: true });
 const browser = await chromium.launch({ executablePath: chromePath, headless: true });
 const results = [];
 const periods = [
-  { id: "2026-08", pdf: "IRBIS-Marketing-Campaign-August-MTD-LIVE.pdf" },
+  { id: "2026-08", pdf: "IRBIS-Marketing-Campaign-August-MTD.pdf" },
   { id: "2026-07", pdf: "IRBIS-Marketing-Campaign-July-2026.pdf" },
+];
+const views = ["overview", "channels", "plan", "history"];
+const viewports = [
+  { name: "tv-1920x1080", width: 1920, height: 1080 },
+  { name: "laptop-1365x768", width: 1365, height: 768 },
+  { name: "mobile-390x844", width: 390, height: 844 },
 ];
 
 for (const period of periods) {
-  for (const viewport of [
-    { name: "tv-1920x1080", width: 1920, height: 1080 },
-    { name: "laptop-1365x768", width: 1365, height: 768 },
-    { name: "mobile-390x844", width: 390, height: 844 },
-  ]) {
-    const page = await browser.newPage({ viewport });
-    await page.goto(`${baseUrl}/campaigns?month=${period.id}`, { waitUntil: "networkidle" });
-    await page.screenshot({
-      path: resolve(outputDir, `${period.id}-${viewport.name}.png`),
-      fullPage: viewport.name === "mobile-390x844",
-    });
+  for (const view of views) {
+    for (const viewport of viewports) {
+      const page = await browser.newPage({ viewport });
+      await page.goto(`${baseUrl}/campaigns?month=${period.id}&view=${view}`, { waitUntil: "networkidle" });
+      await page.screenshot({ path: resolve(outputDir, `${period.id}-${view}-${viewport.name}.png`), fullPage: true });
 
-    const metrics = await page.evaluate(() => {
-      const dashboard = document.querySelector("[data-campaign-performance='true']");
-      const main = document.querySelector(".campaign-performance__main");
-      const table = document.querySelector(".campaign-table");
-      const rows = document.querySelectorAll(".campaign-table tbody tr");
-      const sources = document.querySelectorAll(".campaign-source");
-      const refresh = document.querySelector(".campaign-refresh__button");
-      return {
-        title: document.title,
-        dashboardPresent: Boolean(dashboard),
-        visibleRows: rows.length,
-        visibleSources: sources.length,
-        refreshPresent: Boolean(refresh),
-        bodyWidthOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        mainHeightOverflow: main ? main.scrollHeight - main.clientHeight : null,
-        tableWidthOverflow: table && table.parentElement
-          ? table.scrollWidth - table.parentElement.clientWidth
-          : null,
-        tableBottom: table ? Math.round(table.getBoundingClientRect().bottom) : null,
-        viewportHeight: window.innerHeight,
-      };
-    });
-    results.push({ period: period.id, viewport, ...metrics });
-    await page.close();
+      const metrics = await page.evaluate(() => {
+        const dashboard = document.querySelector("[data-campaign-performance='true']");
+        const tables = [...document.querySelectorAll(".campaign-table")];
+        const tabs = document.querySelectorAll(".campaign-view-tabs a");
+        const sources = document.querySelectorAll(".campaign-source");
+        const refresh = document.querySelector(".campaign-refresh__button");
+        const clipped = [...document.querySelectorAll(".campaign-performance strong, .campaign-performance small, .campaign-performance span")]
+          .filter((element) => element.scrollWidth > element.clientWidth + 2 && getComputedStyle(element).textOverflow !== "ellipsis")
+          .length;
+        return {
+          dashboardPresent: Boolean(dashboard),
+          tableCount: tables.length,
+          visibleRows: document.querySelectorAll(".campaign-table tbody tr").length,
+          visibleSources: sources.length,
+          tabCount: tabs.length,
+          refreshPresent: Boolean(refresh),
+          bodyWidthOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          tableWidthOverflow: Math.max(0, ...tables.map((table) => table.scrollWidth - (table.parentElement?.clientWidth ?? table.clientWidth))),
+          clippedTextCount: clipped,
+        };
+      });
+      results.push({ period: period.id, view, viewport, ...metrics });
+      await page.close();
+    }
   }
 
   const pdfPage = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-  await pdfPage.goto(`${baseUrl}/campaigns?month=${period.id}`, { waitUntil: "networkidle" });
+  await pdfPage.goto(`${baseUrl}/campaigns?month=${period.id}&view=overview`, { waitUntil: "networkidle" });
   await pdfPage.pdf({
     path: resolve(outputDir, `../${period.pdf}`),
     format: "Letter",
@@ -75,17 +70,15 @@ for (const period of periods) {
 await browser.close();
 await writeFile(resolve(outputDir, "qa-results.json"), JSON.stringify(results, null, 2));
 console.log(JSON.stringify(results, null, 2));
+
 const failed = results.filter((result) =>
-  result.viewport.name !== "mobile-390x844" && (
-    !result.dashboardPresent ||
-    result.visibleRows < 1 ||
-    result.visibleSources !== 4 ||
-    !result.refreshPresent ||
-    result.bodyWidthOverflow > 1 ||
-    (result.mainHeightOverflow ?? 0) > 1 ||
-    (result.tableWidthOverflow ?? 0) > 1 ||
-    (result.tableBottom ?? 0) > result.viewportHeight
-  )
+  !result.dashboardPresent ||
+  result.visibleSources < 4 ||
+  result.tabCount !== 4 ||
+  !result.refreshPresent ||
+  result.bodyWidthOverflow > 1 ||
+  (result.view !== "overview" && result.tableCount < 1) ||
+  (result.viewport.name !== "mobile-390x844" && result.tableWidthOverflow > 1)
 );
 if (failed.length) {
   console.error(JSON.stringify(failed, null, 2));

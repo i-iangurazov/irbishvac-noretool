@@ -39,4 +39,13 @@ describe("dashboard auto-refresh runtime helpers", () => {
       ),
     ).toBe(false);
   });
+
+  it("keeps an explicitly fixed historical range", () => {
+    expect(
+      shouldRemoveDashboardRangeParams(
+        "https://dash.example/technicians?preset=mtd&from=2026-08-01&to=2026-08-12&range=fixed&tv=1",
+        "2026-08-13",
+      ),
+    ).toBe(false);
+  });
 });

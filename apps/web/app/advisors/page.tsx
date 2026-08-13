@@ -1,10 +1,17 @@
 import { compactMoney, LeaderboardPage, ratio } from "../../components/leaderboard-page";
 import { fetchApi } from "../../lib/api";
 import { resolveDashboardFilters } from "../../lib/dashboard-filters";
+import { getTvPerformanceGoal } from "../../lib/performance-goals";
 
 type AdvisorsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
+
+const VERIFIED_ADVISORS = new Set([
+  "Matthew Stalcup",
+  "Raymond Porras",
+  "Rudy-Noel Zapien",
+]);
 
 export default async function AdvisorsPage({ searchParams }: AdvisorsPageProps) {
   const filters = await resolveDashboardFilters(
@@ -31,6 +38,7 @@ export default async function AdvisorsPage({ searchParams }: AdvisorsPageProps) 
     };
     snapshotTime: string | null;
   }>(`/dashboard/advisors?${filters.apiQueryString}`);
+  const verifiedRows = data.rowsRanked.filter((row) => VERIFIED_ADVISORS.has(row.name));
 
   return (
     <LeaderboardPage
@@ -48,17 +56,25 @@ export default async function AdvisorsPage({ searchParams }: AdvisorsPageProps) 
         { label: "Weighted Close Rate", value: ratio(data.totals.weightedCloseRate) },
         { label: "Closed Average Sale", value: compactMoney(data.totals.weightedClosedAverageSale) }
       ]}
-      items={data.rowsRanked.map((row) => ({
-        title: row.name,
-        imageUrl: row.photoUrl,
-        valueLabel: "Sales",
-        value: compactMoney(row.totalSales),
-        stats: [
-          { label: "Closed Avg Sale", value: compactMoney(row.closedAverageSale) },
-          { label: "Close Rate", value: ratio(row.closeRateRolling) },
-          { label: "Opportunities", value: String(row.salesOpportunitiesCount) }
-        ]
-      }))}
+      items={verifiedRows.map((row) => {
+        const goal = getTvPerformanceGoal(row.name);
+        const pair = (actual: string, target: string | null) => target ? `${actual} / ${target}` : actual;
+
+        return {
+          title: row.name,
+          imageUrl: row.photoUrl,
+          valueLabel: "Sales",
+          value: compactMoney(row.totalSales),
+          stats: [
+            { label: "Sales Goal", value: goal?.monthlySalesGoal != null ? compactMoney(goal.monthlySalesGoal) : "Pending" },
+            { label: "Avg Sale / Goal", value: pair(compactMoney(row.closedAverageSale), goal?.targetAverage != null ? compactMoney(goal.targetAverage) : null) },
+            { label: "Close / Goal", value: pair(ratio(row.closeRateRolling), goal?.targetRate != null ? ratio(goal.targetRate) : null) },
+            { label: "Opps / Goal", value: pair(String(row.salesOpportunitiesCount), goal?.targetOpportunitiesMonthly != null ? String(goal.targetOpportunitiesMonthly) : null) },
+            { label: "Membership Goal", value: goal?.membershipMonthlyGoal != null ? String(goal.membershipMonthlyGoal) : "Pending" },
+            { label: "Review Goal", value: goal?.reviewMonthlyGoal != null ? String(goal.reviewMonthlyGoal) : "Pending" }
+          ]
+        };
+      })}
     />
   );
 }

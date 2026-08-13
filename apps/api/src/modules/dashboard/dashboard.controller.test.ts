@@ -6,6 +6,7 @@ describe("DashboardController", () => {
     const getCompanyWide = vi.fn().mockResolvedValue({ ok: true });
     const controller = new DashboardController({
       getTechnicians: vi.fn(),
+      getPerformanceTechnicians: vi.fn(),
       getPlumbingTechnicians: vi.fn(),
       getElectricalTechnicians: vi.fn(),
       getInstallers: vi.fn(),
@@ -13,6 +14,8 @@ describe("DashboardController", () => {
       getElectricalInstallers: vi.fn(),
       getCompanyWide,
       getAdvisors: vi.fn(),
+      getPerformanceAdvisors: vi.fn(),
+      getPerformanceFieldPro: vi.fn(),
       getCallCenterSummary: vi.fn(),
       getCallCenterByCsr: vi.fn(),
       getLeadGeneration: vi.fn(),

@@ -117,6 +117,16 @@ export function getConfig() {
           category: "operations",
           reportId: env.ST_REPORT_REVENUE_MONTHLY_PACE
         },
+        fieldProTechnicianActivity: {
+          tenantId: env.SERVICETITAN_TENANT_ID,
+          category: "operations",
+          reportId: env.ST_REPORT_FIELD_PRO_TECHNICIAN_ACTIVITY
+        },
+        fieldProJobRecordings: {
+          tenantId: env.SERVICETITAN_TENANT_ID,
+          category: "operations",
+          reportId: env.ST_REPORT_FIELD_PRO_JOB_RECORDINGS
+        },
         campaignSoldEstimates: {
           tenantId: env.SERVICETITAN_TENANT_ID,
           category: "operations",

@@ -11,48 +11,69 @@ type NavItem = {
 
 type TvRotationRuntimeProps = {
   activePath: string;
+  currentPage?: number | undefined;
   enabled: boolean;
   navItems: NavItem[];
+  pageCount?: number | undefined;
   presetQuery: string;
+  rotateBoards?: boolean;
 };
 
 const ROTATION_INTERVAL_MS = 20_000;
 
 export function TvRotationRuntime({
   activePath,
+  currentPage = 1,
   enabled,
   navItems,
-  presetQuery
+  pageCount = 1,
+  presetQuery,
+  rotateBoards = false
 }: TvRotationRuntimeProps) {
   useEffect(() => {
     if (!enabled || navItems.length === 0) {
       return;
     }
 
-    const activeItemSelected = navItems.some((item) => item.href === activePath);
-    const availableItems = activeItemSelected
-      ? navItems.filter((item) => item.href !== activePath)
-      : navItems;
-
-    if (availableItems.length === 0) {
+    if (pageCount <= 1 && (!rotateBoards || navItems.length <= 1)) {
       return;
     }
 
     const timeout = window.setTimeout(() => {
-      const nextItem =
-        availableItems[Math.floor(Math.random() * availableItems.length)] ?? availableItems[0];
+      const params = new URLSearchParams(presetQuery);
+
+      if (currentPage < pageCount) {
+        params.set("page", String(currentPage + 1));
+        window.location.assign(`${activePath}?${params.toString()}`);
+        return;
+      }
+
+      params.delete("page");
+
+      if (!rotateBoards) {
+        window.location.assign(
+          params.size > 0 ? `${activePath}?${params.toString()}` : activePath,
+        );
+        return;
+      }
+
+      const activeIndex = navItems.findIndex((item) => item.href === activePath);
+      const nextIndex = activeIndex >= 0 ? (activeIndex + 1) % navItems.length : 0;
+      const nextItem = navItems[nextIndex];
 
       if (!nextItem) {
         return;
       }
 
-      window.location.assign(presetQuery ? `${nextItem.href}?${presetQuery}` : nextItem.href);
+      window.location.assign(
+        params.size > 0 ? `${nextItem.href}?${params.toString()}` : nextItem.href,
+      );
     }, ROTATION_INTERVAL_MS);
 
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [activePath, enabled, navItems, presetQuery]);
+  }, [activePath, currentPage, enabled, navItems, pageCount, presetQuery, rotateBoards]);
 
   return null;
 }

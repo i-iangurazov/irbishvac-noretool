@@ -80,7 +80,7 @@ function Avatar(props: { title: string; imageUrl?: string | null | undefined; fe
         <img
           alt={props.title}
           className={imageClassName}
-          loading="lazy"
+          loading="eager"
           ref={imageRef}
           src={props.imageUrl}
           onError={() => setHasError(true)}

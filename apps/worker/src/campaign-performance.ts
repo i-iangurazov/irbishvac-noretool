@@ -2,7 +2,11 @@ import { getConfig } from "@irbis/config";
 import { DashboardFamily, Prisma, RunStatus, prisma } from "@irbis/db";
 import {
   buildCampaignPerformanceSnapshot,
+  inferCampaignCategory,
   normalizeCampaignChannel,
+  type CampaignCapacityAssumption,
+  type CampaignForecastRow,
+  type CampaignPlanApproval,
   type CampaignPlanRow
 } from "@irbis/domain";
 import {
@@ -20,7 +24,7 @@ const AUGUST_2026_BASELINE: CampaignPlanRow[] = [
   ["Workfuel", 29, 14, 2782.61, 39751.52],
   ["Website", 78, 77, 28499.70, 407138.61],
   ["Google Ads", 80, 69, 26579.84, 379712.05],
-  ["Facebook", 53, 21, 5957.11, 85101.62],
+  ["Paid Social", 53, 21, 5957.11, 85101.62],
   ["GBP San Jose", 60, 58, 10645.90, 152084.25],
   ["Miscellaneous", 81, 60, 219.16, 3130.79],
   ["Google LSA", 19, 17, 259.57, 3708.18],
@@ -30,16 +34,26 @@ const AUGUST_2026_BASELINE: CampaignPlanRow[] = [
   ["Scheduling Pro", 35, 33, null, null],
   ["Carrier", 13, 12, 408.83, 5840.46],
   ["Hatch Campaigns", 20, 20, 3041.42, 43448.84],
-  ["Mail Shark", 8, 8, 15.80, 225.69],
+  ["Direct Mail", 8, 8, 15.80, 225.69],
   ["Existing Customers", 0, null, 21476.37, 306805.32]
 ].map(([channel, qualifiedLeads, bookedJobs, spend, completedRevenue]) => ({
   channel: String(channel),
+  category: inferCampaignCategory(String(channel)),
+  budgetType: inferCampaignCategory(String(channel)) === "paid" ? "platform" : "none",
   qualifiedLeads: Number(qualifiedLeads),
   bookedJobs: bookedJobs == null ? null : Number(bookedJobs),
   spend: spend == null ? null : Number(spend),
   soldAmount: null,
   completedRevenue: completedRevenue == null ? null : Number(completedRevenue)
 }));
+
+const DEFAULT_CAPACITY_ASSUMPTIONS: CampaignCapacityAssumption[] = [
+  { team: "HVAC Service", headcount: 5, opportunitiesPerDay: 3, planningDays: 25, notes: "Tim capacity model" },
+  { team: "HVAC Maintenance", headcount: 2, opportunitiesPerDay: 3, planningDays: 25, notes: "Tim capacity model" },
+  { team: "Commercial Service", headcount: 1, opportunitiesPerDay: 3, planningDays: 25, notes: "Tim capacity model" },
+  { team: "Plumbing Service", headcount: 3, opportunitiesPerDay: 3, planningDays: 25, notes: "Tim capacity model" },
+  { team: "Comfort Advisors", headcount: 3, opportunitiesPerDay: 4, planningDays: 25, notes: "Tim capacity model" }
+];
 
 function allocateWholeGoal(goal: number, weights: number[]) {
   const totalWeight = weights.reduce((sum, value) => sum + value, 0);
@@ -145,31 +159,74 @@ function planForMonth(month: string, opportunityGoal: number, targetBookingRate:
   if (month === "2026-08") {
     return {
       rows: buildAugustModelPlan(opportunityGoal, targetBookingRate),
-      status: "MODEL PLAN",
-      leadMethod: "1,125 booked-opportunity capacity model scaled from July channel mix; channel allocation awaits Emil approval.",
-      budgetMethod: "Model allocation by July completed-revenue share"
+      status: "DRAFT MODEL - APPROVAL REQUIRED",
+      approval: {
+        approvalStatus: "draft",
+        version: `${month}-capacity-model`
+      } satisfies CampaignPlanApproval,
+      leadMethod: `${opportunityGoal.toLocaleString("en-US")} booked-opportunity capacity model allocated by July channel mix; channel targets await Emil and Tim approval.`,
+      budgetMethod: "Draft allocation by July completed-revenue share; not an approved budget"
     };
   }
   return {
     rows: [] as CampaignPlanRow[],
     status: "PLAN REQUIRED",
+    approval: {
+      approvalStatus: "required",
+      version: `${month}-missing`
+    } satisfies CampaignPlanApproval,
     leadMethod: "No approved channel plan is connected for this month.",
     budgetMethod: "No approved channel budget is connected for this month."
   };
 }
 
-function parseConnectedPlan(values: unknown[][] | undefined) {
-  if (!values || values.length < 2) return [];
+function normalizeHeader(value: unknown) {
+  return String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function columnIndex(headers: unknown[], aliases: string[], fallback = -1) {
+  const candidates = aliases.map(normalizeHeader);
+  const index = headers.findIndex((value) => candidates.includes(normalizeHeader(value)));
+  return index >= 0 ? index : fallback;
+}
+
+function optionalNumber(value: unknown) {
+  if (value == null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function monthMatches(value: unknown, month: string) {
+  const normalized = String(value ?? "").trim();
+  return normalized === "" || normalized === month || normalized.startsWith(`${month}-`);
+}
+
+function parseConnectedPlan(values: unknown[][] | undefined, month: string) {
+  const empty = {
+    rows: [] as CampaignPlanRow[],
+    approval: null as CampaignPlanApproval | null
+  };
+  if (!values || values.length < 2) return empty;
+  const headers = values[0] ?? [];
+  const monthIndex = columnIndex(headers, ["Month"]);
+  const channelIndex = columnIndex(headers, ["Channel", "Campaign"], 0);
+  const categoryIndex = columnIndex(headers, ["Category"]);
+  const leadIndex = columnIndex(headers, ["Qualified Lead Goal", "Qualified Leads", "Lead Goal"], monthIndex >= 0 ? 3 : 1);
+  const bookedIndex = columnIndex(headers, ["Booked Opportunity Goal", "Booked Jobs", "Opportunity Goal"], monthIndex >= 0 ? 4 : 2);
+  const spendIndex = columnIndex(headers, ["Approved Budget", "Budget", "Spend"], monthIndex >= 0 ? 5 : 3);
+  const soldIndex = columnIndex(headers, ["Sold Amount Goal", "Sold Amount"], monthIndex >= 0 ? 6 : 4);
+  const revenueIndex = columnIndex(headers, ["Revenue Goal", "Completed Revenue"], monthIndex >= 0 ? 7 : 5);
+  const budgetTypeIndex = columnIndex(headers, ["Budget Type"]);
+  const approvedByIndex = columnIndex(headers, ["Approved By"]);
+  const approvedAtIndex = columnIndex(headers, ["Approved At"]);
+  const statusIndex = columnIndex(headers, ["Status", "Approval Status"]);
+  const notesIndex = columnIndex(headers, ["Notes"]);
   const rows: CampaignPlanRow[] = [];
   for (const row of values.slice(1)) {
-    const channel = normalizeCampaignChannel(row[0]);
-    const qualifiedLeads = Number(row[1]);
-    const optionalNumber = (value: unknown) => {
-      if (value == null || value === "") return null;
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : null;
-    };
-    const bookedJobs = optionalNumber(row[2]);
+    if (monthIndex >= 0 && !monthMatches(row[monthIndex], month)) continue;
+    const channel = normalizeCampaignChannel(row[channelIndex]);
+    const qualifiedLeads = Number(row[leadIndex]);
+    const bookedJobs = optionalNumber(row[bookedIndex]);
     if (
       channel === "Other" ||
       !Number.isFinite(qualifiedLeads) ||
@@ -177,16 +234,102 @@ function parseConnectedPlan(values: unknown[][] | undefined) {
       bookedJobs == null ||
       bookedJobs < 0
     ) continue;
+    const inferredCategory = inferCampaignCategory(channel);
+    const categoryValue = String(categoryIndex >= 0 ? row[categoryIndex] ?? "" : "").trim().toLowerCase();
+    const category: NonNullable<CampaignPlanRow["category"]> = ["paid", "organic", "partner", "retention", "other"].includes(categoryValue)
+      ? categoryValue as NonNullable<CampaignPlanRow["category"]>
+      : inferredCategory;
+    const budgetTypeValue = String(budgetTypeIndex >= 0 ? row[budgetTypeIndex] ?? "" : "").trim().toLowerCase();
+    const budgetType: NonNullable<CampaignPlanRow["budgetType"]> = ["platform", "manual", "prepaid", "none"].includes(budgetTypeValue)
+      ? budgetTypeValue as NonNullable<CampaignPlanRow["budgetType"]>
+      : category === "paid" ? "platform" : "none";
     rows.push({
       channel,
+      category,
+      budgetType,
       qualifiedLeads,
       bookedJobs,
-      spend: optionalNumber(row[3]),
-      soldAmount: optionalNumber(row[4]),
-      completedRevenue: optionalNumber(row[5])
+      spend: optionalNumber(row[spendIndex]),
+      soldAmount: optionalNumber(row[soldIndex]),
+      completedRevenue: optionalNumber(row[revenueIndex]),
+      notes: notesIndex >= 0 ? String(row[notesIndex] ?? "").trim() || null : null
     });
   }
-  return rows;
+  if (rows.length === 0) return empty;
+  const firstDataRow = values.slice(1).find((row) => monthIndex < 0 || monthMatches(row[monthIndex], month)) ?? [];
+  const rawStatus = String(statusIndex >= 0 ? firstDataRow[statusIndex] ?? "" : "").trim().toLowerCase();
+  const approvalStatus = rawStatus === "approved" ? "approved" : "draft";
+  return {
+    rows,
+    approval: {
+      approvalStatus,
+      version: `${month}-${approvalStatus}`,
+      approvedBy: approvedByIndex >= 0 ? String(firstDataRow[approvedByIndex] ?? "").trim() || null : null,
+      approvedAt: approvedAtIndex >= 0 ? String(firstDataRow[approvedAtIndex] ?? "").trim() || null : null
+    } satisfies CampaignPlanApproval
+  };
+}
+
+function parseCapacityPlan(values: unknown[][] | undefined, month: string) {
+  if (!values || values.length < 2) return [];
+  const headers = values[0] ?? [];
+  const monthIndex = columnIndex(headers, ["Month"], 0);
+  const teamIndex = columnIndex(headers, ["Team", "Department"], 1);
+  const headcountIndex = columnIndex(headers, ["Headcount", "Technicians"], 2);
+  const perDayIndex = columnIndex(headers, ["Opportunities Day", "Opportunities Per Day", "Opps Day"], 3);
+  const daysIndex = columnIndex(headers, ["Working Days", "Planning Days"], 4);
+  const effectiveIndex = columnIndex(headers, ["Effective From"], 5);
+  const notesIndex = columnIndex(headers, ["Notes"], 6);
+  return values.slice(1).flatMap((row) => {
+    if (!monthMatches(row[monthIndex], month)) return [];
+    const headcount = optionalNumber(row[headcountIndex]);
+    const opportunitiesPerDay = optionalNumber(row[perDayIndex]);
+    const planningDays = optionalNumber(row[daysIndex]);
+    const team = String(row[teamIndex] ?? "").trim();
+    if (!team || headcount == null || opportunitiesPerDay == null || planningDays == null) return [];
+    return [{
+      team,
+      headcount,
+      opportunitiesPerDay,
+      planningDays,
+      effectiveFrom: effectiveIndex >= 0 ? String(row[effectiveIndex] ?? "").trim() || null : null,
+      notes: notesIndex >= 0 ? String(row[notesIndex] ?? "").trim() || null : null
+    } satisfies CampaignCapacityAssumption];
+  });
+}
+
+function parseForecast(values: unknown[][] | undefined, month: string) {
+  if (!values || values.length < 2) return [];
+  const headers = values[0] ?? [];
+  const monthIndex = columnIndex(headers, ["Month"], 0);
+  const channelIndex = columnIndex(headers, ["Channel", "Campaign"], 1);
+  const leadsIndex = columnIndex(headers, ["Qualified Lead Forecast", "Qualified Leads"], 2);
+  const bookedIndex = columnIndex(headers, ["Booked Opportunity Forecast", "Booked Forecast"], 3);
+  const budgetIndex = columnIndex(headers, ["Budget Forecast", "Spend Forecast"], 4);
+  const soldIndex = columnIndex(headers, ["Sold Amount Forecast"], 5);
+  const revenueIndex = columnIndex(headers, ["Revenue Forecast"], 6);
+  const effectiveIndex = columnIndex(headers, ["Effective From"], 7);
+  const reasonIndex = columnIndex(headers, ["Reason", "Revision Reason"], 8);
+  return values.slice(1).flatMap((row) => {
+    if (!monthMatches(row[monthIndex], month)) return [];
+    const channel = normalizeCampaignChannel(row[channelIndex]);
+    const qualifiedLeads = optionalNumber(row[leadsIndex]);
+    const bookedJobs = optionalNumber(row[bookedIndex]);
+    if (channel === "Other" || qualifiedLeads == null || bookedJobs == null) return [];
+    const category = inferCampaignCategory(channel);
+    return [{
+      channel,
+      category,
+      budgetType: category === "paid" ? "platform" : "none",
+      qualifiedLeads,
+      bookedJobs,
+      spend: optionalNumber(row[budgetIndex]),
+      soldAmount: optionalNumber(row[soldIndex]),
+      completedRevenue: optionalNumber(row[revenueIndex]),
+      effectiveFrom: effectiveIndex >= 0 ? String(row[effectiveIndex] ?? "").trim() || null : null,
+      reason: reasonIndex >= 0 ? String(row[reasonIndex] ?? "").trim() || null : null
+    } satisfies CampaignForecastRow];
+  });
 }
 
 export class CampaignPerformanceRefreshRunner {
@@ -261,7 +404,11 @@ export class CampaignPerformanceRefreshRunner {
 
     try {
       const callCenter = await this.sheets.getValues("Master Sheet!A:N");
-      const connectedPlanSheet = await this.sheets.getOptionalValues("Campaign Plan!A:F");
+      const [connectedPlanSheet, capacityPlanSheet, forecastSheet] = await Promise.all([
+        this.sheets.getOptionalValues("Campaign Plan!A:O"),
+        this.sheets.getOptionalValues("Capacity Plan!A:G"),
+        this.sheets.getOptionalValues("Campaign Forecast!A:J")
+      ]);
       const reportSpecs = [
         this.config.serviceTitan.reports.campaigns,
         this.config.serviceTitan.reports.campaignSoldEstimates,
@@ -287,31 +434,49 @@ export class CampaignPerformanceRefreshRunner {
         reportPayloads.push(result.payload);
       }
 
+      const connectedCapacityRows = parseCapacityPlan(capacityPlanSheet?.values, month);
+      const capacityRows = connectedCapacityRows.length > 0
+        ? connectedCapacityRows
+        : DEFAULT_CAPACITY_ASSUMPTIONS;
+      const capacityOpportunityGoal = capacityRows.reduce(
+        (sum, row) => sum + row.headcount * row.opportunitiesPerDay * row.planningDays,
+        0,
+      );
+      const modelOpportunityGoal = capacityOpportunityGoal || this.config.campaignPerformance.opportunityGoal;
       const fallbackPlan = planForMonth(
         month,
-        this.config.campaignPerformance.opportunityGoal,
+        modelOpportunityGoal,
         this.config.campaignPerformance.targetBookingRate,
       );
-      const connectedPlanRows = parseConnectedPlan(connectedPlanSheet?.values);
-      const plan = connectedPlanRows.length > 0
+      const connectedPlan = parseConnectedPlan(connectedPlanSheet?.values, month);
+      const forecastRows = parseForecast(forecastSheet?.values, month);
+      const plan = connectedPlan.rows.length > 0
         ? {
-            rows: connectedPlanRows,
-            status: "CONNECTED PLAN",
-            leadMethod: "Channel goals read from the Google Sheet Campaign Plan tab.",
-            budgetMethod: "Channel budgets read from the Google Sheet Campaign Plan tab."
+            rows: connectedPlan.rows,
+            status: connectedPlan.approval?.approvalStatus === "approved" ? "APPROVED PLAN" : "CONNECTED DRAFT",
+            approval: connectedPlan.approval ?? { approvalStatus: "draft", version: `${month}-draft` } satisfies CampaignPlanApproval,
+            leadMethod: "Channel goals read from Google Sheet Campaign Plan; only rows marked Approved are treated as approved.",
+            budgetMethod: "Channel budgets read from Google Sheet Campaign Plan."
           }
         : fallbackPlan;
-      const connectedLeadGoal = plan.rows.reduce((sum, row) => sum + row.qualifiedLeads, 0);
-      const connectedOpportunityGoal = plan.rows.reduce((sum, row) => sum + (row.bookedJobs ?? 0), 0);
-      const qualifiedLeadGoal = connectedPlanRows.length > 0
+      const effectivePlanRows = plan.rows.map((row) => {
+        const revision = forecastRows.find((candidate) => candidate.channel === row.channel);
+        return revision ?? row;
+      });
+      for (const revision of forecastRows) {
+        if (!effectivePlanRows.some((row) => row.channel === revision.channel)) effectivePlanRows.push(revision);
+      }
+      const connectedLeadGoal = effectivePlanRows.reduce((sum, row) => sum + row.qualifiedLeads, 0);
+      const connectedOpportunityGoal = effectivePlanRows.reduce((sum, row) => sum + (row.bookedJobs ?? 0), 0);
+      const qualifiedLeadGoal = connectedPlan.rows.length > 0
         ? connectedLeadGoal
         : Math.round(
-            this.config.campaignPerformance.opportunityGoal /
+            modelOpportunityGoal /
             this.config.campaignPerformance.targetBookingRate,
           );
-      const opportunityGoal = connectedPlanRows.length > 0
+      const opportunityGoal = connectedPlan.rows.length > 0
         ? connectedOpportunityGoal
-        : this.config.campaignPerformance.opportunityGoal;
+        : modelOpportunityGoal;
       const targetBookingRate = qualifiedLeadGoal > 0
         ? opportunityGoal / qualifiedLeadGoal
         : this.config.campaignPerformance.targetBookingRate;
@@ -325,6 +490,10 @@ export class CampaignPerformanceRefreshRunner {
         soldEstimates: reportPayloads[1] ?? {},
         revenueByCampaign: reportPayloads[2] ?? {},
         planRows: plan.rows,
+        forecastRows,
+        capacityAssumptions: capacityRows,
+        capacityStatus: connectedCapacityRows.length > 0 ? "connected" : "model",
+        planApproval: plan.approval,
         companyRevenueGoal: this.config.campaignPerformance.companyRevenueGoal,
         marketingBudgetRate: this.config.campaignPerformance.marketingBudgetRate,
         qualifiedLeadGoal,
