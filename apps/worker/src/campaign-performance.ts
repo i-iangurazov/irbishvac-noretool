@@ -560,6 +560,15 @@ export class CampaignPerformanceRefreshRunner {
         sourceReportIds: requestParams.reports
       });
 
+      logger.info("Built reconciled campaign performance snapshot", {
+        correlationId,
+        month,
+        soldEstimateRows: snapshot.sources.find((source) => source.name === "ServiceTitan Sold Estimates")?.rowCount ?? 0,
+        soldJobs: snapshot.actual.soldJobs,
+        soldAmount: snapshot.actual.soldAmount,
+        completedRevenue: snapshot.actual.completedRevenue,
+      });
+
       const rawSnapshot = await prisma.rawReportSnapshot.create({
         data: {
           family: DashboardFamily.CAMPAIGNS,
