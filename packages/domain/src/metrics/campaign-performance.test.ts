@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildCampaignPerformanceSnapshot, countWeekdays, inferCampaignBudgetType } from "./campaign-performance";
+import {
+  buildCampaignPerformanceSnapshot,
+  countWeekdays,
+  inferCampaignBudgetType,
+  inferCampaignCategory,
+  normalizeCampaignChannel,
+} from "./campaign-performance";
 
 describe("campaign performance snapshot", () => {
   it("joins Google call-center rows with ServiceTitan actuals and enforces the cutoff", () => {
@@ -170,5 +176,54 @@ describe("campaign performance snapshot", () => {
     expect(result.sources.find((source) => source.name === "Google Campaign Costs")).toMatchObject({ status: "connected", rowCount: 1 });
     expect(inferCampaignBudgetType("Radio")).toBe("manual");
     expect(inferCampaignBudgetType("Direct Mail")).toBe("prepaid");
+  });
+
+  it("maps known ServiceTitan campaign names into executive channels", () => {
+    expect(normalizeCampaignChannel("Google Ad Extension - Branded")).toBe("Google Ads");
+    expect(normalizeCampaignChannel("Refer Pro")).toBe("Refer Pro");
+    expect(normalizeCampaignChannel("Switch Is On")).toBe("Switch Is On");
+    expect(normalizeCampaignChannel("Appfolio")).toBe("Appfolio");
+    expect(normalizeCampaignChannel("Diamond Certified")).toBe("Diamond Certified");
+    expect(normalizeCampaignChannel("SMS - AC Recurring Service Reminder")).toBe("SMS Campaigns");
+    expect(normalizeCampaignChannel("Reserve with Google")).toBe("Reserve with Google");
+    expect(inferCampaignCategory("Refer Pro")).toBe("partner");
+    expect(inferCampaignCategory("SMS Campaigns")).toBe("retention");
+    expect(inferCampaignCategory("Reserve with Google")).toBe("organic");
+  });
+
+  it("retains unknown ServiceTitan campaigns so source totals reconcile", () => {
+    const result = buildCampaignPerformanceSnapshot({
+      month: "2026-08",
+      cutoff: "2026-08-13",
+      callCenterValues: [["Date Received", "Medium", "Lead Quality", "Stage", "Lead Source"]],
+      campaignSummary: {},
+      soldEstimates: {
+        fields: [{ name: "ParentJobCampaign" }, { name: "Total" }],
+        data: [["Future Campaign", 1_250]],
+      },
+      revenueByCampaign: {
+        fields: [{ name: "Name" }, { name: "CompletedRevenue" }],
+        data: [["Future Campaign", 900]],
+      },
+      planRows: [],
+      companyRevenueGoal: 100_000,
+      marketingBudgetRate: 0.07,
+      qualifiedLeadGoal: 100,
+      opportunityGoal: 50,
+      targetBookingRate: 0.5,
+      planStatus: "DRAFT MODEL",
+      channelLeadGoalMethod: "Test",
+      channelBudgetGoalStatus: "Test",
+      sourceReportIds: { campaignSummary: "898", soldEstimates: "7148368", revenueByCampaign: "101394656" },
+    });
+
+    expect(result.actual.soldJobs).toBe(1);
+    expect(result.actual.soldAmount).toBe(1_250);
+    expect(result.actual.completedRevenue).toBe(900);
+    expect(result.rows.find((row) => row.channel === "Other")?.actual).toMatchObject({
+      soldJobs: 1,
+      soldAmount: 1_250,
+      completedRevenue: 900,
+    });
   });
 });

@@ -266,7 +266,7 @@ export function normalizeCampaignChannel(value: unknown) {
     ["Google LSA", ["google local services", "google lsa", "lsa"]],
     ["Website", ["direct web traffic", "google organic", "website"]],
     ["GBP San Jose", ["gbp san jose", "google business"]],
-    ["Google Ads", ["google ads", "maxconv", "pmax", "irbis |"]],
+    ["Google Ads", ["google ads", "google ad extension", "maxconv", "pmax", "irbis |"]],
     ["Paid Social", ["facebook", "paid social", "instagram", "social"]],
     ["Radio", ["radio"]],
     ["Direct Mail", ["mail shark", "direct mail", "letterlabs", "postcard"]],
@@ -278,6 +278,12 @@ export function normalizeCampaignChannel(value: unknown) {
     ["Home Care Plan", ["home care plan"]],
     ["Existing Customers", ["existing customer"]],
     ["Now Operator", ["now operator"]],
+    ["Refer Pro", ["refer pro"]],
+    ["Switch Is On", ["switch is on"]],
+    ["Appfolio", ["appfolio"]],
+    ["Diamond Certified", ["diamond certified"]],
+    ["SMS Campaigns", ["sms -", "sms campaign"]],
+    ["Reserve with Google", ["reserve with google"]],
     ["Miscellaneous", ["miscellaneous", "recall", "warranty"]]
   ];
 
@@ -287,8 +293,9 @@ export function normalizeCampaignChannel(value: unknown) {
 export function inferCampaignCategory(channel: string): CampaignChannelCategory {
   if (["Yelp", "Google LSA", "Google Ads", "Paid Social", "Radio", "Direct Mail", "Workfuel"].includes(channel)) return "paid";
   if (["Website", "GBP San Jose", "669-COOLING"].includes(channel)) return "organic";
-  if (["Existing Customers", "Home Care Plan", "Hatch Campaigns", "Scheduling Pro"].includes(channel)) return "retention";
-  if (["Carrier", "Now Operator"].includes(channel)) return "partner";
+  if (["Existing Customers", "Home Care Plan", "Hatch Campaigns", "Scheduling Pro", "SMS Campaigns"].includes(channel)) return "retention";
+  if (["Carrier", "Now Operator", "Refer Pro", "Switch Is On", "Appfolio", "Diamond Certified"].includes(channel)) return "partner";
+  if (channel === "Reserve with Google") return "organic";
   return "other";
 }
 
@@ -333,7 +340,6 @@ function callCenterActuals(values: unknown[][], month: string, cutoff: string) {
     const dateKey = parseSheetDateKey(row[dateIndex]);
     if (!dateKey || !dateKey.startsWith(month) || dateKey > cutoff) continue;
     const channel = normalizeCampaignChannel(row[channelIndex]);
-    if (channel === "Other") continue;
     const actual = map.get(channel) ?? { ...EMPTY_ACTUAL };
     const medium = normalizeText(row[mediumIndex]);
     const quality = normalizeText(row[qualityIndex]);
@@ -351,7 +357,6 @@ function applyCampaignSummary(target: Map<string, MutableActual>, payload: unkno
   const report = resolveTabularReport(payload);
   for (const row of report.rows) {
     const channel = normalizeCampaignChannel(pickFirst(row, SUMMARY_ALIASES.channel));
-    if (channel === "Other") continue;
     const actual = target.get(channel) ?? { ...EMPTY_ACTUAL };
     actual.spend += toNumber(pickFirst(row, SUMMARY_ALIASES.spend));
     actual.completedRevenue += toNumber(pickFirst(row, SUMMARY_ALIASES.completedRevenue));
@@ -365,7 +370,6 @@ function applyRevenueByCampaign(target: Map<string, MutableActual>, payload: unk
   const revenue = new Map<string, number>();
   for (const row of report.rows) {
     const channel = normalizeCampaignChannel(pickFirst(row, SUMMARY_ALIASES.channel));
-    if (channel === "Other") continue;
     revenue.set(channel, (revenue.get(channel) ?? 0) + toNumber(pickFirst(row, SUMMARY_ALIASES.completedRevenue)));
   }
   for (const [channel, completedRevenue] of revenue) {
@@ -380,7 +384,6 @@ function applySoldEstimates(target: Map<string, MutableActual>, payload: unknown
   const report = resolveTabularReport(payload);
   for (const row of report.rows) {
     const channel = normalizeCampaignChannel(pickFirst(row, SOLD_ALIASES.channel));
-    if (channel === "Other") continue;
     const actual = target.get(channel) ?? { ...EMPTY_ACTUAL };
     actual.soldJobs += 1;
     actual.soldAmount += toNumber(pickFirst(row, SOLD_ALIASES.amount));
@@ -464,7 +467,6 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   );
   for (const cost of input.manualCostRows ?? []) {
     const channel = normalizeCampaignChannel(cost.channel);
-    if (channel === "Other") continue;
     const actual = actuals.get(channel) ?? { ...EMPTY_ACTUAL };
     actual.spend = Math.max(0, cost.spend);
     actuals.set(channel, actual);
