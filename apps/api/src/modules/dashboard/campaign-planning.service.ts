@@ -49,7 +49,18 @@ type PlanInput = {
   updatedBy: string;
 };
 
-export type CampaignPlanningInput = CapacityInput | ForecastInput | PlanInput;
+type CostInput = {
+  type: "cost";
+  month: string;
+  channel: string;
+  mtdSpend: number;
+  budgetType: "platform" | "manual" | "prepaid";
+  effectiveFrom: string;
+  notes?: string;
+  updatedBy: string;
+};
+
+export type CampaignPlanningInput = CapacityInput | ForecastInput | PlanInput | CostInput;
 
 const CAPACITY_HEADERS = [
   "Month",
@@ -90,6 +101,17 @@ const PLAN_HEADERS = [
   "Status",
   "Approved By",
   "Approved At",
+  "Notes",
+  "Updated By",
+  "Updated At"
+];
+
+const COST_HEADERS = [
+  "Month",
+  "Channel",
+  "MTD Spend",
+  "Budget Type",
+  "Effective From",
   "Notes",
   "Updated By",
   "Updated At"
@@ -221,7 +243,27 @@ export class CampaignPlanningService {
         return { saved: true, type, updatedRange: result.updates?.updatedRange ?? null };
       }
 
-      throw new BadRequestException("Type must be plan, capacity, or forecast");
+      if (type === "cost") {
+        const input = raw as CostInput;
+        const budgetType = requireText(input.budgetType, "Budget type");
+        if (!["platform", "manual", "prepaid"].includes(budgetType)) {
+          throw new BadRequestException("Budget type is invalid");
+        }
+        await this.sheets.ensureSheet("Campaign Costs", COST_HEADERS);
+        const result = await this.sheets.appendValues("Campaign Costs", [[
+          month,
+          requireText(input.channel, "Channel"),
+          requireNumber(input.mtdSpend, "MTD spend"),
+          budgetType,
+          requireDate(input.effectiveFrom, "Effective from"),
+          String(input.notes ?? "").trim(),
+          updatedBy,
+          updatedAt
+        ]]);
+        return { saved: true, type, updatedRange: result.updates?.updatedRange ?? null };
+      }
+
+      throw new BadRequestException("Type must be plan, capacity, forecast, or cost");
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new ServiceUnavailableException(error instanceof Error ? error.message : String(error));
@@ -235,6 +277,13 @@ export class CampaignPlanningService {
         reason: `Google Sheets is not configured: ${this.sheets.getMissingConfiguration().join(", ")}`
       };
     }
-    return this.sheets.verifyWriteAccess();
+    try {
+      return await this.sheets.verifyWriteAccess();
+    } catch {
+      return {
+        writable: false,
+        reason: "Unable to verify Google Sheet write access. Check the service-account credentials and Editor permission."
+      };
+    }
   }
 }

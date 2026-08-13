@@ -122,6 +122,13 @@ export type CampaignPerformanceData = {
     completedRevenue: number;
     roas?: number | null;
   };
+  spendCoverage?: {
+    status: "complete" | "partial" | "unavailable" | "not-applicable";
+    activePaidChannels: number;
+    trackedPaidChannels: number;
+    missingPaidChannels: string[];
+    trackedLeadShare: number | null;
+  };
   pace: {
     expectedToDateRatio: number;
     expectedWorkingDayRatio?: number;
@@ -195,6 +202,27 @@ function effectiveTargets(row: CampaignRow) {
   return row.effectivePlan ?? row.forecast ?? row.plan;
 }
 
+function missingPaidSpend(row: CampaignRow) {
+  const active = row.actual.qualifiedLeads > 0 || row.actual.bookedJobs > 0 || row.actual.soldJobs > 0 || row.actual.completedRevenue > 0;
+  return rowCategory(row) === "paid" && active && row.actual.spend === 0;
+}
+
+function spendCoverage(data: CampaignPerformanceData) {
+  if (data.spendCoverage) return data.spendCoverage;
+  const activePaidRows = data.rows.filter((row) => rowCategory(row) === "paid" && (
+    row.actual.qualifiedLeads > 0 || row.actual.bookedJobs > 0 || row.actual.soldJobs > 0 || row.actual.completedRevenue > 0
+  ));
+  const missingPaidChannels = activePaidRows.filter(missingPaidSpend).map((row) => row.channel);
+  const trackedPaidChannels = activePaidRows.length - missingPaidChannels.length;
+  return {
+    status: activePaidRows.length === 0 ? "not-applicable" as const : missingPaidChannels.length === 0 ? "complete" as const : trackedPaidChannels === 0 ? "unavailable" as const : "partial" as const,
+    activePaidChannels: activePaidRows.length,
+    trackedPaidChannels,
+    missingPaidChannels,
+    trackedLeadShare: null,
+  };
+}
+
 function periodId(data: CampaignPerformanceData) {
   return data.period.id ?? data.period.from.slice(0, 7);
 }
@@ -224,13 +252,14 @@ function ChannelTable({ rows, mode = "actual" }: { rows: CampaignRow[]; mode?: "
           {rows.map((row) => {
             const target = effectiveTargets(row);
             const progress = Math.max(0, Math.min(100, (row.opportunityAttainment ?? 0) * 100));
+            const costMissing = missingPaidSpend(row);
             return mode === "actual" ? (
               <tr key={row.channel}>
                 <td><strong>{row.channel}</strong><span>{CATEGORY_LABEL[rowCategory(row)]} · {row.actual.calls} calls · {row.actual.forms} forms</span></td>
                 <td><strong>{formatNumber(row.actual.bookedJobs)} / {target.bookedJobs ?? "-"}</strong><div className="campaign-progress"><span style={{ width: `${progress}%` }} /></div></td>
                 <td><strong>{formatMaybePercent(row.pace)}</strong><span>working-day pace</span></td>
                 <td><strong>{formatNumber(row.actual.qualifiedLeads)} / {target.qualifiedLeads || "-"}</strong><span>{formatMaybePercent(row.actual.bookingRate)} booked</span></td>
-                <td><strong>{formatCompactCurrency(row.actual.spend)}</strong><span>CPL {row.actual.costPerLead == null ? "-" : formatCompactCurrency(row.actual.costPerLead)} · CPB {row.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(row.actual.costPerBookedJob)}</span></td>
+                <td className={costMissing ? "campaign-cost-missing" : undefined}><strong>{costMissing ? "Not tracked" : formatCompactCurrency(row.actual.spend)}</strong><span>{costMissing ? "Cost input required" : `CPL ${row.actual.costPerLead == null ? "-" : formatCompactCurrency(row.actual.costPerLead)} · CPB ${row.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(row.actual.costPerBookedJob)}`}</span></td>
                 <td><strong>{formatNumber(row.actual.soldJobs)}</strong><span>{formatCompactCurrency(row.actual.soldAmount)}</span></td>
                 <td><strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong><span>ROAS {row.actual.roas == null ? "-" : `${row.actual.roas.toFixed(1)}x`}</span></td>
                 <td><span className={`campaign-status campaign-status--${row.status}`}>{STATUS_LABEL[row.status]}</span></td>
@@ -266,7 +295,10 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
     const booked = rows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
     return leads > 0 ? booked / leads : null;
   };
-  const roas = data.actual.roas ?? (data.actual.spend > 0 ? data.actual.completedRevenue / data.actual.spend : null);
+  const coverage = spendCoverage(data);
+  const costsComplete = coverage.status === "complete";
+  const roas = costsComplete ? data.actual.roas ?? null : null;
+  const targetLabel = data.plan.approvalStatus === "approved" ? "Target" : "Model target";
   const progressWidth = (value: number | null) => `${Math.min(100, Math.max(0, (value ?? 0) * 100))}%`;
   return (
     <>
@@ -274,7 +306,7 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
         <div className="campaign-executive-card campaign-executive-card--revenue">
           <span>Revenue</span>
           <strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong>
-          <small>Target {formatCompactCurrency(data.plan.companyRevenueGoal)} · {formatMaybePercent(revenueAttainment)} achieved</small>
+          <small>{targetLabel} {formatCompactCurrency(data.plan.companyRevenueGoal)} · {formatMaybePercent(revenueAttainment)} achieved</small>
           <div className="campaign-executive-meter"><span style={{ width: progressWidth(revenueAttainment) }} /></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--sales">
@@ -290,20 +322,20 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
         <div className="campaign-executive-card campaign-executive-card--booking">
           <span>Booking rate</span>
           <strong>{formatMaybePercent(data.actual.bookingRate)}</strong>
-          <small>Target {formatMaybePercent(data.plan.targetBookingRate)}</small>
+          <small>{targetLabel} {formatMaybePercent(data.plan.targetBookingRate)}</small>
           <div className="campaign-executive-split"><span>Paid <b>{formatMaybePercent(bookingRateFor(paidRows))}</b></span><span>Organic <b>{formatMaybePercent(bookingRateFor(organicRows))}</b></span></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--spend">
-          <span>Marketing spend</span>
+          <span>Tracked marketing spend</span>
           <strong>{formatCompactCurrency(data.actual.spend)} / {formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong>
-          <small>{formatMaybePercent(data.pace.spendPace)} calendar pace</small>
+          <small>{costsComplete ? `${formatMaybePercent(data.pace.spendPace)} calendar pace` : `${coverage.trackedPaidChannels}/${coverage.activePaidChannels} active paid channels have costs`}</small>
           <div className="campaign-executive-meter"><span style={{ width: progressWidth(budgetAttainment) }} /></div>
-          <div className="campaign-executive-split"><span>Cost / lead <b>{data.actual.costPerLead == null ? "-" : formatCompactCurrency(data.actual.costPerLead)}</b></span><span>Cost / job <b>{data.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(data.actual.costPerBookedJob)}</b></span></div>
+          <div className="campaign-executive-split"><span>Cost / lead <b>{costsComplete && data.actual.costPerLead != null ? formatCompactCurrency(data.actual.costPerLead) : "Pending"}</b></span><span>Cost / job <b>{costsComplete && data.actual.costPerBookedJob != null ? formatCompactCurrency(data.actual.costPerBookedJob) : "Pending"}</b></span></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--roas">
           <span>ROAS</span>
-          <strong>{roas == null ? "-" : `${roas.toFixed(1)}x`}</strong>
-          <small>Completed revenue / tracked spend</small>
+          <strong>{roas == null ? "Pending" : `${roas.toFixed(1)}x`}</strong>
+          <small>{costsComplete ? "Completed revenue / tracked spend" : `${coverage.missingPaidChannels.length} paid channel costs missing`}</small>
         </div>
       </section>
 
@@ -341,11 +373,18 @@ function ChannelsView({ data }: { data: CampaignPerformanceData }) {
   return (
     <>
       <section className="campaign-category-strip">
-        {categories.map((item) => <div key={item.category}><span>{CATEGORY_LABEL[item.category]}</span><strong>{formatNumber(item.booked)} booked</strong><small>{formatNumber(item.leads)} leads · {formatCompactCurrency(item.spend)} spend · {formatCompactCurrency(item.revenue)} revenue</small></div>)}
+        {categories.map((item) => <div key={item.category}><span>{CATEGORY_LABEL[item.category]}</span><strong>{formatNumber(item.booked)} booked</strong><small>{formatNumber(item.leads)} leads · {formatCompactCurrency(item.spend)} tracked spend · {formatCompactCurrency(item.revenue)} revenue</small></div>)}
       </section>
       <section className="campaign-table-panel">
         <div className="campaign-table-panel__heading"><div><h3>All campaign channels</h3><p>Paid and unpaid channels are separated; missing paid costs are surfaced as alerts.</p></div><div className="campaign-table-panel__plan"><span>Channels</span><strong>{data.rows.length}</strong><small>Google Sheet + ServiceTitan</small></div></div>
         <ChannelTable rows={data.rows} />
+      </section>
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Complete action queue</h3><p>Every active campaign alert at this cutoff.</p></div><div className="campaign-table-panel__plan"><span>Open alerts</span><strong>{data.alerts.length}</strong><small>Critical first</small></div></div>
+        <div className="campaign-alert-list">
+          {data.alerts.map((alert) => <div className={`campaign-alert campaign-alert--${alert.severity}`} key={`${alert.channel}-${alert.message}`}><strong>{alert.channel}</strong><span>{alert.message}</span></div>)}
+          {data.alerts.length === 0 ? <div className="campaign-alert campaign-alert--source"><strong>No active alerts</strong><span>All connected rules are clear at this cutoff.</span></div> : null}
+        </div>
       </section>
     </>
   );

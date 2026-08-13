@@ -30,6 +30,7 @@ function encodeBase64Url(value: string | Buffer) {
 export class GoogleSheetsClient {
   private readonly config = getConfig().campaignPerformance.google;
   private token: AccessToken | null = null;
+  private writeAccess: { value: { writable: boolean; reason: string | null }; expiresAt: number } | null = null;
 
   getMissingConfiguration() {
     const required = [
@@ -210,19 +211,39 @@ export class GoogleSheetsClient {
   }
 
   async verifyWriteAccess() {
+    if (this.writeAccess && this.writeAccess.expiresAt > Date.now()) {
+      return this.writeAccess.value;
+    }
     try {
+      const metadataResponse = await this.request("?fields=properties.title", {
+        method: "GET"
+      });
+      const metadata = (await metadataResponse.json()) as { properties?: { title?: string } };
+      const title = metadata.properties?.title;
+      if (!title) throw new Error("Google Sheet title is unavailable");
       await this.request(":batchUpdate", {
         method: "POST",
-        body: JSON.stringify({ requests: [] })
+        body: JSON.stringify({
+          requests: [{
+            updateSpreadsheetProperties: {
+              properties: { title },
+              fields: "title"
+            }
+          }]
+        })
       });
-      return { writable: true as const, reason: null };
+      const value = { writable: true as const, reason: null };
+      this.writeAccess = { value, expiresAt: Date.now() + 5 * 60_000 };
+      return value;
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       if (reason.includes("(403)")) {
-        return {
+        const value = {
           writable: false as const,
           reason: `Share the Google Sheet with ${this.config.serviceAccountEmail} as Editor.`
         };
+        this.writeAccess = { value, expiresAt: Date.now() + 5 * 60_000 };
+        return value;
       }
       throw error;
     }

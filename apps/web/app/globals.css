@@ -3427,6 +3427,16 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
 .campaign-alert--warning { border-left-color: #dc8a00; background: #fff9eb; }
 .campaign-alert--critical { border-left-color: #c53b32; background: #fff0ef; }
 .campaign-alert--source { border-left-color: #62717d; background: #f2f4f5; }
+.campaign-cost-missing strong { color: #a43a31; }
+.campaign-cost-missing span { color: #a43a31 !important; font-weight: 850; }
+.campaign-alert-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dash-space-xs);
+  padding: var(--dash-space-sm);
+}
+.campaign-alert-list .campaign-alert strong,
+.campaign-alert-list .campaign-alert span { white-space: normal; }
 
 .campaign-alert strong,
 .campaign-alert span {
@@ -3968,7 +3978,7 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
 
 .campaign-input-mode {
   display: inline-grid;
-  grid-template-columns: repeat(3, minmax(calc(var(--vw-unit) * 106), 1fr));
+  grid-template-columns: repeat(4, minmax(calc(var(--vw-unit) * 96), 1fr));
   padding: calc(var(--dash-border) * 2);
   border: var(--dash-border) solid #cdd5d9;
   background: #edf1f2;
@@ -4132,6 +4142,7 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
   .campaign-input-form { grid-template-columns: 1fr; }
   .campaign-input-form__wide { grid-column: 1; }
   .campaign-input-connection { align-items: flex-start; flex-direction: column; }
+  .campaign-alert-list { grid-template-columns: 1fr; }
   .campaign-executive-card--sales,
   .campaign-executive-card--flow,
   .campaign-executive-split { grid-template-columns: 1fr; }

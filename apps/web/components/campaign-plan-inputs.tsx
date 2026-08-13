@@ -10,7 +10,7 @@ type CapacityRow = {
   planningDays: number;
 };
 
-type InputMode = "plan" | "capacity" | "forecast";
+type InputMode = "plan" | "capacity" | "forecast" | "cost";
 type SaveState = "idle" | "saving" | "refreshing" | "saved" | "failed";
 type WriteConnection = "checking" | "ready" | "blocked";
 
@@ -24,6 +24,21 @@ const SAVE_LABELS: Record<SaveState, string> = {
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function inferredCategory(channel: string) {
+  if (["Yelp", "Google LSA", "Google Ads", "Paid Social", "Radio", "Direct Mail", "Workfuel"].includes(channel)) return "paid";
+  if (["Website", "GBP San Jose", "669-COOLING"].includes(channel)) return "organic";
+  if (["Existing Customers", "Home Care Plan", "Hatch Campaigns", "Scheduling Pro"].includes(channel)) return "retention";
+  if (["Carrier", "Now Operator"].includes(channel)) return "partner";
+  return "other";
+}
+
+function inferredBudgetType(channel: string) {
+  if (inferredCategory(channel) !== "paid") return "none";
+  if (channel === "Direct Mail") return "prepaid";
+  if (["Radio", "Workfuel"].includes(channel)) return "manual";
+  return "platform";
 }
 
 export function CampaignPlanInputs(props: {
@@ -41,6 +56,11 @@ export function CampaignPlanInputs(props: {
   const defaultTeam = props.capacityRows[0]?.team ?? "HVAC Service";
   const defaultChannel = props.channels[0] ?? "Yelp";
   const [selectedTeam, setSelectedTeam] = useState(defaultTeam);
+  const [selectedPlanChannel, setSelectedPlanChannel] = useState(defaultChannel);
+  const [selectedPlanCategory, setSelectedPlanCategory] = useState(inferredCategory(defaultChannel));
+  const [selectedPlanBudgetType, setSelectedPlanBudgetType] = useState(inferredBudgetType(defaultChannel));
+  const [selectedCostChannel, setSelectedCostChannel] = useState(defaultChannel);
+  const [selectedCostBudgetType, setSelectedCostBudgetType] = useState(inferredBudgetType(defaultChannel));
   const selectedCapacity = useMemo(
     () => props.capacityRows.find((row) => row.team === selectedTeam),
     [props.capacityRows, selectedTeam],
@@ -120,6 +140,15 @@ export function CampaignPlanInputs(props: {
           planningDays: Number(form.get("planningDays")),
           notes: String(form.get("notes") ?? ""),
         }
+      : mode === "cost"
+      ? {
+          ...common,
+          effectiveFrom: String(form.get("effectiveFrom") ?? ""),
+          channel: String(form.get("channel") ?? ""),
+          mtdSpend: Number(form.get("mtdSpend")),
+          budgetType: String(form.get("budgetType") ?? ""),
+          notes: String(form.get("notes") ?? ""),
+        }
       : {
           ...common,
           effectiveFrom: String(form.get("effectiveFrom") ?? ""),
@@ -159,12 +188,13 @@ export function CampaignPlanInputs(props: {
         <div>
           <span>Planning controls</span>
           <h3>Set the monthly plan and record adjustments</h3>
-          <p>Approved channel goals, capacity changes, and in-month forecasts are kept as separate ledgers.</p>
+          <p>Approved goals, capacity changes, forecasts, and MTD costs are kept as separate ledgers.</p>
         </div>
         <div className="campaign-input-mode" aria-label="Adjustment type">
           <button aria-pressed={mode === "plan"} className={mode === "plan" ? "is-active" : ""} onClick={() => setMode("plan")} type="button">Monthly plan</button>
           <button aria-pressed={mode === "capacity"} className={mode === "capacity" ? "is-active" : ""} onClick={() => setMode("capacity")} type="button">Capacity</button>
           <button aria-pressed={mode === "forecast"} className={mode === "forecast" ? "is-active" : ""} onClick={() => setMode("forecast")} type="button">Channel forecast</button>
+          <button aria-pressed={mode === "cost"} className={mode === "cost" ? "is-active" : ""} onClick={() => setMode("cost")} type="button">Cost entry</button>
         </div>
       </div>
 
@@ -176,12 +206,12 @@ export function CampaignPlanInputs(props: {
       <form aria-disabled={writeConnection !== "ready"} className="campaign-input-form" onSubmit={save} key={mode}>
         {mode === "plan" ? (
           <>
-            <label><span>Channel</span><select defaultValue={defaultChannel} name="channel">{props.channels.map((channel) => <option key={channel}>{channel}</option>)}</select></label>
-            <label><span>Category</span><select defaultValue="paid" name="category"><option value="paid">Paid</option><option value="organic">Organic</option><option value="retention">Retention</option><option value="partner">Partner</option><option value="other">Other</option></select></label>
+            <label><span>Channel</span><select name="channel" onChange={(event) => { setSelectedPlanChannel(event.target.value); setSelectedPlanCategory(inferredCategory(event.target.value)); setSelectedPlanBudgetType(inferredBudgetType(event.target.value)); }} value={selectedPlanChannel}>{props.channels.map((channel) => <option key={channel}>{channel}</option>)}</select></label>
+            <label><span>Category</span><select name="category" onChange={(event) => setSelectedPlanCategory(event.target.value)} value={selectedPlanCategory}><option value="paid">Paid</option><option value="organic">Organic</option><option value="retention">Retention</option><option value="partner">Partner</option><option value="other">Other</option></select></label>
             <label><span>Qualified lead goal</span><input min="0" name="qualifiedLeadGoal" required step="1" type="number" /></label>
             <label><span>Booked job goal</span><input min="0" name="bookedOpportunityGoal" required step="1" type="number" /></label>
             <label><span>Approved budget</span><input min="0" name="approvedBudget" placeholder="Optional" step="0.01" type="number" /></label>
-            <label><span>Budget type</span><select defaultValue="platform" name="budgetType"><option value="platform">Platform</option><option value="manual">Manual</option><option value="prepaid">Prepaid</option><option value="none">None</option></select></label>
+            <label><span>Budget type</span><select name="budgetType" onChange={(event) => setSelectedPlanBudgetType(event.target.value)} value={selectedPlanBudgetType}><option value="platform">Platform</option><option value="manual">Manual</option><option value="prepaid">Prepaid</option><option value="none">None</option></select></label>
             <label><span>Sales value goal</span><input min="0" name="soldAmountGoal" placeholder="Optional" step="0.01" type="number" /></label>
             <label><span>Revenue goal</span><input min="0" name="revenueGoal" placeholder="Optional" step="0.01" type="number" /></label>
             <label><span>Plan status</span><select defaultValue="draft" name="approvalStatus"><option value="draft">Draft</option><option value="approved">Approved</option></select></label>
@@ -194,6 +224,13 @@ export function CampaignPlanInputs(props: {
             <label><span>Opportunities / day</span><input defaultValue={selectedCapacity?.opportunitiesPerDay ?? 3} key={`${selectedTeam}-opportunities`} min="0" name="opportunitiesPerDay" required step="0.1" type="number" /></label>
             <label><span>Planning days</span><input defaultValue={selectedCapacity?.planningDays ?? 25} key={`${selectedTeam}-days`} min="1" name="planningDays" required step="1" type="number" /></label>
             <label className="campaign-input-form__wide"><span>Change note</span><input name="notes" placeholder="Example: one plumber unavailable for two weeks" type="text" /></label>
+          </>
+        ) : mode === "cost" ? (
+          <>
+            <label><span>Channel</span><select name="channel" onChange={(event) => { setSelectedCostChannel(event.target.value); setSelectedCostBudgetType(inferredBudgetType(event.target.value)); }} value={selectedCostChannel}>{props.channels.map((channel) => <option key={channel}>{channel}</option>)}</select></label>
+            <label><span>MTD tracked spend</span><input min="0" name="mtdSpend" required step="0.01" type="number" /></label>
+            <label><span>Budget type</span><select name="budgetType" onChange={(event) => setSelectedCostBudgetType(event.target.value)} value={selectedCostBudgetType}><option value="platform">Platform</option><option value="manual">Manual</option><option value="prepaid">Prepaid</option></select></label>
+            <label className="campaign-input-form__wide"><span>Cost note</span><input name="notes" placeholder="Source, invoice, or correction context" type="text" /></label>
           </>
         ) : (
           <>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCampaignPerformanceSnapshot, countWeekdays } from "./campaign-performance";
+import { buildCampaignPerformanceSnapshot, countWeekdays, inferCampaignBudgetType } from "./campaign-performance";
 
 describe("campaign performance snapshot", () => {
   it("joins Google call-center rows with ServiceTitan actuals and enforces the cutoff", () => {
@@ -52,7 +52,8 @@ describe("campaign performance snapshot", () => {
     expect(result.pace.opportunityPace).toBeCloseTo(0.105);
     expect(result.pace.expectedCalendarDayRatio).toBeCloseTo(6 / 31);
     expect(result.pace.opportunityGap).toBe(49);
-    expect(result.sources).toHaveLength(5);
+    expect(result.sources).toHaveLength(6);
+    expect(result.spendCoverage).toMatchObject({ status: "complete", activePaidChannels: 1, trackedPaidChannels: 1 });
     expect(result.nextMonthDraft.month).toBe("2026-09");
   });
 
@@ -91,5 +92,83 @@ describe("campaign performance snapshot", () => {
 
   it("counts weekdays for operational pace and excludes weekends", () => {
     expect(countWeekdays("2026-08-01", "2026-08-10")).toBe(6);
+  });
+
+  it("withholds aggregate cost metrics when an active paid channel has no cost", () => {
+    const result = buildCampaignPerformanceSnapshot({
+      month: "2026-08",
+      cutoff: "2026-08-10",
+      generatedAt: "2026-08-10T13:00:00.000Z",
+      callCenterValues: [
+        ["Date Received", "Medium", "Lead Quality", "Stage", "Lead Source"],
+        ["2026-08-05", "Call", "Good", "Booked", "Yelp"],
+        ["2026-08-06", "Call", "Good", "Booked", "Direct Mail"],
+      ],
+      campaignSummary: {
+        fields: [{ name: "Name" }, { name: "Cost" }],
+        data: [["Yelp", 500]],
+      },
+      soldEstimates: {},
+      revenueByCampaign: {},
+      planRows: [
+        { channel: "Yelp", qualifiedLeads: 10, bookedJobs: 5, spend: 1_000, soldAmount: null, completedRevenue: null },
+        { channel: "Direct Mail", qualifiedLeads: 10, bookedJobs: 5, spend: 8_700, soldAmount: null, completedRevenue: null },
+      ],
+      connectedPlanRowCount: 0,
+      companyRevenueGoal: 100_000,
+      marketingBudgetRate: 0.07,
+      qualifiedLeadGoal: 20,
+      opportunityGoal: 10,
+      targetBookingRate: 0.5,
+      planStatus: "DRAFT MODEL",
+      channelLeadGoalMethod: "Test",
+      channelBudgetGoalStatus: "Test",
+      sourceReportIds: { campaignSummary: "898", soldEstimates: "7148368", revenueByCampaign: "101394656" },
+    });
+
+    expect(result.spendCoverage).toMatchObject({
+      status: "partial",
+      activePaidChannels: 2,
+      trackedPaidChannels: 1,
+      missingPaidChannels: ["Direct Mail"],
+    });
+    expect(result.actual.costPerLead).toBeNull();
+    expect(result.actual.costPerBookedJob).toBeNull();
+    expect(result.actual.roas).toBeNull();
+    expect(result.pace.spendPace).toBeNull();
+    expect(result.rows.find((row) => row.channel === "Direct Mail")?.budgetType).toBe("prepaid");
+    expect(result.sources.find((source) => source.name === "Google Campaign Plan")).toMatchObject({ status: "blocked", rowCount: 0 });
+  });
+
+  it("uses the latest manual MTD cost override", () => {
+    const result = buildCampaignPerformanceSnapshot({
+      month: "2026-08",
+      cutoff: "2026-08-10",
+      callCenterValues: [
+        ["Date Received", "Medium", "Lead Quality", "Stage", "Lead Source"],
+        ["2026-08-05", "Call", "Good", "Booked", "Direct Mail"],
+      ],
+      campaignSummary: {},
+      soldEstimates: {},
+      revenueByCampaign: {},
+      planRows: [{ channel: "Direct Mail", qualifiedLeads: 10, bookedJobs: 5, spend: 8_700, soldAmount: null, completedRevenue: null }],
+      manualCostRows: [{ channel: "Direct Mail", spend: 8_700, budgetType: "prepaid" }],
+      connectedCostRowCount: 1,
+      companyRevenueGoal: 100_000,
+      marketingBudgetRate: 0.07,
+      qualifiedLeadGoal: 10,
+      opportunityGoal: 5,
+      targetBookingRate: 0.5,
+      planStatus: "DRAFT MODEL",
+      channelLeadGoalMethod: "Test",
+      channelBudgetGoalStatus: "Test",
+      sourceReportIds: { campaignSummary: "898", soldEstimates: "7148368", revenueByCampaign: "101394656" },
+    });
+
+    expect(result.actual.spend).toBe(8_700);
+    expect(result.spendCoverage.status).toBe("complete");
+    expect(result.sources.find((source) => source.name === "Google Campaign Costs")).toMatchObject({ status: "connected", rowCount: 1 });
+    expect(inferCampaignBudgetType("Radio")).toBe("manual");
+    expect(inferCampaignBudgetType("Direct Mail")).toBe("prepaid");
   });
 });

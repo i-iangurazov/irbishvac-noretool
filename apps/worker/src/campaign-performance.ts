@@ -2,10 +2,12 @@ import { getConfig } from "@irbis/config";
 import { DashboardFamily, Prisma, RunStatus, prisma } from "@irbis/db";
 import {
   buildCampaignPerformanceSnapshot,
+  inferCampaignBudgetType,
   inferCampaignCategory,
   normalizeCampaignChannel,
   type CampaignCapacityAssumption,
   type CampaignForecastRow,
+  type CampaignManualCostRow,
   type CampaignPlanApproval,
   type CampaignPlanRow
 } from "@irbis/domain";
@@ -40,7 +42,7 @@ const AUGUST_2026_BASELINE: CampaignPlanRow[] = [
 ].map(([channel, qualifiedLeads, bookedJobs, spend, completedRevenue]) => ({
   channel: String(channel),
   category: inferCampaignCategory(String(channel)),
-  budgetType: inferCampaignCategory(String(channel)) === "paid" ? "platform" : "none",
+  budgetType: inferCampaignBudgetType(String(channel)),
   qualifiedLeads: Number(qualifiedLeads),
   bookedJobs: bookedJobs == null ? null : Number(bookedJobs),
   spend: spend == null ? null : Number(spend),
@@ -248,7 +250,7 @@ function parseConnectedPlan(values: unknown[][] | undefined, month: string) {
     const budgetTypeValue = String(budgetTypeIndex >= 0 ? row[budgetTypeIndex] ?? "" : "").trim().toLowerCase();
     const budgetType: NonNullable<CampaignPlanRow["budgetType"]> = ["platform", "manual", "prepaid", "none"].includes(budgetTypeValue)
       ? budgetTypeValue as NonNullable<CampaignPlanRow["budgetType"]>
-      : category === "paid" ? "platform" : "none";
+      : inferCampaignBudgetType(channel, category);
     latestByChannel.set(channel, {
       plan: {
         channel,
@@ -334,7 +336,7 @@ function parseForecast(values: unknown[][] | undefined, month: string) {
     latestByChannel.set(channel, {
       channel,
       category,
-      budgetType: category === "paid" ? "platform" : "none",
+      budgetType: inferCampaignBudgetType(channel, category),
       qualifiedLeads,
       bookedJobs,
       spend: optionalNumber(row[budgetIndex]),
@@ -344,6 +346,39 @@ function parseForecast(values: unknown[][] | undefined, month: string) {
       reason: reasonIndex >= 0 ? String(row[reasonIndex] ?? "").trim() || null : null
     } satisfies CampaignForecastRow);
   }
+  return [...latestByChannel.values()];
+}
+
+function parseManualCosts(values: unknown[][] | undefined, month: string) {
+  if (!values || values.length < 2) return [];
+  const headers = values[0] ?? [];
+  const monthIndex = columnIndex(headers, ["Month"], 0);
+  const channelIndex = columnIndex(headers, ["Channel", "Campaign"], 1);
+  const spendIndex = columnIndex(headers, ["MTD Spend", "Spend", "Actual Spend"], 2);
+  const budgetTypeIndex = columnIndex(headers, ["Budget Type", "Cost Type"], 3);
+  const effectiveIndex = columnIndex(headers, ["Effective From", "As Of"], 4);
+  const notesIndex = columnIndex(headers, ["Notes"], 5);
+  const latestByChannel = new Map<string, CampaignManualCostRow>();
+
+  for (const row of values.slice(1)) {
+    if (!monthMatches(row[monthIndex], month)) continue;
+    const channel = normalizeCampaignChannel(row[channelIndex]);
+    const spend = optionalNumber(row[spendIndex]);
+    if (channel === "Other" || spend == null || spend < 0) continue;
+    const inferred = inferCampaignBudgetType(channel);
+    const rawBudgetType = String(row[budgetTypeIndex] ?? "").trim().toLowerCase();
+    const budgetType = ["platform", "manual", "prepaid"].includes(rawBudgetType)
+      ? rawBudgetType as "platform" | "manual" | "prepaid"
+      : inferred === "none" ? "manual" : inferred;
+    latestByChannel.set(channel, {
+      channel,
+      spend,
+      budgetType,
+      effectiveFrom: effectiveIndex >= 0 ? String(row[effectiveIndex] ?? "").trim() || null : null,
+      notes: notesIndex >= 0 ? String(row[notesIndex] ?? "").trim() || null : null
+    });
+  }
+
   return [...latestByChannel.values()];
 }
 
@@ -419,10 +454,11 @@ export class CampaignPerformanceRefreshRunner {
 
     try {
       const callCenter = await this.sheets.getValues("Master Sheet!A:N");
-      const [connectedPlanSheet, capacityPlanSheet, forecastSheet] = await Promise.all([
+      const [connectedPlanSheet, capacityPlanSheet, forecastSheet, costSheet] = await Promise.all([
         this.sheets.getOptionalValues("Campaign Plan!A:O"),
         this.sheets.getOptionalValues("Capacity Plan!A:G"),
-        this.sheets.getOptionalValues("Campaign Forecast!A:J")
+        this.sheets.getOptionalValues("Campaign Forecast!A:J"),
+        this.sheets.getOptionalValues("Campaign Costs!A:H")
       ]);
       const reportSpecs = [
         this.config.serviceTitan.reports.campaigns,
@@ -465,6 +501,7 @@ export class CampaignPerformanceRefreshRunner {
       );
       const connectedPlan = parseConnectedPlan(connectedPlanSheet?.values, month);
       const forecastRows = parseForecast(forecastSheet?.values, month);
+      const manualCostRows = parseManualCosts(costSheet?.values, month);
       const plan = connectedPlan.rows.length > 0
         ? {
             rows: connectedPlan.rows,
@@ -506,6 +543,9 @@ export class CampaignPerformanceRefreshRunner {
         revenueByCampaign: reportPayloads[2] ?? {},
         planRows: plan.rows,
         forecastRows,
+        manualCostRows,
+        connectedPlanRowCount: connectedPlan.rows.length,
+        connectedCostRowCount: manualCostRows.length,
         capacityAssumptions: capacityRows,
         capacityStatus: connectedCapacityRows.length > 0 ? "connected" : "model",
         planApproval: plan.approval,
