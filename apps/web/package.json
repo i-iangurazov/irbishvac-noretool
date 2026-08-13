@@ -13,6 +13,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@irbis/config": "workspace:*",
     "@irbis/utils": "workspace:*",
     "@irbis/ui": "workspace:*",
     "next": "^15.2.0",

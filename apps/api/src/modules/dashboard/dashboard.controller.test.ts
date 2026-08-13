@@ -21,6 +21,10 @@ describe("DashboardController", () => {
       getLeadGeneration: vi.fn(),
       getCampaigns: vi.fn(),
       getTrending: vi.fn()
+    } as never, {
+      assertAuthorized: vi.fn(),
+      getWriteStatus: vi.fn(),
+      saveInput: vi.fn()
     } as never);
 
     const handler = controller.getCompanyWide;

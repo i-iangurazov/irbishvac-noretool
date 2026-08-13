@@ -105,19 +105,26 @@ function Avatar(props: { title: string; imageUrl?: string | null | undefined; fe
 function StatRows(props: { stats: Stat[] }) {
   return (
     <div className="leaderboard-card__stats divide-y divide-[#edf0f3]">
-      {props.stats.map((stat) => (
-        <div
-          className="leaderboard-card__stat-row grid grid-cols-[minmax(0,1fr)_auto] items-center"
-          key={stat.label}
-        >
-          <div className="leaderboard-card__stat-label font-medium leading-tight text-[#111827]">
-            {stat.label}
+      {props.stats.map((stat) => {
+        const longValue = stat.value.length >= 14;
+
+        return (
+          <div
+            className="leaderboard-card__stat-row grid grid-cols-[minmax(0,1fr)_auto] items-center"
+            key={stat.label}
+          >
+            <div className="leaderboard-card__stat-label font-medium leading-tight text-[#111827]">
+              {stat.label}
+            </div>
+            <div
+              className={`leaderboard-card__stat-value min-w-0 text-right font-black text-[#111827]${longValue ? " leaderboard-card__stat-value--long" : ""}`}
+              title={stat.value}
+            >
+              {stat.value}
+            </div>
           </div>
-          <div className="leaderboard-card__stat-value text-right font-black leading-none text-[#111827]">
-            {stat.value}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

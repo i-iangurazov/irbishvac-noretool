@@ -1,10 +1,11 @@
-import { Controller, Get, Inject, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Inject, Param, Post, Query } from "@nestjs/common";
 import { parseDatePreset } from "@irbis/utils";
 import {
   DashboardService,
   type CompanyWideDashboardResponse,
   type DashboardRequestContext
 } from "./dashboard.service";
+import { CampaignPlanningService, type CampaignPlanningInput } from "./campaign-planning.service";
 
 type DashboardQuery = {
   preset?: string;
@@ -34,9 +35,14 @@ function toRequestContext(query: DashboardQuery): DashboardRequestContext {
 @Controller("dashboard")
 export class DashboardController {
   private readonly dashboardService: DashboardService;
+  private readonly campaignPlanningService: CampaignPlanningService;
 
-  constructor(@Inject(DashboardService) dashboardService: DashboardService) {
+  constructor(
+    @Inject(DashboardService) dashboardService: DashboardService,
+    @Inject(CampaignPlanningService) campaignPlanningService: CampaignPlanningService,
+  ) {
     this.dashboardService = dashboardService;
+    this.campaignPlanningService = campaignPlanningService;
     this.getTechnicians = this.getTechnicians.bind(this);
     this.getPerformanceTechnicians = this.getPerformanceTechnicians.bind(this);
     this.getPlumbing = this.getPlumbing.bind(this);
@@ -53,6 +59,8 @@ export class DashboardController {
     this.getLeads = this.getLeads.bind(this);
     this.getCampaigns = this.getCampaigns.bind(this);
     this.getCampaignPerformance = this.getCampaignPerformance.bind(this);
+    this.getCampaignPlanningWriteStatus = this.getCampaignPlanningWriteStatus.bind(this);
+    this.saveCampaignPlanningInput = this.saveCampaignPlanningInput.bind(this);
     this.refreshCampaignPerformance = this.refreshCampaignPerformance.bind(this);
     this.getCampaignPerformanceRefreshStatus = this.getCampaignPerformanceRefreshStatus.bind(this);
     this.getTrending = this.getTrending.bind(this);
@@ -141,6 +149,23 @@ export class DashboardController {
   @Post("campaigns/performance/refresh")
   async refreshCampaignPerformance(@Query("month") month = "2026-08") {
     return this.dashboardService.requestCampaignPerformanceRefresh(month);
+  }
+
+  @Post("campaigns/performance/inputs")
+  async saveCampaignPlanningInput(
+    @Headers("x-dashboard-write-token") writeToken: string | undefined,
+    @Body() body: CampaignPlanningInput,
+  ) {
+    this.campaignPlanningService.assertAuthorized(writeToken);
+    const saved = await this.campaignPlanningService.saveInput(body);
+    const refresh = await this.dashboardService.requestCampaignPerformanceRefresh(body.month);
+
+    return { ...saved, jobId: refresh.jobId };
+  }
+
+  @Get("campaigns/performance/inputs/status")
+  async getCampaignPlanningWriteStatus() {
+    return this.campaignPlanningService.getWriteStatus();
   }
 
   @Get("campaigns/performance/refresh/:jobId")

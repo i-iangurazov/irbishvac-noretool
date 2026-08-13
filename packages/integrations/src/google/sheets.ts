@@ -60,7 +60,7 @@ export class GoogleSheetsClient {
     const claims = encodeBase64Url(
       JSON.stringify({
         iss: this.config.serviceAccountEmail,
-        scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+        scope: "https://www.googleapis.com/auth/spreadsheets",
         aud: "https://oauth2.googleapis.com/token",
         iat: now,
         exp: now + 3_600
@@ -126,6 +126,103 @@ export class GoogleSheetsClient {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("Google Sheets read failed (400)")) {
         return null;
+      }
+      throw error;
+    }
+  }
+
+  private async request(path: string, init: RequestInit = {}) {
+    const accessToken = await this.getAccessToken();
+    const spreadsheetId = encodeURIComponent(this.config.spreadsheetId);
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`,
+      {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+          ...(init.headers ?? {})
+        },
+        cache: "no-store"
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Google Sheets write failed (${response.status}): ${body.slice(0, 500)}`);
+    }
+
+    return response;
+  }
+
+  async ensureSheet(title: string, headers: string[]) {
+    const metadataResponse = await this.request("?fields=sheets.properties.title", {
+      method: "GET"
+    });
+    const metadata = (await metadataResponse.json()) as {
+      sheets?: Array<{ properties?: { title?: string } }>;
+    };
+    const exists = metadata.sheets?.some((sheet) => sheet.properties?.title === title) ?? false;
+
+    if (!exists) {
+      await this.request(":batchUpdate", {
+        method: "POST",
+        body: JSON.stringify({
+          requests: [{ addSheet: { properties: { title } } }]
+        })
+      });
+    } else {
+      const escapedTitle = title.replace(/'/g, "''");
+      const existing = await this.getOptionalValues(`'${escapedTitle}'!1:1`);
+      const existingHeaders = existing?.values?.[0]?.map((value) => String(value ?? "").trim()) ?? [];
+      if (existingHeaders.length > 0) {
+        const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        const matches = headers.every((header, index) => normalize(existingHeaders[index] ?? "") === normalize(header));
+        if (!matches) {
+          throw new Error(
+            `Google Sheet ${title} has unexpected columns; no data was written`,
+          );
+        }
+        return;
+      }
+    }
+
+    const escapedTitle = title.replace(/'/g, "''");
+    const range = encodeURIComponent(`'${escapedTitle}'!A1:${String.fromCharCode(64 + headers.length)}1`);
+    await this.request(`/values/${range}?valueInputOption=RAW`, {
+      method: "PUT",
+      body: JSON.stringify({ values: [headers] })
+    });
+  }
+
+  async appendValues(sheetTitle: string, values: unknown[][]) {
+    const escapedTitle = sheetTitle.replace(/'/g, "''");
+    const range = encodeURIComponent(`'${escapedTitle}'!A:Z`);
+    const response = await this.request(
+      `/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      {
+        method: "POST",
+        body: JSON.stringify({ values })
+      },
+    );
+
+    return response.json() as Promise<{ updates?: { updatedRange?: string } }>;
+  }
+
+  async verifyWriteAccess() {
+    try {
+      await this.request(":batchUpdate", {
+        method: "POST",
+        body: JSON.stringify({ requests: [] })
+      });
+      return { writable: true as const, reason: null };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      if (reason.includes("(403)")) {
+        return {
+          writable: false as const,
+          reason: `Share the Google Sheet with ${this.config.serviceAccountEmail} as Editor.`
+        };
       }
       throw error;
     }

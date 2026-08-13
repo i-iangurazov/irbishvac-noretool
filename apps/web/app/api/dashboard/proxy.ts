@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getConfig } from "@irbis/config";
 
 function getApiBaseUrl() {
   return process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
@@ -29,9 +30,17 @@ function buildProxyHeaders(request: NextRequest) {
 export async function proxyDashboardRequest(request: NextRequest, path: string[]) {
   const method = request.method;
   const body = method === "GET" || method === "HEAD" ? null : await request.text();
+  const headers = buildProxyHeaders(request);
+  const isCampaignPlanningWrite = method === "POST" && path.join("/") === "campaigns/performance/inputs";
+
+  if (isCampaignPlanningWrite) {
+    const writeToken = getConfig().auth.cookieSecret;
+    headers.set("x-dashboard-write-token", writeToken);
+  }
+
   const init: RequestInit = {
     method,
-    headers: buildProxyHeaders(request),
+    headers,
     cache: "no-store"
   };
 

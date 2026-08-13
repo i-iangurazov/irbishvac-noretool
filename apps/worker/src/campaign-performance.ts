@@ -25,6 +25,7 @@ const AUGUST_2026_BASELINE: CampaignPlanRow[] = [
   ["Website", 78, 77, 28499.70, 407138.61],
   ["Google Ads", 80, 69, 26579.84, 379712.05],
   ["Paid Social", 53, 21, 5957.11, 85101.62],
+  ["Radio", 0, 0, null, null],
   ["GBP San Jose", 60, 58, 10645.90, 152084.25],
   ["Miscellaneous", 81, 60, 219.16, 3130.79],
   ["Google LSA", 19, 17, 259.57, 3708.18],
@@ -221,7 +222,12 @@ function parseConnectedPlan(values: unknown[][] | undefined, month: string) {
   const approvedAtIndex = columnIndex(headers, ["Approved At"]);
   const statusIndex = columnIndex(headers, ["Status", "Approval Status"]);
   const notesIndex = columnIndex(headers, ["Notes"]);
-  const rows: CampaignPlanRow[] = [];
+  const latestByChannel = new Map<string, {
+    plan: CampaignPlanRow;
+    status: string;
+    approvedBy: string | null;
+    approvedAt: string | null;
+  }>();
   for (const row of values.slice(1)) {
     if (monthIndex >= 0 && !monthMatches(row[monthIndex], month)) continue;
     const channel = normalizeCampaignChannel(row[channelIndex]);
@@ -243,29 +249,34 @@ function parseConnectedPlan(values: unknown[][] | undefined, month: string) {
     const budgetType: NonNullable<CampaignPlanRow["budgetType"]> = ["platform", "manual", "prepaid", "none"].includes(budgetTypeValue)
       ? budgetTypeValue as NonNullable<CampaignPlanRow["budgetType"]>
       : category === "paid" ? "platform" : "none";
-    rows.push({
-      channel,
-      category,
-      budgetType,
-      qualifiedLeads,
-      bookedJobs,
-      spend: optionalNumber(row[spendIndex]),
-      soldAmount: optionalNumber(row[soldIndex]),
-      completedRevenue: optionalNumber(row[revenueIndex]),
-      notes: notesIndex >= 0 ? String(row[notesIndex] ?? "").trim() || null : null
+    latestByChannel.set(channel, {
+      plan: {
+        channel,
+        category,
+        budgetType,
+        qualifiedLeads,
+        bookedJobs,
+        spend: optionalNumber(row[spendIndex]),
+        soldAmount: optionalNumber(row[soldIndex]),
+        completedRevenue: optionalNumber(row[revenueIndex]),
+        notes: notesIndex >= 0 ? String(row[notesIndex] ?? "").trim() || null : null
+      },
+      status: String(statusIndex >= 0 ? row[statusIndex] ?? "" : "").trim().toLowerCase(),
+      approvedBy: approvedByIndex >= 0 ? String(row[approvedByIndex] ?? "").trim() || null : null,
+      approvedAt: approvedAtIndex >= 0 ? String(row[approvedAtIndex] ?? "").trim() || null : null
     });
   }
-  if (rows.length === 0) return empty;
-  const firstDataRow = values.slice(1).find((row) => monthIndex < 0 || monthMatches(row[monthIndex], month)) ?? [];
-  const rawStatus = String(statusIndex >= 0 ? firstDataRow[statusIndex] ?? "" : "").trim().toLowerCase();
-  const approvalStatus = rawStatus === "approved" ? "approved" : "draft";
+  const entries = [...latestByChannel.values()];
+  if (entries.length === 0) return empty;
+  const approvalStatus = entries.every((entry) => entry.status === "approved") ? "approved" : "draft";
+  const approvalEntry = [...entries].reverse().find((entry) => entry.status === "approved") ?? entries.at(-1)!;
   return {
-    rows,
+    rows: entries.map((entry) => entry.plan),
     approval: {
       approvalStatus,
       version: `${month}-${approvalStatus}`,
-      approvedBy: approvedByIndex >= 0 ? String(firstDataRow[approvedByIndex] ?? "").trim() || null : null,
-      approvedAt: approvedAtIndex >= 0 ? String(firstDataRow[approvedAtIndex] ?? "").trim() || null : null
+      approvedBy: approvalEntry.approvedBy,
+      approvedAt: approvalEntry.approvedAt
     } satisfies CampaignPlanApproval
   };
 }
@@ -280,22 +291,24 @@ function parseCapacityPlan(values: unknown[][] | undefined, month: string) {
   const daysIndex = columnIndex(headers, ["Working Days", "Planning Days"], 4);
   const effectiveIndex = columnIndex(headers, ["Effective From"], 5);
   const notesIndex = columnIndex(headers, ["Notes"], 6);
-  return values.slice(1).flatMap((row) => {
-    if (!monthMatches(row[monthIndex], month)) return [];
+  const latestByTeam = new Map<string, CampaignCapacityAssumption>();
+  for (const row of values.slice(1)) {
+    if (!monthMatches(row[monthIndex], month)) continue;
     const headcount = optionalNumber(row[headcountIndex]);
     const opportunitiesPerDay = optionalNumber(row[perDayIndex]);
     const planningDays = optionalNumber(row[daysIndex]);
     const team = String(row[teamIndex] ?? "").trim();
-    if (!team || headcount == null || opportunitiesPerDay == null || planningDays == null) return [];
-    return [{
+    if (!team || headcount == null || opportunitiesPerDay == null || planningDays == null) continue;
+    latestByTeam.set(team, {
       team,
       headcount,
       opportunitiesPerDay,
       planningDays,
       effectiveFrom: effectiveIndex >= 0 ? String(row[effectiveIndex] ?? "").trim() || null : null,
       notes: notesIndex >= 0 ? String(row[notesIndex] ?? "").trim() || null : null
-    } satisfies CampaignCapacityAssumption];
-  });
+    } satisfies CampaignCapacityAssumption);
+  }
+  return [...latestByTeam.values()];
 }
 
 function parseForecast(values: unknown[][] | undefined, month: string) {
@@ -310,14 +323,15 @@ function parseForecast(values: unknown[][] | undefined, month: string) {
   const revenueIndex = columnIndex(headers, ["Revenue Forecast"], 6);
   const effectiveIndex = columnIndex(headers, ["Effective From"], 7);
   const reasonIndex = columnIndex(headers, ["Reason", "Revision Reason"], 8);
-  return values.slice(1).flatMap((row) => {
-    if (!monthMatches(row[monthIndex], month)) return [];
+  const latestByChannel = new Map<string, CampaignForecastRow>();
+  for (const row of values.slice(1)) {
+    if (!monthMatches(row[monthIndex], month)) continue;
     const channel = normalizeCampaignChannel(row[channelIndex]);
     const qualifiedLeads = optionalNumber(row[leadsIndex]);
     const bookedJobs = optionalNumber(row[bookedIndex]);
-    if (channel === "Other" || qualifiedLeads == null || bookedJobs == null) return [];
+    if (channel === "Other" || qualifiedLeads == null || bookedJobs == null) continue;
     const category = inferCampaignCategory(channel);
-    return [{
+    latestByChannel.set(channel, {
       channel,
       category,
       budgetType: category === "paid" ? "platform" : "none",
@@ -328,8 +342,9 @@ function parseForecast(values: unknown[][] | undefined, month: string) {
       completedRevenue: optionalNumber(row[revenueIndex]),
       effectiveFrom: effectiveIndex >= 0 ? String(row[effectiveIndex] ?? "").trim() || null : null,
       reason: reasonIndex >= 0 ? String(row[reasonIndex] ?? "").trim() || null : null
-    } satisfies CampaignForecastRow];
-  });
+    } satisfies CampaignForecastRow);
+  }
+  return [...latestByChannel.values()];
 }
 
 export class CampaignPerformanceRefreshRunner {

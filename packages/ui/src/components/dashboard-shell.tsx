@@ -153,8 +153,8 @@ export function DashboardShell(props: DashboardShellProps) {
         activePath={props.activePath}
         currentPage={props.rotationPage?.current}
         enabled={Boolean(
-          props.tvMode &&
-            (props.tvMenu?.rotateMode || (props.rotationPage?.total ?? 1) > 1),
+          (props.rotationPage?.total ?? 1) > 1 ||
+            (props.tvMode && props.tvMenu?.rotateMode),
         )}
         navItems={props.rotationNavItems ?? props.navItems}
         pageCount={props.rotationPage?.total}

@@ -3,6 +3,7 @@ import { formatCompactCurrency, formatNumber, formatPercent } from "@irbis/utils
 import { getBrandLogoUrl } from "../lib/assets";
 import { navItems } from "../lib/api";
 import { CampaignRefreshButton } from "./campaign-refresh-button";
+import { CampaignPlanInputs } from "./campaign-plan-inputs";
 import { PrintReportButton } from "./print-report-button";
 
 type CampaignStatus = "on-track" | "watch" | "off-track" | "risk" | "unplanned";
@@ -256,19 +257,54 @@ function ChannelTable({ rows, mode = "actual" }: { rows: CampaignRow[]; mode?: "
 function OverviewView({ data }: { data: CampaignPerformanceData }) {
   const opportunityAttainment = data.plan.opportunityGoal > 0 ? data.actual.bookedJobs / data.plan.opportunityGoal : null;
   const revenueAttainment = data.plan.companyRevenueGoal > 0 ? data.actual.completedRevenue / data.plan.companyRevenueGoal : null;
+  const leadAttainment = data.plan.qualifiedLeadGoal > 0 ? data.actual.qualifiedLeads / data.plan.qualifiedLeadGoal : null;
+  const budgetAttainment = data.plan.marketingBudgetGoal > 0 ? data.actual.spend / data.plan.marketingBudgetGoal : null;
+  const paidRows = data.rows.filter((row) => rowCategory(row) === "paid");
+  const organicRows = data.rows.filter((row) => rowCategory(row) === "organic");
+  const bookingRateFor = (rows: CampaignRow[]) => {
+    const leads = rows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
+    const booked = rows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
+    return leads > 0 ? booked / leads : null;
+  };
+  const roas = data.actual.roas ?? (data.actual.spend > 0 ? data.actual.completedRevenue / data.actual.spend : null);
+  const progressWidth = (value: number | null) => `${Math.min(100, Math.max(0, (value ?? 0) * 100))}%`;
   return (
     <>
-      <section className="campaign-scoreboard" aria-label="Marketing month-to-date summary">
-        <div className="campaign-scoreboard__primary">
-          <span>Booked opportunities</span>
-          <div><strong>{formatNumber(data.actual.bookedJobs)}</strong><em>/ {formatNumber(data.plan.opportunityGoal)}</em></div>
-          <small>{formatMaybePercent(opportunityAttainment)} achieved · {formatMaybePercent(data.pace.opportunityPace)} working-day pace</small>
-          <div className="campaign-scoreboard__bar"><span style={{ width: `${Math.min(100, Math.max(0, (opportunityAttainment ?? 0) * 100))}%` }} /></div>
+      <section className="campaign-executive-grid" aria-label="Marketing month-to-date executive summary">
+        <div className="campaign-executive-card campaign-executive-card--revenue">
+          <span>Revenue</span>
+          <strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong>
+          <small>Target {formatCompactCurrency(data.plan.companyRevenueGoal)} · {formatMaybePercent(revenueAttainment)} achieved</small>
+          <div className="campaign-executive-meter"><span style={{ width: progressWidth(revenueAttainment) }} /></div>
         </div>
-        <div><span>Qualified lead supply</span><strong>{formatNumber(data.actual.qualifiedLeads)} / {formatNumber(data.plan.qualifiedLeadGoal)}</strong><small>{formatMaybePercent(data.pace.qualifiedLeadPace)} pace · {formatMaybePercent(data.actual.bookingRate)} booked</small></div>
-        <div><span>Sales outcome</span><strong>{formatNumber(data.actual.soldJobs)} sold</strong><small>{formatCompactCurrency(data.actual.soldAmount)} sold amount</small></div>
-        <div><span>Completed revenue</span><strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong><small>{formatMaybePercent(revenueAttainment)} of {formatCompactCurrency(data.plan.companyRevenueGoal)}</small></div>
-        <div className="campaign-scoreboard__spend"><span>Tracked spend</span><strong>{formatCompactCurrency(data.actual.spend)}</strong><small>{formatMaybePercent(data.pace.spendPace)} calendar pace · partial coverage</small></div>
+        <div className="campaign-executive-card campaign-executive-card--sales">
+          <div><span>Sold estimates</span><strong>{formatNumber(data.actual.soldJobs)}</strong></div>
+          <div><span>Sales value</span><strong>{formatCompactCurrency(data.actual.soldAmount)}</strong></div>
+        </div>
+        <div className="campaign-executive-card campaign-executive-card--flow">
+          <div><span>Qualified leads</span><strong>{formatNumber(data.actual.qualifiedLeads)} / {formatNumber(data.plan.qualifiedLeadGoal)}</strong><small>{formatMaybePercent(data.pace.qualifiedLeadPace)} pace</small></div>
+          <div className="campaign-executive-meter"><span style={{ width: progressWidth(leadAttainment) }} /></div>
+          <div><span>Booked jobs</span><strong>{formatNumber(data.actual.bookedJobs)} / {formatNumber(data.plan.opportunityGoal)}</strong><small>{formatMaybePercent(data.pace.opportunityPace)} pace</small></div>
+          <div className="campaign-executive-meter"><span style={{ width: progressWidth(opportunityAttainment) }} /></div>
+        </div>
+        <div className="campaign-executive-card campaign-executive-card--booking">
+          <span>Booking rate</span>
+          <strong>{formatMaybePercent(data.actual.bookingRate)}</strong>
+          <small>Target {formatMaybePercent(data.plan.targetBookingRate)}</small>
+          <div className="campaign-executive-split"><span>Paid <b>{formatMaybePercent(bookingRateFor(paidRows))}</b></span><span>Organic <b>{formatMaybePercent(bookingRateFor(organicRows))}</b></span></div>
+        </div>
+        <div className="campaign-executive-card campaign-executive-card--spend">
+          <span>Marketing spend</span>
+          <strong>{formatCompactCurrency(data.actual.spend)} / {formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong>
+          <small>{formatMaybePercent(data.pace.spendPace)} calendar pace</small>
+          <div className="campaign-executive-meter"><span style={{ width: progressWidth(budgetAttainment) }} /></div>
+          <div className="campaign-executive-split"><span>Cost / lead <b>{data.actual.costPerLead == null ? "-" : formatCompactCurrency(data.actual.costPerLead)}</b></span><span>Cost / job <b>{data.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(data.actual.costPerBookedJob)}</b></span></div>
+        </div>
+        <div className="campaign-executive-card campaign-executive-card--roas">
+          <span>ROAS</span>
+          <strong>{roas == null ? "-" : `${roas.toFixed(1)}x`}</strong>
+          <small>Completed revenue / tracked spend</small>
+        </div>
       </section>
 
       <section className="campaign-alerts" aria-label="Campaign alerts">
@@ -278,8 +314,13 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
       </section>
 
       <section className="campaign-table-panel">
-        <div className="campaign-table-panel__heading"><div><h3>Priority channel performance</h3><p>Seven highest-volume channels. Open Channels for the complete list.</p></div><div className="campaign-table-panel__plan"><span>Plan authority</span><strong>{data.plan.approvalStatus === "approved" ? "Approved" : "Not approved"}</strong><small>{data.plan.status}</small></div></div>
-        <ChannelTable rows={data.rows.slice(0, 7)} />
+        <div className="campaign-table-panel__heading"><div><h3>Paid channels performance</h3><p>Plan, actual spend, lead flow, sold value and completed revenue.</p></div><div className="campaign-table-panel__plan"><span>Plan authority</span><strong>{data.plan.approvalStatus === "approved" ? "Approved" : "Not approved"}</strong><small>{data.plan.status}</small></div></div>
+        <ChannelTable rows={paidRows} />
+      </section>
+
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Organic channels performance</h3><p>Unpaid demand contribution separated from paid acquisition.</p></div></div>
+        <ChannelTable rows={organicRows} />
       </section>
     </>
   );
@@ -310,10 +351,18 @@ function ChannelsView({ data }: { data: CampaignPerformanceData }) {
   );
 }
 
-function PlanView({ data }: { data: CampaignPerformanceData }) {
+function PlanView({ data, inputsEnabled }: { data: CampaignPerformanceData; inputsEnabled: boolean }) {
   const assumptions = data.capacity?.assumptions ?? [];
   return (
     <>
+      {inputsEnabled ? (
+        <CampaignPlanInputs
+          capacityRows={assumptions}
+          channels={data.rows.map((row) => row.channel)}
+          cutoffDate={data.period.to}
+          month={periodId(data)}
+        />
+      ) : null}
       <section className={`campaign-plan-banner campaign-plan-banner--${data.plan.approvalStatus ?? "required"}`}>
         <div><span>Original monthly plan</span><strong>{data.plan.status}</strong><small>Version {data.plan.version ?? "not connected"} · original baseline remains locked</small></div>
         <div><span>Forecast</span><strong>{data.forecast?.status === "active" ? `${data.forecast.changedChannelCount} revised channels` : "No revision"}</strong><small>{data.forecast?.effectiveFrom ? `Effective ${data.forecast.effectiveFrom}` : "Original plan remains effective"}</small></div>
@@ -398,7 +447,7 @@ export function CampaignPerformancePage({ data, periods, refreshEnabled, view, h
 
         {view === "overview" ? <OverviewView data={data} /> : null}
         {view === "channels" ? <ChannelsView data={data} /> : null}
-        {view === "plan" ? <PlanView data={data} /> : null}
+        {view === "plan" ? <PlanView data={data} inputsEnabled={refreshEnabled} /> : null}
         {view === "history" ? <HistoryView history={history} /> : null}
 
         <footer className="campaign-performance__footer"><span>{data.sources.filter((source) => source.status === "connected").length}/{data.sources.length} sources connected · refreshed {sourceTimestamp(data.generatedAt)}</span><span>Lead pace: weekdays · spend pace: calendar days · original plan locked</span></footer>
