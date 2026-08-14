@@ -188,11 +188,10 @@ export function TvSettingsModal(props: TvSettingsModalProps) {
                 {props.rotationBoardOptions && props.rotationBoardOptions.length > 0 ? (
                   <div className="tv-settings-modal__section-head">
                     <div className="tv-settings-modal__section-title font-black uppercase tracking-[0.24em] text-slate-500">
-                      Boards
+                      Screen Assignment
                     </div>
                     <div className="tv-settings-modal__section-copy text-slate-500">
-                      Select which field boards are eligible for automatic TV
-                      rotation.
+                      Choose the board assigned to this display.
                     </div>
                   </div>
                 ) : null}

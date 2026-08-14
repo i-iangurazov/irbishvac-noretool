@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { DashboardAutoRefreshRuntime } from "./dashboard-auto-refresh-runtime";
+import { TvFullscreenButton } from "./tv-fullscreen-button";
 import { TvRotationRuntime } from "./tv-rotation-runtime";
 import { TvSettingsModal } from "./tv-settings-modal";
 
@@ -167,7 +168,10 @@ export function DashboardShell(props: DashboardShellProps) {
         }`}
       >
         {kioskMode ? (
-          <div className="dashboard-shell__kiosk-menu pointer-events-none fixed z-50">
+          <div className="dashboard-shell__kiosk-menu pointer-events-none fixed z-50 flex items-center">
+            <div className="pointer-events-auto">
+              <TvFullscreenButton variant="icon" />
+            </div>
             <details className="pointer-events-auto relative">
               <summary className="dashboard-shell__menu-button flex cursor-pointer list-none items-center justify-center border border-[#e6ddd2] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.12)] marker:hidden">
                 ☰
@@ -217,6 +221,7 @@ export function DashboardShell(props: DashboardShellProps) {
                 <div className="flex min-w-0 flex-1 justify-end">
                   {props.headerContent}
                 </div>
+                <TvFullscreenButton variant="icon" />
                 <details className="relative shrink-0">
                   <summary className="dashboard-shell__menu-button flex cursor-pointer list-none items-center justify-center border border-[#e6ddd2] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.06)] marker:hidden">
                     ☰

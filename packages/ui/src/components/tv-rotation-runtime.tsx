@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 type NavItem = {
@@ -30,6 +31,8 @@ export function TvRotationRuntime({
   presetQuery,
   rotateBoards = false
 }: TvRotationRuntimeProps) {
+  const router = useRouter();
+
   useEffect(() => {
     if (!enabled || navItems.length === 0) {
       return;
@@ -39,19 +42,25 @@ export function TvRotationRuntime({
       return;
     }
 
+    const navigate = (href: string) => {
+      router.replace(href as Parameters<typeof router.replace>[0], {
+        scroll: false,
+      });
+    };
+
     const timeout = window.setTimeout(() => {
       const params = new URLSearchParams(presetQuery);
 
       if (currentPage < pageCount) {
         params.set("page", String(currentPage + 1));
-        window.location.assign(`${activePath}?${params.toString()}`);
+        navigate(`${activePath}?${params.toString()}`);
         return;
       }
 
       params.delete("page");
 
       if (!rotateBoards) {
-        window.location.assign(
+        navigate(
           params.size > 0 ? `${activePath}?${params.toString()}` : activePath,
         );
         return;
@@ -65,7 +74,7 @@ export function TvRotationRuntime({
         return;
       }
 
-      window.location.assign(
+      navigate(
         params.size > 0 ? `${nextItem.href}?${params.toString()}` : nextItem.href,
       );
     }, ROTATION_INTERVAL_MS);
@@ -73,7 +82,7 @@ export function TvRotationRuntime({
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [activePath, currentPage, enabled, navItems, pageCount, presetQuery, rotateBoards]);
+  }, [activePath, currentPage, enabled, navItems, pageCount, presetQuery, rotateBoards, router]);
 
   return null;
 }

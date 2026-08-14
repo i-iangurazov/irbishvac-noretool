@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-export function TvFullscreenButton() {
+type TvFullscreenButtonProps = {
+  variant?: "action" | "icon";
+};
+
+export function TvFullscreenButton({
+  variant = "action",
+}: TvFullscreenButtonProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -28,6 +34,27 @@ export function TvFullscreenButton() {
     } catch {
       // Ignore fullscreen API errors. The menu action is best-effort.
     }
+  }
+
+  const label = isFullscreen ? "Exit fullscreen" : "Enter fullscreen";
+
+  if (variant === "icon") {
+    return (
+      <button
+        aria-label={label}
+        aria-pressed={isFullscreen}
+        className="dashboard-shell__fullscreen-button flex shrink-0 items-center justify-center border border-[#e6ddd2] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition hover:border-[#0b4d5a] hover:bg-[#0b4d5a] hover:text-white"
+        data-active={isFullscreen ? "true" : "false"}
+        onClick={handleClick}
+        title={label}
+        type="button"
+      >
+        <span aria-hidden="true" className="dashboard-shell__fullscreen-icon">
+          ⛶
+        </span>
+        <span className="sr-only">{label}</span>
+      </button>
+    );
   }
 
   return (

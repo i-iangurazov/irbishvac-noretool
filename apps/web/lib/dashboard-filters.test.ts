@@ -87,7 +87,7 @@ describe("dashboard filter helpers", () => {
     ).toEqual(["/technicians", "/plumbing"]);
   });
 
-  it("builds board-selection links without allowing an empty rotation set", () => {
+  it("assigns one board directly to the current display", () => {
     const href = buildRotationBoardHref(
       "/technicians",
       {
@@ -112,7 +112,7 @@ describe("dashboard filter helpers", () => {
     );
 
     expect(href).toBe(
-      "/technicians?preset=mtd&tv=1&rotate=1&kiosk=1&boards=technicians",
+      "/plumbing?preset=mtd&tv=1&rotate=1&kiosk=1&boards=plumbing",
     );
     expect(unchangedHref).toBe(
       "/technicians?preset=mtd&tv=1&rotate=1&boards=technicians",

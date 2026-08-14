@@ -152,9 +152,11 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
                   active: allRotationBoardsSelected
                 },
                 ...DASHBOARD_ROTATION_BOARDS.map((board) => ({
-                  label: board.label,
+                  label: `${board.label} only`,
                   href: buildRotationBoardHref(props.path, props.filters, board.id),
-                  active: props.filters.rotationBoardIds.includes(board.id)
+                  active:
+                    props.filters.rotationBoardIds.length === 1 &&
+                    props.filters.rotationBoardIds.includes(board.id)
                 }))
               ],
             }

@@ -332,15 +332,12 @@ export function buildRotationBoardHref(
   > & Partial<Pick<DashboardFilterState, "customRange">>,
   boardId: DashboardRotationBoardId | "all",
 ) {
-  const currentIds = uniqueRotationBoardIds(filters.rotationBoardIds);
-  const nextIds =
+  const board =
     boardId === "all"
-      ? [...DEFAULT_ROTATION_BOARD_IDS]
-      : currentIds.includes(boardId)
-        ? currentIds.length > 1
-          ? currentIds.filter((id) => id !== boardId)
-          : currentIds
-        : [...currentIds, boardId];
+      ? null
+      : DASHBOARD_ROTATION_BOARDS.find((item) => item.id === boardId) ?? null;
+  const nextIds = board ? [board.id] : [...DEFAULT_ROTATION_BOARD_IDS];
+  const targetPath = board?.href ?? path;
   const params = new URLSearchParams({
     preset: filters.preset,
   });
@@ -359,7 +356,7 @@ export function buildRotationBoardHref(
 
   setBoardsParam(params, nextIds);
 
-  return `${path}?${params.toString()}`;
+  return `${targetPath}?${params.toString()}`;
 }
 
 export async function resolveDashboardFilters(

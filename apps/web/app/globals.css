@@ -157,6 +157,7 @@ body[data-vw-app="true"] {
 [data-dashboard-shell="true"] .dashboard-shell__kiosk-menu {
   right: var(--dash-space-lg) !important;
   top: var(--dash-space-lg) !important;
+  gap: var(--dash-space-xs) !important;
 }
 
 [data-dashboard-shell="true"] .dashboard-shell__header {
@@ -209,6 +210,25 @@ body[data-vw-app="true"] {
   height: var(--dash-icon-button) !important;
   border-radius: var(--dash-radius-sm) !important;
   font-size: var(--dash-font-sm) !important;
+}
+
+[data-dashboard-shell="true"] .dashboard-shell__fullscreen-button {
+  width: var(--dash-icon-button) !important;
+  height: var(--dash-icon-button) !important;
+  border-radius: var(--dash-radius-sm) !important;
+  font-size: var(--dash-font-md) !important;
+  line-height: 1 !important;
+}
+
+[data-dashboard-shell="true"] .dashboard-shell__fullscreen-button[data-active="true"] {
+  border-color: #0b4d5a !important;
+  background: #0b4d5a !important;
+  color: #ffffff !important;
+}
+
+[data-dashboard-shell="true"] .dashboard-shell__fullscreen-icon {
+  display: block !important;
+  transform: translateY(-0.02em) !important;
 }
 
 [data-dashboard-shell="true"] .dashboard-shell__menu {
