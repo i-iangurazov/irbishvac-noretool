@@ -25,6 +25,7 @@ type DashboardShellProps = {
     current: number;
     total: number;
   } | undefined;
+  rotationIntervalMs?: number | undefined;
   tvMenu?:
     | {
         enabled: boolean;
@@ -157,6 +158,7 @@ export function DashboardShell(props: DashboardShellProps) {
           (props.rotationPage?.total ?? 1) > 1 ||
             (props.tvMode && props.tvMenu?.rotateMode),
         )}
+        intervalMs={props.rotationIntervalMs}
         navItems={props.rotationNavItems ?? props.navItems}
         pageCount={props.rotationPage?.total}
         presetQuery={props.navQueryString ?? ""}

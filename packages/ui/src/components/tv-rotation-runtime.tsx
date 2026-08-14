@@ -14,18 +14,20 @@ type TvRotationRuntimeProps = {
   activePath: string;
   currentPage?: number | undefined;
   enabled: boolean;
+  intervalMs?: number | undefined;
   navItems: NavItem[];
   pageCount?: number | undefined;
   presetQuery: string;
   rotateBoards?: boolean;
 };
 
-const ROTATION_INTERVAL_MS = 10_000;
+const DEFAULT_ROTATION_INTERVAL_MS = 10_000;
 
 export function TvRotationRuntime({
   activePath,
   currentPage = 1,
   enabled,
+  intervalMs = DEFAULT_ROTATION_INTERVAL_MS,
   navItems,
   pageCount = 1,
   presetQuery,
@@ -77,12 +79,12 @@ export function TvRotationRuntime({
       navigate(
         params.size > 0 ? `${nextItem.href}?${params.toString()}` : nextItem.href,
       );
-    }, ROTATION_INTERVAL_MS);
+    }, intervalMs);
 
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [activePath, currentPage, enabled, navItems, pageCount, presetQuery, rotateBoards, router]);
+  }, [activePath, currentPage, enabled, intervalMs, navItems, pageCount, presetQuery, rotateBoards, router]);
 
   return null;
 }

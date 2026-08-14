@@ -59,6 +59,8 @@ type LeaderboardPageProps = {
   showcaseColumns?: 4;
 };
 
+const TV_ROTATION_INTERVAL_MS = 10_000;
+
 export function money(value: number) {
   return formatCurrency(value);
 }
@@ -114,6 +116,7 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
       navQueryString={buildDashboardQueryString(props.filters)}
       rotationNavItems={rotationNavItems}
       rotationPage={{ current: currentPage, total: pageCount }}
+      rotationIntervalMs={TV_ROTATION_INTERVAL_MS}
       tvMenu={{
         enabled: tvMode,
         toggleHref: buildTvModeHref(props.path, props.filters, !tvMode),
