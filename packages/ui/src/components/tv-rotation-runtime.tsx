@@ -20,7 +20,7 @@ type TvRotationRuntimeProps = {
   rotateBoards?: boolean;
 };
 
-const ROTATION_INTERVAL_MS = 20_000;
+const ROTATION_INTERVAL_MS = 10_000;
 
 export function TvRotationRuntime({
   activePath,
