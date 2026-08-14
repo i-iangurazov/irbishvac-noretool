@@ -24,6 +24,15 @@ def main() -> int:
     parser.add_argument("--env-file", action="append", default=[])
     parser.add_argument("--mode", choices=("dry-run", "send"), default="dry-run")
     parser.add_argument(
+        "--delivery-profile",
+        choices=("technician", "advisor"),
+        default="technician",
+    )
+    parser.add_argument(
+        "--combined-pdf",
+        help="Combined department PDF required by the advisor delivery profile.",
+    )
+    parser.add_argument(
         "--test-recipient",
         help="Send one isolated test message to this address without changing delivery state.",
     )
@@ -53,17 +62,21 @@ def main() -> int:
 
     plan = []
     for report in reports:
-        manager = (
-            routing["plumbing_manager"]
-            if str(report["department"]).lower().startswith("plumbing")
-            else routing["hvac_manager"]
-        )
         to = _email(str(report["email"]), f"technician {report['technician']}")
-        cc = _unique_emails([routing["tim"], manager], to)
+        if args.delivery_profile == "advisor":
+            cc = []
+        else:
+            manager = (
+                routing["plumbing_manager"]
+                if str(report["department"]).lower().startswith("plumbing")
+                else routing["hvac_manager"]
+            )
+            cc = _unique_emails([routing["tim"], manager], to)
         pdf_path = pdf_dir / str(report["fileName"])
         plan.append(
             {
                 "slug": report["slug"],
+                "kind": "individual",
                 "technician": report["technician"],
                 "department": report["department"],
                 "to": [to],
@@ -74,6 +87,45 @@ def main() -> int:
             }
         )
 
+    if args.delivery_profile == "advisor":
+        combined_pdf = _validated_combined_pdf(args.combined_pdf)
+        raymond = next(
+            (row for row in reports if str(row.get("slug")) == "raymond-porras"),
+            None,
+        )
+        if raymond is None:
+            raise ValueError("Advisor delivery requires Raymond Porras in the report roster")
+        managers = [
+            ("raymond", "Raymond", _email(str(raymond["email"]), "Raymond email")),
+            (
+                "vadim",
+                "Vadim",
+                _email(
+                    env.get("ADVISOR_REPORT_MANAGER_EMAIL")
+                    or _required(env, "VADIM_EMAIL"),
+                    "advisor manager email",
+                ),
+            ),
+            ("tim", "Tim", routing["tim"]),
+        ]
+        management_subject = _management_subject(manifest["cutoffDate"])
+        combined_hash = _sha256(combined_pdf)
+        for slug, recipient_name, address in managers:
+            plan.append(
+                {
+                    "slug": f"management-{slug}",
+                    "kind": "management",
+                    "recipientName": recipient_name,
+                    "technician": recipient_name,
+                    "department": "HVAC Sales",
+                    "to": [address],
+                    "cc": [],
+                    "attachment": str(combined_pdf),
+                    "attachmentSha256": combined_hash,
+                    "subject": management_subject,
+                }
+            )
+
     plan_path = state_dir / "delivery-plan.json"
     _atomic_json(
         plan_path,
@@ -82,6 +134,7 @@ def main() -> int:
             "createdAt": _utc_now(),
             "deliveryKey": delivery_key,
             "mode": args.mode,
+            "deliveryProfile": args.delivery_profile,
             "emailFrom": routing["from"],
             "reports": plan,
         },
@@ -116,7 +169,7 @@ def main() -> int:
             "subject": f"[TEST] {source['subject']}",
         }
         message_id = make_msgid(
-            idstring=f"service-tech-test-{source['slug']}",
+            idstring=f"performance-report-test-{source['slug']}",
             domain=parseaddr(routing["from"])[1].split("@", 1)[1],
         )
         with _smtp(env) as smtp:
@@ -147,7 +200,7 @@ def main() -> int:
                 )
 
             message_id = make_msgid(
-                idstring=f"service-tech-{delivery_key}-{row['slug']}",
+                idstring=f"performance-report-{delivery_key}-{row['slug']}",
                 domain=parseaddr(routing["from"])[1].split("@", 1)[1],
             )
             state["reports"][row["slug"]] = {
@@ -246,25 +299,43 @@ def _message(
     message["Subject"] = row["subject"]
     message["From"] = sender
     message["To"] = ", ".join(row["to"])
-    message["Cc"] = ", ".join(row["cc"])
+    if row["cc"]:
+        message["Cc"] = ", ".join(row["cc"])
     message["Date"] = formatdate(localtime=False)
     message["Message-ID"] = message_id
-    first_name = str(row["technician"]).split()[0]
     cutoff_label = _date_label(cutoff_date)
-    message.set_content(
-        "\n".join(
-            [
-                f"Hi {first_name},",
-                "",
-                f"Attached is your IRBIS month-to-date coaching report through {cutoff_label}.",
-                "It includes your current ServiceTitan results, job-execution metrics, Field Pro activity, and this week's coaching focus.",
-                "",
-                "Please review it before the weekly coaching meeting.",
-                "",
-                "IRBIS Performance Coaching",
-            ]
+    if row.get("kind") == "management":
+        recipient_name = str(row["recipientName"])
+        message.set_content(
+            "\n".join(
+                [
+                    f"Hi {recipient_name},",
+                    "",
+                    f"Attached is the combined IRBIS Sales Department month-to-date coaching report through {cutoff_label}.",
+                    "It contains the individual reports for Raymond Porras, Rudy-Noel Zapien, and Matthew Stalcup.",
+                    "",
+                    "Each advisor is receiving their own report in a separate email.",
+                    "",
+                    "IRBIS Performance Coaching",
+                ]
+            )
         )
-    )
+    else:
+        first_name = str(row["technician"]).split()[0]
+        message.set_content(
+            "\n".join(
+                [
+                    f"Hi {first_name},",
+                    "",
+                    f"Attached is your IRBIS month-to-date coaching report through {cutoff_label}.",
+                    "It includes your current ServiceTitan results, job-execution metrics, Field Pro activity, and this week's coaching focus.",
+                    "",
+                    "Please review it before the weekly coaching meeting.",
+                    "",
+                    "IRBIS Performance Coaching",
+                ]
+            )
+        )
     attachment = Path(str(row["attachment"]))
     message.add_attachment(
         attachment.read_bytes(),
@@ -277,6 +348,21 @@ def _message(
 
 def _subject(technician: str, cutoff_date: str) -> str:
     return f"{technician} - IRBIS MTD Coaching Report through {_date_label(cutoff_date)}"
+
+
+def _management_subject(cutoff_date: str) -> str:
+    return f"IRBIS Sales Department MTD Coaching Reports through {_date_label(cutoff_date)}"
+
+
+def _validated_combined_pdf(value: Optional[str]) -> Path:
+    if not value:
+        raise ValueError("--combined-pdf is required for advisor delivery")
+    path = Path(value).resolve()
+    if not path.is_file() or path.stat().st_size < 10_000:
+        raise ValueError(f"Missing or unexpectedly small combined PDF: {path}")
+    if path.read_bytes()[:5] != b"%PDF-":
+        raise ValueError(f"Combined attachment is not a PDF: {path}")
+    return path
 
 
 def _date_label(value: str) -> str:

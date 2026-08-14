@@ -111,6 +111,42 @@ class RoutingTests(unittest.TestCase):
         )
         self.assertEqual(result, ["tim@example.com", "manager@example.com"])
 
+    def test_message_omits_cc_header_when_route_has_no_cc(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            attachment = Path(temporary) / "report.pdf"
+            attachment.write_bytes(b"%PDF-1.7\nexample")
+            row = {
+                "kind": "individual",
+                "technician": "Test Advisor",
+                "subject": "Test report",
+                "to": ["advisor@example.com"],
+                "cc": [],
+                "attachment": str(attachment),
+            }
+            message = sender._message(
+                row, "reports@example.com", "2026-08-13", "<test@example.com>"
+            )
+            self.assertNotIn("Cc", message)
+
+    def test_management_message_describes_combined_sales_packet(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            attachment = Path(temporary) / "combined.pdf"
+            attachment.write_bytes(b"%PDF-1.7\nexample")
+            row = {
+                "kind": "management",
+                "recipientName": "Tim",
+                "technician": "Tim",
+                "subject": "Sales reports",
+                "to": ["tim@example.com"],
+                "cc": [],
+                "attachment": str(attachment),
+            }
+            message = sender._message(
+                row, "reports@example.com", "2026-08-13", "<test@example.com>"
+            )
+            self.assertIn("combined IRBIS Sales Department", message.get_body().get_content())
+            self.assertNotIn("Cc", message)
+
 
 class AugustGoalsTests(unittest.TestCase):
     def test_every_delivery_technician_has_an_august_goal_record(self) -> None:

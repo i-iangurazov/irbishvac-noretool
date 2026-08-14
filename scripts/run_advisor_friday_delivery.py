@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import json
 import os
 import shutil
 import sys
@@ -233,6 +234,10 @@ def _run_cycle(
     generated.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(final_snapshot, generated)
     _render_and_qa(repo, final_snapshot, pdf_dir, package)
+    combined_pdf = package / (
+        f"IRBIS-Sales-Department-MTD-Coaching-Reports-through-{cutoff_date.isoformat()}.pdf"
+    )
+    _merge_advisor_pdfs(pdf_dir, combined_pdf)
 
     sender_env = os.environ.copy()
     sender_env.update(
@@ -260,12 +265,38 @@ def _run_cycle(
         str(marketing_env),
         "--mode",
         mode,
+        "--delivery-profile",
+        "advisor",
+        "--combined-pdf",
+        str(combined_pdf),
     ]
     if mode == "dry-run":
         sender_command.append("--smtp-preflight")
     _run(sender_command, repo, sender_env)
     print(f"package={package}")
     return 0
+
+
+def _merge_advisor_pdfs(pdf_dir: Path, output: Path) -> None:
+    manifest = json.loads((pdf_dir / "manifest.json").read_text(encoding="utf-8"))
+    by_slug = {str(row["slug"]): row for row in manifest["reports"]}
+    order = ("raymond-porras", "rudy-noel-zapien", "matthew-stalcup")
+    if set(by_slug) != set(order):
+        raise ValueError("Advisor PDF roster does not match the approved three-person roster")
+    inputs = [pdf_dir / str(by_slug[slug]["fileName"]) for slug in order]
+    join = Path(
+        "/System/Library/Automator/Combine PDF Pages.action/Contents/MacOS/join"
+    )
+    if not join.is_file():
+        raise FileNotFoundError("macOS PDF join utility is unavailable")
+    if output.exists():
+        output.unlink()
+    _run([str(join), "--output", str(output), *(str(path) for path in inputs)], pdf_dir)
+    if not output.is_file() or output.stat().st_size < 10_000:
+        raise ValueError(f"Combined advisor PDF was not created correctly: {output}")
+    if output.read_bytes()[:5] != b"%PDF-":
+        raise ValueError(f"Combined advisor attachment is not a PDF: {output}")
+    print(f"combined_pdf={output}")
 
 
 def _inside_delivery_window(now: datetime, env: dict[str, str]) -> bool:
