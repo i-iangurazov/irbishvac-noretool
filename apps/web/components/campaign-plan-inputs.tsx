@@ -30,6 +30,7 @@ function inferredCategory(channel: string) {
   if (["Yelp", "Google Ads", "Google Local Services", "Facebook Ads", "Workfuel", "Direct Mail", "Refer Pro", "Website"].includes(channel)) return "paid";
   if (["Billboard", "Radio"].includes(channel)) return "separate-spend";
   if (["669-COOLING", "Home Care", "3rd Party Websites", "GBP San Jose", "Existing Customers", "Email Marketing"].includes(channel)) return "organic";
+  if (channel === "Hatch Campaigns") return "automation";
   return "other";
 }
 
@@ -207,7 +208,7 @@ export function CampaignPlanInputs(props: {
         {mode === "plan" ? (
           <>
             <label><span>Channel</span><select name="channel" onChange={(event) => { setSelectedPlanChannel(event.target.value); setSelectedPlanCategory(inferredCategory(event.target.value)); setSelectedPlanBudgetType(inferredBudgetType(event.target.value)); }} value={selectedPlanChannel}>{props.channels.map((channel) => <option key={channel}>{channel}</option>)}</select></label>
-            <label><span>Category</span><select name="category" onChange={(event) => setSelectedPlanCategory(event.target.value)} value={selectedPlanCategory}><option value="paid">Paid channels</option><option value="separate-spend">Separate spend</option><option value="organic">Organic / Online Listings</option><option value="other">Other / Unmapped</option></select></label>
+            <label><span>Category</span><select name="category" onChange={(event) => setSelectedPlanCategory(event.target.value)} value={selectedPlanCategory}><option value="paid">Paid channels</option><option value="separate-spend">Separate spend</option><option value="organic">Organic / Online Listings</option><option value="automation">Automation</option><option value="other">Other / Unmapped</option></select></label>
             <label><span>Qualified lead goal</span><input min="0" name="qualifiedLeadGoal" required step="1" type="number" /></label>
             <label><span>Booked job goal</span><input min="0" name="bookedOpportunityGoal" required step="1" type="number" /></label>
             <label><span>Approved budget</span><input min="0" name="approvedBudget" placeholder="Optional" step="0.01" type="number" /></label>

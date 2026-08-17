@@ -244,7 +244,7 @@ function parseConnectedPlan(values: unknown[][] | undefined, month: string) {
     ) continue;
     const inferredCategory = inferCampaignCategory(channel);
     const categoryValue = String(categoryIndex >= 0 ? row[categoryIndex] ?? "" : "").trim().toLowerCase();
-    const category: NonNullable<CampaignPlanRow["category"]> = ["paid", "separate-spend", "organic", "partner", "retention", "other"].includes(categoryValue)
+    const category: NonNullable<CampaignPlanRow["category"]> = ["paid", "separate-spend", "organic", "automation", "partner", "retention", "other"].includes(categoryValue)
       ? categoryValue as NonNullable<CampaignPlanRow["category"]>
       : inferredCategory;
     const budgetTypeValue = String(budgetTypeIndex >= 0 ? row[budgetTypeIndex] ?? "" : "").trim().toLowerCase();

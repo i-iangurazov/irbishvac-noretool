@@ -5,6 +5,7 @@ export type CampaignChannelCategory =
   | "paid"
   | "separate-spend"
   | "organic"
+  | "automation"
   | "partner"
   | "retention"
   | "other";
@@ -301,7 +302,8 @@ export function inferCampaignCategory(channel: string): CampaignChannelCategory 
   if (["Yelp", "Google Ads", "Google Local Services", "Facebook Ads", "Workfuel", "Direct Mail", "Refer Pro", "Website"].includes(channel)) return "paid";
   if (["Billboard", "Radio"].includes(channel)) return "separate-spend";
   if (["669-COOLING", "Home Care", "3rd Party Websites", "GBP San Jose", "Existing Customers", "Email Marketing"].includes(channel)) return "organic";
-  if (["Hatch Campaigns", "Scheduling Pro", "SMS Campaigns"].includes(channel)) return "retention";
+  if (channel === "Hatch Campaigns") return "automation";
+  if (["Scheduling Pro", "SMS Campaigns"].includes(channel)) return "retention";
   if (["Now Operator", "Appfolio", "Diamond Certified"].includes(channel)) return "partner";
   if (channel === "Reserve with Google") return "organic";
   return "other";
@@ -611,7 +613,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   const planApproval = input.planApproval ?? { approvalStatus: "required" as const, version: `${input.month}-unapproved` };
 
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     generatedAt,
     dataStatus: "LIVE",
     period: {
@@ -678,7 +680,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     ],
     dataNotes: [
       "Google Sheet rows after the MTD cutoff are excluded.",
-      "ServiceTitan campaign names are normalized into Paid channels, Separate spend, and Organic / Online Listings groups.",
+      "ServiceTitan campaign names are normalized into Paid channels, Separate spend, Organic / Online Listings, and Automation groups.",
       "Lead and opportunity pace uses weekdays; spend pace uses calendar days.",
       "Tracked spend includes ServiceTitan costs plus the latest MTD manual cost override for each channel.",
       spendCoverage.status === "complete"

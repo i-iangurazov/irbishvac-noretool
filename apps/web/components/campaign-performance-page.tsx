@@ -8,8 +8,8 @@ import { PrintReportButton } from "./print-report-button";
 
 type CampaignStatus = "on-track" | "watch" | "off-track" | "risk" | "unplanned";
 type CampaignView = "overview" | "channels" | "plan" | "history";
-type CampaignCategory = "paid" | "separate-spend" | "organic" | "partner" | "retention" | "other";
-type CampaignDisplayCategory = "paid" | "separate-spend" | "organic" | "other";
+type CampaignCategory = "paid" | "separate-spend" | "organic" | "automation" | "partner" | "retention" | "other";
+type CampaignDisplayCategory = "paid" | "separate-spend" | "organic" | "automation" | "other";
 
 type CampaignTargets = {
   qualifiedLeads: number;
@@ -166,6 +166,7 @@ const CATEGORY_LABEL: Record<CampaignCategory, string> = {
   paid: "Paid channels",
   "separate-spend": "Separate spend",
   organic: "Organic / Online Listings",
+  automation: "Automation",
   retention: "Retention",
   partner: "Partner",
   other: "Other / Unmapped",
@@ -196,14 +197,15 @@ function rowCategory(row: CampaignRow): CampaignCategory {
   if (["Yelp", "Google Ads", "Google Local Services", "Google LSA", "Facebook Ads", "Facebook", "Paid Social", "Workfuel", "Direct Mail", "Mail Shark", "Refer Pro", "Website"].includes(row.channel)) return "paid";
   if (["Billboard", "Radio"].includes(row.channel)) return "separate-spend";
   if (["669-COOLING", "Home Care", "Home Care Plan", "3rd Party Websites", "Carrier", "Rheem", "Switch Is On", "EnergySage", "CPAU", "GBP San Jose", "Existing Customers", "Email Marketing"].includes(row.channel)) return "organic";
-  if (["Hatch Campaigns", "Scheduling Pro"].includes(row.channel)) return "retention";
+  if (row.channel === "Hatch Campaigns") return "automation";
+  if (row.channel === "Scheduling Pro") return "retention";
   if (row.channel === "Now Operator") return "partner";
   return "other";
 }
 
 function rowDisplayCategory(row: CampaignRow): CampaignDisplayCategory {
   const category = rowCategory(row);
-  return category === "paid" || category === "separate-spend" || category === "organic" ? category : "other";
+  return category === "paid" || category === "separate-spend" || category === "organic" || category === "automation" ? category : "other";
 }
 
 function effectiveTargets(row: CampaignRow) {
@@ -310,6 +312,7 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
   const paidRows = data.rows.filter((row) => rowDisplayCategory(row) === "paid");
   const separateSpendRows = data.rows.filter((row) => rowDisplayCategory(row) === "separate-spend");
   const organicRows = data.rows.filter((row) => rowDisplayCategory(row) === "organic");
+  const automationRows = data.rows.filter((row) => rowDisplayCategory(row) === "automation");
   const bookingRateFor = (rows: CampaignRow[]) => {
     const leads = rows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
     const booked = rows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
@@ -379,12 +382,17 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
         <div className="campaign-table-panel__heading"><div><h3>Organic / Online Listings</h3><p>Organic demand, existing customers and third-party listing contribution.</p></div></div>
         <ChannelTable rows={organicRows} />
       </section>
+
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Automation</h3><p>Lead and revenue contribution generated through Hatch automation.</p></div></div>
+        <ChannelTable emptyMessage="No Hatch automation activity is recorded for this month." rows={automationRows} />
+      </section>
     </>
   );
 }
 
 function ChannelsView({ data }: { data: CampaignPerformanceData }) {
-  const categories = (["paid", "separate-spend", "organic", "other"] as CampaignDisplayCategory[]).map((category) => {
+  const categories = (["paid", "separate-spend", "organic", "automation", "other"] as CampaignDisplayCategory[]).map((category) => {
     const rows = data.rows.filter((row) => rowDisplayCategory(row) === category);
     return {
       category,

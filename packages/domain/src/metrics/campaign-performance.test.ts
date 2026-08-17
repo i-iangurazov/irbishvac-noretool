@@ -201,6 +201,7 @@ describe("campaign performance snapshot", () => {
     expect(inferCampaignCategory("Refer Pro")).toBe("paid");
     expect(inferCampaignCategory("Radio")).toBe("separate-spend");
     expect(inferCampaignCategory("3rd Party Websites")).toBe("organic");
+    expect(inferCampaignCategory("Hatch Campaigns")).toBe("automation");
     expect(inferCampaignCategory("SMS Campaigns")).toBe("retention");
     expect(inferCampaignCategory("Reserve with Google")).toBe("organic");
   });
