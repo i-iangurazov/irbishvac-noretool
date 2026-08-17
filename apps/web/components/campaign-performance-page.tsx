@@ -8,7 +8,8 @@ import { PrintReportButton } from "./print-report-button";
 
 type CampaignStatus = "on-track" | "watch" | "off-track" | "risk" | "unplanned";
 type CampaignView = "overview" | "channels" | "plan" | "history";
-type CampaignCategory = "paid" | "organic" | "partner" | "retention" | "other";
+type CampaignCategory = "paid" | "separate-spend" | "organic" | "partner" | "retention" | "other";
+type CampaignDisplayCategory = "paid" | "separate-spend" | "organic" | "other";
 
 type CampaignTargets = {
   qualifiedLeads: number;
@@ -162,11 +163,12 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
 };
 
 const CATEGORY_LABEL: Record<CampaignCategory, string> = {
-  paid: "Paid",
-  organic: "Organic",
+  paid: "Paid channels",
+  "separate-spend": "Separate spend",
+  organic: "Organic / Online Listings",
   retention: "Retention",
   partner: "Partner",
-  other: "Other",
+  other: "Other / Unmapped",
 };
 
 function formatMaybePercent(value: number | null | undefined, digits = 0) {
@@ -191,11 +193,17 @@ function monthLabel(value: string, style: "short" | "long" = "short") {
 
 function rowCategory(row: CampaignRow): CampaignCategory {
   if (row.category) return row.category;
-  if (["Yelp", "Google LSA", "Google Ads", "Facebook", "Paid Social", "Radio", "Mail Shark", "Direct Mail", "Workfuel"].includes(row.channel)) return "paid";
-  if (["Website", "GBP San Jose", "669-COOLING"].includes(row.channel)) return "organic";
-  if (["Existing Customers", "Home Care Plan", "Hatch Campaigns", "Scheduling Pro"].includes(row.channel)) return "retention";
-  if (["Carrier", "Now Operator"].includes(row.channel)) return "partner";
+  if (["Yelp", "Google Ads", "Google Local Services", "Google LSA", "Facebook Ads", "Facebook", "Paid Social", "Workfuel", "Direct Mail", "Mail Shark", "Refer Pro", "Website"].includes(row.channel)) return "paid";
+  if (["Billboard", "Radio"].includes(row.channel)) return "separate-spend";
+  if (["669-COOLING", "Home Care", "Home Care Plan", "3rd Party Websites", "Carrier", "Rheem", "Switch Is On", "EnergySage", "CPAU", "GBP San Jose", "Existing Customers", "Email Marketing"].includes(row.channel)) return "organic";
+  if (["Hatch Campaigns", "Scheduling Pro"].includes(row.channel)) return "retention";
+  if (row.channel === "Now Operator") return "partner";
   return "other";
+}
+
+function rowDisplayCategory(row: CampaignRow): CampaignDisplayCategory {
+  const category = rowCategory(row);
+  return category === "paid" || category === "separate-spend" || category === "organic" ? category : "other";
 }
 
 function effectiveTargets(row: CampaignRow) {
@@ -231,7 +239,15 @@ function viewHref(month: string, view: CampaignView) {
   return `/campaigns?month=${encodeURIComponent(month)}&view=${view}`;
 }
 
-function ChannelTable({ rows, mode = "actual" }: { rows: CampaignRow[]; mode?: "actual" | "plan" }) {
+function ChannelTable({
+  rows,
+  mode = "actual",
+  emptyMessage = "No channel activity or plan is recorded for this month.",
+}: {
+  rows: CampaignRow[];
+  mode?: "actual" | "plan";
+  emptyMessage?: string;
+}) {
   return (
     <div className="campaign-table-wrap">
       <table className={`campaign-table campaign-table--${mode}`}>
@@ -249,6 +265,9 @@ function ChannelTable({ rows, mode = "actual" }: { rows: CampaignRow[]; mode?: "
           )}
         </thead>
         <tbody>
+          {rows.length === 0 ? (
+            <tr><td colSpan={8}><strong>{emptyMessage}</strong></td></tr>
+          ) : null}
           {rows.map((row) => {
             const target = effectiveTargets(row);
             const progress = Math.max(0, Math.min(100, (row.opportunityAttainment ?? 0) * 100));
@@ -288,8 +307,9 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
   const revenueAttainment = data.plan.companyRevenueGoal > 0 ? data.actual.completedRevenue / data.plan.companyRevenueGoal : null;
   const leadAttainment = data.plan.qualifiedLeadGoal > 0 ? data.actual.qualifiedLeads / data.plan.qualifiedLeadGoal : null;
   const budgetAttainment = data.plan.marketingBudgetGoal > 0 ? data.actual.spend / data.plan.marketingBudgetGoal : null;
-  const paidRows = data.rows.filter((row) => rowCategory(row) === "paid");
-  const organicRows = data.rows.filter((row) => rowCategory(row) === "organic");
+  const paidRows = data.rows.filter((row) => rowDisplayCategory(row) === "paid");
+  const separateSpendRows = data.rows.filter((row) => rowDisplayCategory(row) === "separate-spend");
+  const organicRows = data.rows.filter((row) => rowDisplayCategory(row) === "organic");
   const bookingRateFor = (rows: CampaignRow[]) => {
     const leads = rows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
     const booked = rows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
@@ -351,7 +371,12 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
       </section>
 
       <section className="campaign-table-panel">
-        <div className="campaign-table-panel__heading"><div><h3>Organic channels performance</h3><p>Unpaid demand contribution separated from paid acquisition.</p></div></div>
+        <div className="campaign-table-panel__heading"><div><h3>Separate spend</h3><p>Billboard and radio costs tracked outside lead-generating channel performance.</p></div></div>
+        <ChannelTable emptyMessage="No billboard or radio spend is recorded for this month." rows={separateSpendRows} />
+      </section>
+
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Organic / Online Listings</h3><p>Organic demand, existing customers and third-party listing contribution.</p></div></div>
         <ChannelTable rows={organicRows} />
       </section>
     </>
@@ -359,8 +384,8 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
 }
 
 function ChannelsView({ data }: { data: CampaignPerformanceData }) {
-  const categories = (["paid", "organic", "retention", "partner", "other"] as CampaignCategory[]).map((category) => {
-    const rows = data.rows.filter((row) => rowCategory(row) === category);
+  const categories = (["paid", "separate-spend", "organic", "other"] as CampaignDisplayCategory[]).map((category) => {
+    const rows = data.rows.filter((row) => rowDisplayCategory(row) === category);
     return {
       category,
       count: rows.length,
@@ -369,16 +394,18 @@ function ChannelsView({ data }: { data: CampaignPerformanceData }) {
       spend: rows.reduce((sum, row) => sum + row.actual.spend, 0),
       revenue: rows.reduce((sum, row) => sum + row.actual.completedRevenue, 0),
     };
-  }).filter((item) => item.count > 0);
+  }).filter((item) => item.category !== "other" || item.count > 0);
   return (
     <>
       <section className="campaign-category-strip">
         {categories.map((item) => <div key={item.category}><span>{CATEGORY_LABEL[item.category]}</span><strong>{formatNumber(item.booked)} booked</strong><small>{formatNumber(item.leads)} leads · {formatCompactCurrency(item.spend)} tracked spend · {formatCompactCurrency(item.revenue)} revenue</small></div>)}
       </section>
-      <section className="campaign-table-panel">
-        <div className="campaign-table-panel__heading"><div><h3>All campaign channels</h3><p>Paid and unpaid channels are separated; missing paid costs are surfaced as alerts.</p></div><div className="campaign-table-panel__plan"><span>Channels</span><strong>{data.rows.length}</strong><small>Google Sheet + ServiceTitan</small></div></div>
-        <ChannelTable rows={data.rows} />
-      </section>
+      {categories.map((item) => (
+        <section className="campaign-table-panel" key={item.category}>
+          <div className="campaign-table-panel__heading"><div><h3>{CATEGORY_LABEL[item.category]}</h3><p>{item.count} normalized channels from Google Sheet and ServiceTitan.</p></div><div className="campaign-table-panel__plan"><span>Booked jobs</span><strong>{formatNumber(item.booked)}</strong><small>{formatCompactCurrency(item.revenue)} revenue</small></div></div>
+          <ChannelTable rows={data.rows.filter((row) => rowDisplayCategory(row) === item.category)} />
+        </section>
+      ))}
       <section className="campaign-table-panel">
         <div className="campaign-table-panel__heading"><div><h3>Complete action queue</h3><p>Every active campaign alert at this cutoff.</p></div><div className="campaign-table-panel__plan"><span>Open alerts</span><strong>{data.alerts.length}</strong><small>Critical first</small></div></div>
         <div className="campaign-alert-list">

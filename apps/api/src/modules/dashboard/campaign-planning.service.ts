@@ -37,7 +37,7 @@ type PlanInput = {
   type: "plan";
   month: string;
   channel: string;
-  category: "paid" | "organic" | "retention" | "partner" | "other";
+  category: "paid" | "separate-spend" | "organic" | "retention" | "partner" | "other";
   qualifiedLeadGoal: number;
   bookedOpportunityGoal: number;
   approvedBudget?: number | null;
@@ -211,7 +211,7 @@ export class CampaignPlanningService {
       if (type === "plan") {
         const input = raw as PlanInput;
         const category = requireText(input.category, "Category");
-        if (!["paid", "organic", "retention", "partner", "other"].includes(category)) {
+        if (!["paid", "separate-spend", "organic", "retention", "partner", "other"].includes(category)) {
           throw new BadRequestException("Category is invalid");
         }
         const budgetType = requireText(input.budgetType, "Budget type");

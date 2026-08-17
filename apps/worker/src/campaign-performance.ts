@@ -26,16 +26,16 @@ const AUGUST_2026_BASELINE: CampaignPlanRow[] = [
   ["Workfuel", 29, 14, 2782.61, 39751.52],
   ["Website", 78, 77, 28499.70, 407138.61],
   ["Google Ads", 80, 69, 26579.84, 379712.05],
-  ["Paid Social", 53, 21, 5957.11, 85101.62],
+  ["Facebook Ads", 53, 21, 5957.11, 85101.62],
   ["Radio", 0, 0, null, null],
   ["GBP San Jose", 60, 58, 10645.90, 152084.25],
   ["Miscellaneous", 81, 60, 219.16, 3130.79],
-  ["Google LSA", 19, 17, 259.57, 3708.18],
-  ["Home Care Plan", 21, 21, null, null],
+  ["Google Local Services", 19, 17, 259.57, 3708.18],
+  ["Home Care", 21, 21, null, null],
   ["Now Operator", 0, null, null, null],
   ["669-COOLING", 29, 26, 12869.77, 183853.91],
   ["Scheduling Pro", 35, 33, null, null],
-  ["Carrier", 13, 12, 408.83, 5840.46],
+  ["3rd Party Websites", 13, 12, 408.83, 5840.46],
   ["Hatch Campaigns", 20, 20, 3041.42, 43448.84],
   ["Direct Mail", 8, 8, 15.80, 225.69],
   ["Existing Customers", 0, null, 21476.37, 306805.32]
@@ -244,7 +244,7 @@ function parseConnectedPlan(values: unknown[][] | undefined, month: string) {
     ) continue;
     const inferredCategory = inferCampaignCategory(channel);
     const categoryValue = String(categoryIndex >= 0 ? row[categoryIndex] ?? "" : "").trim().toLowerCase();
-    const category: NonNullable<CampaignPlanRow["category"]> = ["paid", "organic", "partner", "retention", "other"].includes(categoryValue)
+    const category: NonNullable<CampaignPlanRow["category"]> = ["paid", "separate-spend", "organic", "partner", "retention", "other"].includes(categoryValue)
       ? categoryValue as NonNullable<CampaignPlanRow["category"]>
       : inferredCategory;
     const budgetTypeValue = String(budgetTypeIndex >= 0 ? row[budgetTypeIndex] ?? "" : "").trim().toLowerCase();

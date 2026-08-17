@@ -180,15 +180,72 @@ describe("campaign performance snapshot", () => {
 
   it("maps known ServiceTitan campaign names into executive channels", () => {
     expect(normalizeCampaignChannel("Google Ad Extension - Branded")).toBe("Google Ads");
+    expect(normalizeCampaignChannel("Google LSA - HVAC")).toBe("Google Local Services");
+    expect(normalizeCampaignChannel("Facebook - San Jose")).toBe("Facebook Ads");
+    expect(normalizeCampaignChannel("Mail Shark August")).toBe("Direct Mail");
+    expect(normalizeCampaignChannel("LettrLabs Plumbing")).toBe("Direct Mail");
     expect(normalizeCampaignChannel("Refer Pro")).toBe("Refer Pro");
-    expect(normalizeCampaignChannel("Switch Is On")).toBe("Switch Is On");
+    expect(normalizeCampaignChannel("Carrier Website")).toBe("3rd Party Websites");
+    expect(normalizeCampaignChannel("Rheem Contractor Finder")).toBe("3rd Party Websites");
+    expect(normalizeCampaignChannel("Switch Is On")).toBe("3rd Party Websites");
+    expect(normalizeCampaignChannel("EnergySage")).toBe("3rd Party Websites");
+    expect(normalizeCampaignChannel("CPAU")).toBe("3rd Party Websites");
+    expect(normalizeCampaignChannel("Home Care Plan")).toBe("Home Care");
+    expect(normalizeCampaignChannel("Email Marketing - August")).toBe("Email Marketing");
+    expect(normalizeCampaignChannel("Billboard 101")).toBe("Billboard");
     expect(normalizeCampaignChannel("Appfolio")).toBe("Appfolio");
     expect(normalizeCampaignChannel("Diamond Certified")).toBe("Diamond Certified");
     expect(normalizeCampaignChannel("SMS - AC Recurring Service Reminder")).toBe("SMS Campaigns");
     expect(normalizeCampaignChannel("Reserve with Google")).toBe("Reserve with Google");
-    expect(inferCampaignCategory("Refer Pro")).toBe("partner");
+    expect(inferCampaignCategory("Website")).toBe("paid");
+    expect(inferCampaignCategory("Refer Pro")).toBe("paid");
+    expect(inferCampaignCategory("Radio")).toBe("separate-spend");
+    expect(inferCampaignCategory("3rd Party Websites")).toBe("organic");
     expect(inferCampaignCategory("SMS Campaigns")).toBe("retention");
     expect(inferCampaignCategory("Reserve with Google")).toBe("organic");
+  });
+
+  it("aggregates third-party website aliases without changing source totals", () => {
+    const result = buildCampaignPerformanceSnapshot({
+      month: "2026-08",
+      cutoff: "2026-08-13",
+      callCenterValues: [
+        ["Date Received", "Medium", "Lead Quality", "Stage", "Lead Source"],
+        ["2026-08-05", "Call", "Good", "Booked", "Carrier"],
+        ["2026-08-06", "Call", "Good", "Booked", "EnergySage"],
+      ],
+      campaignSummary: {},
+      soldEstimates: {
+        fields: [{ name: "ParentJobCampaign" }, { name: "Total" }],
+        data: [["Carrier", 1_250], ["Switch Is On", 2_750]],
+      },
+      revenueByCampaign: {
+        fields: [{ name: "Name" }, { name: "CompletedRevenue" }],
+        data: [["Rheem", 900], ["CPAU", 1_100]],
+      },
+      planRows: [],
+      companyRevenueGoal: 100_000,
+      marketingBudgetRate: 0.07,
+      qualifiedLeadGoal: 100,
+      opportunityGoal: 50,
+      targetBookingRate: 0.5,
+      planStatus: "DRAFT MODEL",
+      channelLeadGoalMethod: "Test",
+      channelBudgetGoalStatus: "Test",
+      sourceReportIds: { campaignSummary: "898", soldEstimates: "7148368", revenueByCampaign: "101394656" },
+    });
+
+    const thirdParty = result.rows.find((row) => row.channel === "3rd Party Websites");
+    expect(thirdParty?.category).toBe("organic");
+    expect(thirdParty?.actual).toMatchObject({
+      qualifiedLeads: 2,
+      bookedJobs: 2,
+      soldJobs: 2,
+      soldAmount: 4_000,
+      completedRevenue: 2_000,
+    });
+    expect(result.actual.soldAmount).toBe(4_000);
+    expect(result.actual.completedRevenue).toBe(2_000);
   });
 
   it("retains unknown ServiceTitan campaigns so source totals reconcile", () => {

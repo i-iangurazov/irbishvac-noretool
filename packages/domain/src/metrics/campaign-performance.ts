@@ -1,7 +1,13 @@
 import { pickFirst, resolveTabularReport, toNumber } from "../shared/report";
 
 export type CampaignPerformanceStatus = "on-track" | "watch" | "off-track" | "risk" | "unplanned";
-export type CampaignChannelCategory = "paid" | "organic" | "partner" | "retention" | "other";
+export type CampaignChannelCategory =
+  | "paid"
+  | "separate-spend"
+  | "organic"
+  | "partner"
+  | "retention"
+  | "other";
 export type CampaignBudgetType = "platform" | "manual" | "prepaid" | "none";
 
 export type CampaignMetricTargets = {
@@ -263,23 +269,24 @@ export function normalizeCampaignChannel(value: unknown) {
 
   const rules: Array<[string, string[]]> = [
     ["Yelp", ["yelp"]],
-    ["Google LSA", ["google local services", "google lsa", "lsa"]],
+    ["Google Local Services", ["google local services", "google lsa", "lsa"]],
+    ["3rd Party Websites", ["3rd party website", "third party website", "carrier", "rheem", "switch is on", "energysage", "energy sage", "cpau"]],
     ["Website", ["direct web traffic", "google organic", "website"]],
     ["GBP San Jose", ["gbp san jose", "google business"]],
     ["Google Ads", ["google ads", "google ad extension", "maxconv", "pmax", "irbis |"]],
-    ["Paid Social", ["facebook", "paid social", "instagram", "social"]],
+    ["Facebook Ads", ["facebook", "paid social", "instagram", "social"]],
+    ["Billboard", ["billboard"]],
     ["Radio", ["radio"]],
-    ["Direct Mail", ["mail shark", "direct mail", "letterlabs", "postcard"]],
+    ["Direct Mail", ["mail shark", "direct mail", "lettrlabs", "letterlabs", "postcard"]],
     ["Hatch Campaigns", ["hatch"]],
     ["Workfuel", ["workfuel", "work fuel"]],
-    ["Carrier", ["carrier"]],
     ["669-COOLING", ["669-cooling", "669 cooling"]],
     ["Scheduling Pro", ["scheduling pro"]],
-    ["Home Care Plan", ["home care plan"]],
+    ["Home Care", ["home care"]],
     ["Existing Customers", ["existing customer"]],
+    ["Email Marketing", ["email marketing", "email campaign"]],
     ["Now Operator", ["now operator"]],
     ["Refer Pro", ["refer pro"]],
-    ["Switch Is On", ["switch is on"]],
     ["Appfolio", ["appfolio"]],
     ["Diamond Certified", ["diamond certified"]],
     ["SMS Campaigns", ["sms -", "sms campaign"]],
@@ -291,10 +298,11 @@ export function normalizeCampaignChannel(value: unknown) {
 }
 
 export function inferCampaignCategory(channel: string): CampaignChannelCategory {
-  if (["Yelp", "Google LSA", "Google Ads", "Paid Social", "Radio", "Direct Mail", "Workfuel"].includes(channel)) return "paid";
-  if (["Website", "GBP San Jose", "669-COOLING"].includes(channel)) return "organic";
-  if (["Existing Customers", "Home Care Plan", "Hatch Campaigns", "Scheduling Pro", "SMS Campaigns"].includes(channel)) return "retention";
-  if (["Carrier", "Now Operator", "Refer Pro", "Switch Is On", "Appfolio", "Diamond Certified"].includes(channel)) return "partner";
+  if (["Yelp", "Google Ads", "Google Local Services", "Facebook Ads", "Workfuel", "Direct Mail", "Refer Pro", "Website"].includes(channel)) return "paid";
+  if (["Billboard", "Radio"].includes(channel)) return "separate-spend";
+  if (["669-COOLING", "Home Care", "3rd Party Websites", "GBP San Jose", "Existing Customers", "Email Marketing"].includes(channel)) return "organic";
+  if (["Hatch Campaigns", "Scheduling Pro", "SMS Campaigns"].includes(channel)) return "retention";
+  if (["Now Operator", "Appfolio", "Diamond Certified"].includes(channel)) return "partner";
   if (channel === "Reserve with Google") return "organic";
   return "other";
 }
@@ -303,9 +311,10 @@ export function inferCampaignBudgetType(
   channel: string,
   category: CampaignChannelCategory = inferCampaignCategory(channel),
 ): CampaignBudgetType {
+  if (category === "separate-spend") return "manual";
   if (category !== "paid") return "none";
   if (channel === "Direct Mail") return "prepaid";
-  if (["Radio", "Workfuel"].includes(channel)) return "manual";
+  if (channel === "Workfuel") return "manual";
   return "platform";
 }
 
@@ -487,7 +496,10 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     const raw = actuals.get(channel) ?? { ...EMPTY_ACTUAL };
     const seed = plans.get(channel);
     const forecastSeed = forecasts.get(channel);
-    const category = forecastSeed?.category ?? seed?.category ?? inferCampaignCategory(channel);
+    const inferredCategory = inferCampaignCategory(channel);
+    const category = inferredCategory === "other"
+      ? forecastSeed?.category ?? seed?.category ?? inferredCategory
+      : inferredCategory;
     const budgetType = manualCosts.get(channel)?.budgetType ?? forecastSeed?.budgetType ?? seed?.budgetType ?? inferCampaignBudgetType(channel, category);
     const hasActivity = raw.qualifiedLeads > 0 || raw.bookedJobs > 0 || raw.soldJobs > 0 || raw.completedRevenue > 0;
     const isMissingPaidCost = category === "paid" && hasActivity && raw.spend === 0;
@@ -599,7 +611,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   const planApproval = input.planApproval ?? { approvalStatus: "required" as const, version: `${input.month}-unapproved` };
 
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     generatedAt,
     dataStatus: "LIVE",
     period: {
@@ -666,7 +678,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     ],
     dataNotes: [
       "Google Sheet rows after the MTD cutoff are excluded.",
-      "ServiceTitan campaign names are normalized into executive channels.",
+      "ServiceTitan campaign names are normalized into Paid channels, Separate spend, and Organic / Online Listings groups.",
       "Lead and opportunity pace uses weekdays; spend pace uses calendar days.",
       "Tracked spend includes ServiceTitan costs plus the latest MTD manual cost override for each channel.",
       spendCoverage.status === "complete"
