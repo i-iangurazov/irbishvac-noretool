@@ -176,6 +176,13 @@ export function getConfig() {
         spreadsheetId: env.GOOGLE_CALL_CENTER_SPREADSHEET_ID,
         serviceAccountEmail: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
         serviceAccountPrivateKey: env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+      },
+      yelp: {
+        apiKey: env.YELP_API_KEY,
+        businessIds: env.YELP_BUSINESS_IDS
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
       }
     }
   };

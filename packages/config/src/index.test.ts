@@ -25,3 +25,15 @@ describe("Field Pro report defaults", () => {
     expect(env.ST_REPORT_FIELD_PRO_JOB_RECORDINGS).toBe("125959432");
   });
 });
+
+describe("Yelp reporting configuration", () => {
+  it("keeps Yelp optional until credentials are configured", () => {
+    const env = getEnv({
+      YELP_API_KEY: undefined,
+      YELP_BUSINESS_IDS: undefined,
+    });
+
+    expect(env.YELP_API_KEY).toBe("");
+    expect(env.YELP_BUSINESS_IDS).toBe("");
+  });
+});

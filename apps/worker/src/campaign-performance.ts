@@ -17,6 +17,7 @@ import {
   type ReportParameter
 } from "@irbis/integrations";
 import { createLogger, getDateParts } from "@irbis/utils";
+import { YelpReportingClient, type YelpSpendResult } from "./yelp-reporting";
 
 const logger = createLogger("campaign-performance-refresh");
 const SCOPE_PREFIX = "campaign-performance:";
@@ -386,6 +387,7 @@ export class CampaignPerformanceRefreshRunner {
   private readonly config = getConfig();
   private readonly sheets = new GoogleSheetsClient();
   private readonly serviceTitan = new ServiceTitanClient();
+  private readonly yelp = new YelpReportingClient(this.config.campaignPerformance.yelp);
 
   getMissingConfiguration() {
     return [...this.sheets.getMissingConfiguration(), ...this.serviceTitan.getMissingConfiguration()];
@@ -410,6 +412,10 @@ export class CampaignPerformanceRefreshRunner {
         campaignSummary: this.config.serviceTitan.reports.campaigns.reportId,
         soldEstimates: this.config.serviceTitan.reports.campaignSoldEstimates.reportId,
         revenueByCampaign: this.config.serviceTitan.reports.campaignRevenue.reportId
+      },
+      yelp: {
+        configured: this.yelp.isConfigured(),
+        businessCount: this.config.campaignPerformance.yelp.businessIds.length
       }
     };
     const businessDateFrom = new Date(`${from}T00:00:00.000Z`);
@@ -501,7 +507,42 @@ export class CampaignPerformanceRefreshRunner {
       );
       const connectedPlan = parseConnectedPlan(connectedPlanSheet?.values, month);
       const forecastRows = parseForecast(forecastSheet?.values, month);
-      const manualCostRows = parseManualCosts(costSheet?.values, month);
+      const connectedCostRows = parseManualCosts(costSheet?.values, month);
+      let yelpSpend: YelpSpendResult | null = null;
+      let yelpError: string | null = null;
+      if (this.yelp.isConfigured()) {
+        try {
+          yelpSpend = await this.yelp.getMtdAdSpend(from, cutoff);
+          logger.info("Loaded live Yelp MTD ad cost", {
+            correlationId,
+            month,
+            cutoff,
+            spend: yelpSpend.spend,
+            businessCount: yelpSpend.businessCount,
+            dailyRowCount: yelpSpend.dailyRowCount
+          });
+        } catch (error) {
+          yelpError = error instanceof Error ? error.message : String(error);
+          logger.warn("Yelp MTD ad cost unavailable; retaining connected cost fallback", {
+            correlationId,
+            month,
+            cutoff,
+            error: yelpError
+          });
+        }
+      }
+      const manualCostRows = yelpSpend
+        ? [
+            ...connectedCostRows.filter((row) => normalizeCampaignChannel(row.channel) !== "Yelp"),
+            {
+              channel: "Yelp",
+              spend: yelpSpend.spend,
+              budgetType: "platform" as const,
+              effectiveFrom: cutoff,
+              notes: `Live Yelp Reporting API ad_cost through ${cutoff}`
+            }
+          ]
+        : connectedCostRows;
       const plan = connectedPlan.rows.length > 0
         ? {
             rows: connectedPlan.rows,
@@ -545,7 +586,7 @@ export class CampaignPerformanceRefreshRunner {
         forecastRows,
         manualCostRows,
         connectedPlanRowCount: connectedPlan.rows.length,
-        connectedCostRowCount: manualCostRows.length,
+        connectedCostRowCount: connectedCostRows.length,
         capacityAssumptions: capacityRows,
         capacityStatus: connectedCapacityRows.length > 0 ? "connected" : "model",
         planApproval: plan.approval,
@@ -559,6 +600,21 @@ export class CampaignPerformanceRefreshRunner {
         channelBudgetGoalStatus: plan.budgetMethod,
         sourceReportIds: requestParams.reports
       });
+
+      snapshot.sources.push({
+        name: "Yelp Reporting API",
+        role: "Live MTD Yelp ad cost override",
+        status: yelpSpend ? "connected" : this.yelp.isConfigured() ? "stale" : "blocked",
+        refreshedAt: generatedAt,
+        rowCount: yelpSpend?.dailyRowCount ?? 0
+      });
+      snapshot.dataNotes.push(
+        yelpSpend
+          ? `Yelp spend is live ad_cost from ${yelpSpend.businessCount} configured business ID${yelpSpend.businessCount === 1 ? "" : "s"} through ${cutoff}.`
+          : this.yelp.isConfigured()
+            ? `Yelp Reporting API was unavailable during refresh; the connected Campaign Costs or ServiceTitan value remains in use. ${yelpError ?? ""}`.trim()
+            : "Yelp Reporting API is not configured; the connected Campaign Costs or ServiceTitan value remains in use.",
+      );
 
       logger.info("Built reconciled campaign performance snapshot", {
         correlationId,

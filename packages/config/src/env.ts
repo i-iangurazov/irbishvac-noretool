@@ -124,6 +124,8 @@ const envSchema = z.object({
   GOOGLE_CALL_CENTER_SPREADSHEET_ID: z.string().optional().default(""),
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().optional().default(""),
   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z.string().optional().default(""),
+  YELP_API_KEY: z.string().optional().default(""),
+  YELP_BUSINESS_IDS: z.string().optional().default(""),
   CAMPAIGN_COMPANY_REVENUE_GOAL: z.coerce.number().positive().optional().default(2_000_000),
   CAMPAIGN_MARKETING_BUDGET_RATE: z.coerce.number().min(0).max(1).optional().default(0.07),
   CAMPAIGN_OPPORTUNITY_GOAL: z.coerce.number().int().positive().optional().default(1_125),
