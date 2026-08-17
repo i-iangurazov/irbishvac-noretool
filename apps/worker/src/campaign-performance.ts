@@ -563,6 +563,7 @@ export class CampaignPerformanceRefreshRunner {
       logger.info("Built reconciled campaign performance snapshot", {
         correlationId,
         month,
+        schemaVersion: snapshot.schemaVersion,
         soldEstimateRows: snapshot.sources.find((source) => source.name === "ServiceTitan Sold Estimates")?.rowCount ?? 0,
         soldJobs: snapshot.actual.soldJobs,
         soldAmount: snapshot.actual.soldAmount,
