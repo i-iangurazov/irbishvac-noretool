@@ -137,6 +137,13 @@ describe("campaign performance snapshot", () => {
       activePaidChannels: 2,
       trackedPaidChannels: 1,
       missingPaidChannels: ["Direct Mail"],
+      trackedPaidSpend: 500,
+      trackedPaidLeads: 1,
+      trackedPaidBookedJobs: 1,
+      trackedPaidCompletedRevenue: 0,
+      coveredCostPerLead: 500,
+      coveredCostPerBookedJob: 500,
+      coveredRoas: 0,
     });
     expect(result.actual.costPerLead).toBeNull();
     expect(result.actual.costPerBookedJob).toBeNull();

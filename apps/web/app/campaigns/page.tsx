@@ -19,8 +19,8 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>)
   );
   const requestedMonth = typeof params.month === "string" ? params.month : "2026-08";
-  const requestedView = typeof params.view === "string" && ["overview", "channels", "plan", "history"].includes(params.view)
-    ? params.view as "overview" | "channels" | "plan" | "history"
+  const requestedView = typeof params.view === "string" && ["overview", "revenue", "channels", "plan", "history"].includes(params.view)
+    ? params.view as "overview" | "revenue" | "channels" | "plan" | "history"
     : "overview";
   const currentMonth = new Intl.DateTimeFormat("en-CA", {
     year: "numeric",

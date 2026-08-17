@@ -3783,6 +3783,21 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
 .campaign-category--partner { background: #f3eef8; color: #6b4d86; }
 .campaign-category--other { background: #eef1f3; color: #5b6670; }
 
+.campaign-revenue-type {
+  display: inline-flex;
+  min-height: calc(var(--vw-unit) * 24);
+  align-items: center;
+  padding: 0 var(--dash-space-xs);
+  border-left: calc(var(--dash-border) * 2) solid currentColor;
+  background: #eef1f3;
+  color: #5b6670;
+  font-size: var(--dash-font-2xs);
+  font-weight: 900;
+}
+.campaign-revenue-type--paid { background: #fff0e9; color: #a23b19; }
+.campaign-revenue-type--unpaid { background: #e8f5ef; color: #176a4b; }
+.campaign-revenue-type--separate-spend { background: #fff6e7; color: #805300; }
+
 .campaign-plan-state {
   display: inline-block;
   max-width: 100%;
@@ -3806,6 +3821,8 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
 .campaign-table--capacity th:first-child { width: 34%; }
 .campaign-table--history { min-width: calc(var(--vw-unit) * 1050); }
 .campaign-table--comparison { min-width: calc(var(--vw-unit) * 820); }
+.campaign-table--revenue-groups,
+.campaign-table--revenue { min-width: calc(var(--vw-unit) * 1050); }
 .campaign-table--plan td > span { white-space: normal; }
 
 @media (min-width: 901px) {

@@ -152,6 +152,13 @@ export type CampaignPerformanceSnapshot = {
     trackedPaidChannels: number;
     missingPaidChannels: string[];
     trackedLeadShare: number | null;
+    trackedPaidSpend: number;
+    trackedPaidLeads: number;
+    trackedPaidBookedJobs: number;
+    trackedPaidCompletedRevenue: number;
+    coveredCostPerLead: number | null;
+    coveredCostPerBookedJob: number | null;
+    coveredRoas: number | null;
   };
   pace: {
     expectedToDateRatio: number;
@@ -550,6 +557,9 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     .map((row) => row.channel);
   const activePaidLeads = activePaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
   const trackedPaidLeads = trackedPaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
+  const trackedPaidSpend = trackedPaidRows.reduce((sum, row) => sum + row.actual.spend, 0);
+  const trackedPaidBookedJobs = trackedPaidRows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
+  const trackedPaidCompletedRevenue = trackedPaidRows.reduce((sum, row) => sum + row.actual.completedRevenue, 0);
   const spendCoverage: CampaignPerformanceSnapshot["spendCoverage"] = {
     status: activePaidRows.length === 0
       ? "not-applicable"
@@ -561,7 +571,14 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     activePaidChannels: activePaidRows.length,
     trackedPaidChannels: trackedPaidRows.length,
     missingPaidChannels,
-    trackedLeadShare: ratio(trackedPaidLeads, activePaidLeads)
+    trackedLeadShare: ratio(trackedPaidLeads, activePaidLeads),
+    trackedPaidSpend,
+    trackedPaidLeads,
+    trackedPaidBookedJobs,
+    trackedPaidCompletedRevenue,
+    coveredCostPerLead: ratio(trackedPaidSpend, trackedPaidLeads),
+    coveredCostPerBookedJob: ratio(trackedPaidSpend, trackedPaidBookedJobs),
+    coveredRoas: ratio(trackedPaidCompletedRevenue, trackedPaidSpend)
   };
 
   const totals = rows.reduce<MutableActual>((sum, row) => ({
@@ -613,7 +630,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   const planApproval = input.planApproval ?? { approvalStatus: "required" as const, version: `${input.month}-unapproved` };
 
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     generatedAt,
     dataStatus: "LIVE",
     period: {
@@ -685,7 +702,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
       "Tracked spend includes ServiceTitan costs plus the latest MTD manual cost override for each channel.",
       spendCoverage.status === "complete"
         ? "Cost coverage is complete for all active paid channels."
-        : `Cost metrics are withheld because spend is missing for: ${missingPaidChannels.join(", ") || "active paid channels"}.`,
+        : `Blended cost metrics remain withheld because spend is missing for: ${missingPaidChannels.join(", ") || "active paid channels"}. Covered-subset metrics include only paid channels with tracked spend.`,
       "The original approved plan remains locked; mid-month changes are shown as forecast revisions.",
       input.channelLeadGoalMethod
     ]

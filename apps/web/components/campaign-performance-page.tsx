@@ -7,9 +7,10 @@ import { CampaignPlanInputs } from "./campaign-plan-inputs";
 import { PrintReportButton } from "./print-report-button";
 
 type CampaignStatus = "on-track" | "watch" | "off-track" | "risk" | "unplanned";
-type CampaignView = "overview" | "channels" | "plan" | "history";
+type CampaignView = "overview" | "revenue" | "channels" | "plan" | "history";
 type CampaignCategory = "paid" | "separate-spend" | "organic" | "automation" | "partner" | "retention" | "other";
 type CampaignDisplayCategory = "paid" | "separate-spend" | "organic" | "automation" | "other";
+type CampaignRevenueGroup = "paid" | "unpaid" | "separate-spend" | "other";
 
 type CampaignTargets = {
   qualifiedLeads: number;
@@ -129,6 +130,13 @@ export type CampaignPerformanceData = {
     trackedPaidChannels: number;
     missingPaidChannels: string[];
     trackedLeadShare: number | null;
+    trackedPaidSpend?: number;
+    trackedPaidLeads?: number;
+    trackedPaidBookedJobs?: number;
+    trackedPaidCompletedRevenue?: number;
+    coveredCostPerLead?: number | null;
+    coveredCostPerBookedJob?: number | null;
+    coveredRoas?: number | null;
   };
   pace: {
     expectedToDateRatio: number;
@@ -169,6 +177,13 @@ const CATEGORY_LABEL: Record<CampaignCategory, string> = {
   automation: "Automation",
   retention: "Retention",
   partner: "Partner",
+  other: "Other / Unmapped",
+};
+
+const REVENUE_GROUP_LABEL: Record<CampaignRevenueGroup, string> = {
+  paid: "Paid channels",
+  unpaid: "Unpaid / organic",
+  "separate-spend": "Separate spend",
   other: "Other / Unmapped",
 };
 
@@ -218,19 +233,39 @@ function missingPaidSpend(row: CampaignRow) {
 }
 
 function spendCoverage(data: CampaignPerformanceData) {
-  if (data.spendCoverage) return data.spendCoverage;
   const activePaidRows = data.rows.filter((row) => rowCategory(row) === "paid" && (
     row.actual.qualifiedLeads > 0 || row.actual.bookedJobs > 0 || row.actual.soldJobs > 0 || row.actual.completedRevenue > 0
   ));
   const missingPaidChannels = activePaidRows.filter(missingPaidSpend).map((row) => row.channel);
-  const trackedPaidChannels = activePaidRows.length - missingPaidChannels.length;
-  return {
+  const trackedPaidRows = activePaidRows.filter((row) => row.actual.spend > 0);
+  const trackedPaidChannels = trackedPaidRows.length;
+  const activePaidLeads = activePaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
+  const trackedPaidLeads = trackedPaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
+  const trackedPaidSpend = trackedPaidRows.reduce((sum, row) => sum + row.actual.spend, 0);
+  const trackedPaidBookedJobs = trackedPaidRows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
+  const trackedPaidCompletedRevenue = trackedPaidRows.reduce((sum, row) => sum + row.actual.completedRevenue, 0);
+  const derived = {
     status: activePaidRows.length === 0 ? "not-applicable" as const : missingPaidChannels.length === 0 ? "complete" as const : trackedPaidChannels === 0 ? "unavailable" as const : "partial" as const,
     activePaidChannels: activePaidRows.length,
     trackedPaidChannels,
     missingPaidChannels,
-    trackedLeadShare: null,
+    trackedLeadShare: activePaidLeads > 0 ? trackedPaidLeads / activePaidLeads : null,
+    trackedPaidSpend,
+    trackedPaidLeads,
+    trackedPaidBookedJobs,
+    trackedPaidCompletedRevenue,
+    coveredCostPerLead: trackedPaidLeads > 0 ? trackedPaidSpend / trackedPaidLeads : null,
+    coveredCostPerBookedJob: trackedPaidBookedJobs > 0 ? trackedPaidSpend / trackedPaidBookedJobs : null,
+    coveredRoas: trackedPaidSpend > 0 ? trackedPaidCompletedRevenue / trackedPaidSpend : null,
   };
+  return { ...derived, ...data.spendCoverage };
+}
+
+function revenueGroup(row: CampaignRow): CampaignRevenueGroup {
+  const category = rowDisplayCategory(row);
+  if (category === "paid" || category === "separate-spend") return category;
+  if (category === "organic" || category === "automation") return "unpaid";
+  return "other";
 }
 
 function periodId(data: CampaignPerformanceData) {
@@ -320,7 +355,11 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
   };
   const coverage = spendCoverage(data);
   const costsComplete = coverage.status === "complete";
-  const roas = costsComplete ? data.actual.roas ?? null : null;
+  const costPerLead = costsComplete ? data.actual.costPerLead : coverage.coveredCostPerLead;
+  const costPerBookedJob = costsComplete ? data.actual.costPerBookedJob : coverage.coveredCostPerBookedJob;
+  const roas = costsComplete ? data.actual.roas ?? null : coverage.coveredRoas;
+  const costMetricPrefix = costsComplete ? "" : "Covered ";
+  const coverageLabel = `${coverage.trackedPaidChannels}/${coverage.activePaidChannels} paid channels · ${formatMaybePercent(coverage.trackedLeadShare)} of paid leads`;
   const targetLabel = data.plan.approvalStatus === "approved" ? "Target" : "Model target";
   const progressWidth = (value: number | null) => `${Math.min(100, Math.max(0, (value ?? 0) * 100))}%`;
   return (
@@ -351,14 +390,14 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
         <div className="campaign-executive-card campaign-executive-card--spend">
           <span>Tracked marketing spend</span>
           <strong>{formatCompactCurrency(data.actual.spend)} / {formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong>
-          <small>{costsComplete ? `${formatMaybePercent(data.pace.spendPace)} calendar pace` : `${coverage.trackedPaidChannels}/${coverage.activePaidChannels} active paid channels have costs`}</small>
+          <small>{costsComplete ? `${formatMaybePercent(data.pace.spendPace)} calendar pace` : coverageLabel}</small>
           <div className="campaign-executive-meter"><span style={{ width: progressWidth(budgetAttainment) }} /></div>
-          <div className="campaign-executive-split"><span>Cost / lead <b>{costsComplete && data.actual.costPerLead != null ? formatCompactCurrency(data.actual.costPerLead) : "Pending"}</b></span><span>Cost / job <b>{costsComplete && data.actual.costPerBookedJob != null ? formatCompactCurrency(data.actual.costPerBookedJob) : "Pending"}</b></span></div>
+          <div className="campaign-executive-split"><span>{costMetricPrefix}cost / lead <b>{costPerLead == null ? "Pending" : formatCompactCurrency(costPerLead)}</b></span><span>{costMetricPrefix}cost / booked job <b>{costPerBookedJob == null ? "Pending" : formatCompactCurrency(costPerBookedJob)}</b></span></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--roas">
-          <span>ROAS</span>
+          <span>{costMetricPrefix}ROAS</span>
           <strong>{roas == null ? "Pending" : `${roas.toFixed(1)}x`}</strong>
-          <small>{costsComplete ? "Completed revenue / tracked spend" : `${coverage.missingPaidChannels.length} paid channel costs missing`}</small>
+          <small>{costsComplete ? "Completed revenue / tracked spend" : `${coverage.missingPaidChannels.length} paid channel costs missing · covered channels only`}</small>
         </div>
       </section>
 
@@ -386,6 +425,60 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
       <section className="campaign-table-panel">
         <div className="campaign-table-panel__heading"><div><h3>Automation</h3><p>Lead and revenue contribution generated through Hatch automation.</p></div></div>
         <ChannelTable emptyMessage="No Hatch automation activity is recorded for this month." rows={automationRows} />
+      </section>
+    </>
+  );
+}
+
+function RevenueView({ data }: { data: CampaignPerformanceData }) {
+  const groupOrder: CampaignRevenueGroup[] = ["paid", "unpaid", "other", "separate-spend"];
+  const groups = groupOrder.map((group) => {
+    const rows = data.rows.filter((row) => revenueGroup(row) === group);
+    const completedRevenue = rows.reduce((sum, row) => sum + row.actual.completedRevenue, 0);
+    const spend = rows.reduce((sum, row) => sum + row.actual.spend, 0);
+    return {
+      group,
+      rows,
+      soldJobs: rows.reduce((sum, row) => sum + row.actual.soldJobs, 0),
+      soldAmount: rows.reduce((sum, row) => sum + row.actual.soldAmount, 0),
+      completedRevenue,
+      spend,
+      share: data.actual.completedRevenue > 0 ? completedRevenue / data.actual.completedRevenue : null,
+    };
+  });
+  const coverage = spendCoverage(data);
+  const channelRows = [...data.rows]
+    .filter((row) => row.actual.completedRevenue > 0 || row.actual.soldAmount > 0 || row.actual.spend > 0)
+    .sort((left, right) => right.actual.completedRevenue - left.actual.completedRevenue || right.actual.soldAmount - left.actual.soldAmount);
+  const paidGroup = groups.find((group) => group.group === "paid")!;
+  const unpaidGroup = groups.find((group) => group.group === "unpaid")!;
+  const otherGroup = groups.find((group) => group.group === "other")!;
+  return (
+    <>
+      <section className="campaign-category-strip campaign-revenue-summary" aria-label="Paid and unpaid revenue summary">
+        <div><span>Total completed revenue</span><strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong><small>{formatNumber(data.actual.soldJobs)} sold jobs · {formatCompactCurrency(data.actual.soldAmount)} sales value</small></div>
+        <div><span>Paid channel revenue</span><strong>{formatCompactCurrency(paidGroup.completedRevenue)}</strong><small>{formatMaybePercent(paidGroup.share)} of completed revenue</small></div>
+        <div><span>Unpaid / organic revenue</span><strong>{formatCompactCurrency(unpaidGroup.completedRevenue)}</strong><small>{formatMaybePercent(unpaidGroup.share)} of completed revenue</small></div>
+        <div><span>Other / unmapped revenue</span><strong>{formatCompactCurrency(otherGroup.completedRevenue)}</strong><small>{formatMaybePercent(otherGroup.share)} retained for reconciliation</small></div>
+      </section>
+
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Paid vs unpaid revenue</h3><p>Every ServiceTitan dollar remains visible, including channels that are not yet mapped to Emil's acquisition groups.</p></div><div className="campaign-table-panel__plan"><span>Paid cost coverage</span><strong>{coverage.trackedPaidChannels}/{coverage.activePaidChannels} channels</strong><small>{formatMaybePercent(coverage.trackedLeadShare)} of paid leads covered</small></div></div>
+        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--revenue-groups"><thead><tr><th>Acquisition group</th><th>Channels</th><th>Sold</th><th>Sales value</th><th>Completed revenue</th><th>Revenue share</th><th>Tracked spend</th><th>ROAS</th></tr></thead><tbody>
+          {groups.map((group) => {
+            const roas = group.group === "paid"
+              ? coverage.status === "complete" ? (group.spend > 0 ? group.completedRevenue / group.spend : null) : coverage.coveredRoas
+              : group.group === "other" && group.spend > 0 ? group.completedRevenue / group.spend : null;
+            return <tr key={group.group}><td><strong>{REVENUE_GROUP_LABEL[group.group]}</strong><span>{group.group === "unpaid" ? "Organic + Automation" : group.group === "paid" && coverage.status !== "complete" ? "ROAS uses covered paid channels" : ""}</span></td><td><strong>{formatNumber(group.rows.length)}</strong></td><td><strong>{formatNumber(group.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(group.soldAmount)}</strong></td><td><strong>{formatCompactCurrency(group.completedRevenue)}</strong></td><td><strong>{formatMaybePercent(group.share)}</strong></td><td><strong>{formatCompactCurrency(group.spend)}</strong></td><td><strong>{roas == null ? "-" : `${roas.toFixed(1)}x${group.group === "paid" && coverage.status !== "complete" ? " covered" : ""}`}</strong></td></tr>;
+          })}
+        </tbody></table></div>
+      </section>
+
+      <section className="campaign-table-panel">
+        <div className="campaign-table-panel__heading"><div><h3>Revenue by channel</h3><p>Sales value is sold estimates; completed revenue is recognized ServiceTitan revenue through the MTD cutoff.</p></div><div className="campaign-table-panel__plan"><span>Reconciled total</span><strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong><small>{channelRows.length} channels with financial activity</small></div></div>
+        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--revenue"><thead><tr><th>Channel</th><th>Type</th><th>Sold</th><th>Sales value</th><th>Completed revenue</th><th>Revenue share</th><th>Tracked spend</th><th>ROAS</th></tr></thead><tbody>
+          {channelRows.map((row) => <tr key={row.channel}><td><strong>{row.channel}</strong></td><td><span className={`campaign-revenue-type campaign-revenue-type--${revenueGroup(row)}`}>{REVENUE_GROUP_LABEL[revenueGroup(row)]}</span></td><td><strong>{formatNumber(row.actual.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(row.actual.soldAmount)}</strong></td><td><strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong></td><td><strong>{formatMaybePercent(data.actual.completedRevenue > 0 ? row.actual.completedRevenue / data.actual.completedRevenue : null)}</strong></td><td className={missingPaidSpend(row) ? "campaign-cost-missing" : undefined}><strong>{missingPaidSpend(row) ? "Missing" : formatCompactCurrency(row.actual.spend)}</strong></td><td><strong>{row.actual.roas == null ? "-" : `${row.actual.roas.toFixed(1)}x`}</strong></td></tr>)}
+        </tbody></table></div>
       </section>
     </>
   );
@@ -515,11 +608,12 @@ export function CampaignPerformancePage({ data, periods, refreshEnabled, view, h
           </div>
         </section>
 
-        <nav className="campaign-view-tabs" aria-label="Campaign workspace views">{(["overview", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & capacity" : item === "history" ? "History" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>
+        <nav className="campaign-view-tabs" aria-label="Campaign workspace views">{(["overview", "revenue", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & capacity" : item === "history" ? "History" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>
 
         <section className="campaign-source-strip" aria-label="Connected data sources">{data.sources.map((source) => <div className="campaign-source" key={`${source.name}-${source.reportId ?? "sheet"}`}><span className={`campaign-source__state campaign-source__state--${source.status ?? "stale"}`} /><div><strong>{source.name}</strong><small>{source.status === "connected" ? "Live" : source.status === "blocked" ? "Input required" : "Snapshot"}{source.rowCount == null ? "" : ` · ${formatNumber(source.rowCount)} rows`}</small></div></div>)}</section>
 
         {view === "overview" ? <OverviewView data={data} /> : null}
+        {view === "revenue" ? <RevenueView data={data} /> : null}
         {view === "channels" ? <ChannelsView data={data} /> : null}
         {view === "plan" ? <PlanView data={data} inputsEnabled={refreshEnabled} /> : null}
         {view === "history" ? <HistoryView history={history} /> : null}
