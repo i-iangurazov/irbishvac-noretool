@@ -252,16 +252,16 @@ export class DashboardService {
         return this.attachSnapshotTime(build({}), null);
       }
 
-      const latestReadModel = await this.getLatestReadModel<T>(family);
-      if (latestReadModel) {
-        return latestReadModel;
+      const latestSnapshot = await this.getLatestSnapshot(family);
+      if (latestSnapshot) {
+        return this.attachSnapshotTime(
+          build(latestSnapshot.payloadJson),
+          latestSnapshot.sourceSnapshotTime ?? latestSnapshot.fetchedAt,
+        );
       }
 
-      const latestSnapshot = await this.getLatestSnapshot(family);
-      return this.attachSnapshotTime(
-        build(latestSnapshot?.payloadJson ?? {}),
-        latestSnapshot?.sourceSnapshotTime ?? latestSnapshot?.fetchedAt,
-      );
+      const latestReadModel = await this.getLatestReadModel<T>(family);
+      return latestReadModel ?? this.attachSnapshotTime(build({}), null);
     }
 
     if (context) {

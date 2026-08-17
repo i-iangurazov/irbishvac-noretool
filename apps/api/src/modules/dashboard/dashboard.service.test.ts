@@ -233,6 +233,35 @@ describe("DashboardService", () => {
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
+  it("prefers a newer raw snapshot over the latest read model during MTD refresh", async () => {
+    findUnique.mockResolvedValue(null);
+    findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        payloadJson: {
+          fields: [{ name: "Name" }, { name: "TechnicianBusinessUnit" }],
+          data: [["Fresh technician", "HVAC Service"]]
+        },
+        sourceSnapshotTime: new Date("2026-03-22T12:00:00.000Z"),
+        fetchedAt: new Date("2026-03-22T12:01:00.000Z")
+      });
+
+    const enqueue = vi.fn();
+    const { DashboardService } = await import("./dashboard.service");
+    const service = new DashboardService({
+      ensureRefreshEnqueued: enqueue
+    } as never);
+    const result = await service.getTechnicians({
+      preset: "mtd",
+      from: "2026-03-01",
+      to: "2026-03-22"
+    });
+
+    expect(result.rowsRanked[0]?.name).toBe("Fresh technician");
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
   it("does not fall back to a different cached date for a custom range", async () => {
     findUnique.mockResolvedValue(null);
     findFirst.mockResolvedValue(null);
