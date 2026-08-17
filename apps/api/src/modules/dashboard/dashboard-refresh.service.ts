@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { createHash } from "node:crypto";
 import { Queue, type ConnectionOptions } from "bullmq";
 import { getConfig } from "@irbis/config";
 import {
@@ -20,6 +21,11 @@ type RefreshJob = {
 
 function getBullConnection(urlString: string): ConnectionOptions {
   return getRedisConnectionSettings(urlString);
+}
+
+function getRefreshJobId(prefix: string, family: string, requestHash: string) {
+  const scopeHash = createHash("sha256").update(requestHash).digest("hex").slice(0, 32);
+  return `${prefix}-${family}-${scopeHash}`;
 }
 
 @Injectable()
@@ -46,7 +52,7 @@ export class DashboardRefreshService {
         ...context,
         timezone: this.config.app.timezone
       });
-      const jobId = `refresh:${family}:${request.requestHash}`;
+      const jobId = getRefreshJobId("refresh", family, request.requestHash);
       const existing = await this.queue.getJob(jobId);
 
       if (existing) {

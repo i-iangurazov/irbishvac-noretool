@@ -130,6 +130,10 @@ export class DashboardService {
     return Boolean(context?.preset || context?.from || context?.to);
   }
 
+  private canUseLatestSnapshotFallback(context?: DashboardRequestContext) {
+    return context?.preset === "mtd" || context?.preset === "ytd";
+  }
+
   private resolveBusinessDate(context?: DashboardRequestContext) {
     return parseBusinessDate(context?.to ?? context?.from) ?? new Date();
   }
@@ -243,7 +247,21 @@ export class DashboardService {
 
     if (this.hasExplicitScope(context)) {
       this.queueRefresh(reportFamily, context);
-      return this.attachSnapshotTime(build({}), null);
+
+      if (!this.canUseLatestSnapshotFallback(context)) {
+        return this.attachSnapshotTime(build({}), null);
+      }
+
+      const latestReadModel = await this.getLatestReadModel<T>(family);
+      if (latestReadModel) {
+        return latestReadModel;
+      }
+
+      const latestSnapshot = await this.getLatestSnapshot(family);
+      return this.attachSnapshotTime(
+        build(latestSnapshot?.payloadJson ?? {}),
+        latestSnapshot?.sourceSnapshotTime ?? latestSnapshot?.fetchedAt,
+      );
     }
 
     if (context) {
@@ -452,7 +470,9 @@ export class DashboardService {
       this.getLatestSnapshot(DashboardFamily.TRENDING),
       this.getGoalsForContext(context)
     ]);
-    const snapshot = scopedSnapshot ?? (hasExplicitScope ? null : latestSnapshot);
+    const snapshot =
+      scopedSnapshot ??
+      (!hasExplicitScope || this.canUseLatestSnapshotFallback(context) ? latestSnapshot : null);
 
     if (!scopedSnapshot && hasExplicitScope) {
       this.queueRefresh("trending", context);
@@ -558,7 +578,11 @@ export class DashboardService {
       this.getLatestSnapshot(DashboardFamily.TRENDING),
       this.getGoalsForContext(context)
     ]);
-    const trendingSnapshot = scopedTrendingSnapshot ?? (hasExplicitScope ? null : latestTrendingSnapshot);
+    const trendingSnapshot =
+      scopedTrendingSnapshot ??
+      (!hasExplicitScope || this.canUseLatestSnapshotFallback(context)
+        ? latestTrendingSnapshot
+        : null);
 
     if (!scopedTrendingSnapshot && hasExplicitScope) {
       this.queueRefresh("trending", context);

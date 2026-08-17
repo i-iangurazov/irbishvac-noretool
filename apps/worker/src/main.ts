@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Queue, Worker, type ConnectionOptions } from "bullmq";
 import { getConfig } from "@irbis/config";
 import { ServiceTitanRateLimitError, type ReportRequestContext } from "@irbis/integrations";
@@ -24,6 +25,11 @@ const config = getConfig();
 
 function getBullConnection(urlString: string): ConnectionOptions {
   return getRedisConnectionSettings(urlString);
+}
+
+function getRefreshJobId(prefix: string, family: string, requestHash: string) {
+  const scopeHash = createHash("sha256").update(requestHash).digest("hex").slice(0, 32);
+  return `${prefix}-${family}-${scopeHash}`;
 }
 
 const connection = getBullConnection(config.redis.url);
@@ -182,7 +188,7 @@ async function bootstrap() {
         ...(item.context ? { context: item.context } : {})
       },
       {
-        jobId: `bootstrap:${item.family}:${item.requestHash}`
+        jobId: getRefreshJobId("bootstrap", item.family, item.requestHash)
       }
     );
   }

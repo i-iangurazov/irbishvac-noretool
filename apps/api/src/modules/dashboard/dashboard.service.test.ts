@@ -204,8 +204,15 @@ describe("DashboardService", () => {
     });
   });
 
-  it("does not fall back to a different cached date when the exact scope is missing", async () => {
-    findUnique.mockResolvedValue(null);
+  it("uses the latest cached read model while an MTD refresh is queued", async () => {
+    findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        payloadJson: {
+          rowsRanked: [{ name: "Cached technician" }]
+        },
+        snapshotTime: new Date("2026-03-21T12:00:00.000Z")
+      });
     findFirst.mockResolvedValue(null);
 
     const enqueue = vi.fn();
@@ -215,6 +222,27 @@ describe("DashboardService", () => {
     } as never);
     const result = await service.getTechnicians({
       preset: "mtd",
+      from: "2026-03-01",
+      to: "2026-03-22"
+    });
+
+    expect(result.rowsRanked).toEqual([
+      expect.objectContaining({ name: "Cached technician" })
+    ]);
+    expect(result.snapshotTime).toBe("2026-03-21T12:00:00.000Z");
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not fall back to a different cached date for a custom range", async () => {
+    findUnique.mockResolvedValue(null);
+    findFirst.mockResolvedValue(null);
+
+    const enqueue = vi.fn();
+    const { DashboardService } = await import("./dashboard.service");
+    const service = new DashboardService({
+      ensureRefreshEnqueued: enqueue
+    } as never);
+    const result = await service.getTechnicians({
       from: "2026-03-01",
       to: "2026-03-22"
     });
