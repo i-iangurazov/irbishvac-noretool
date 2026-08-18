@@ -15,7 +15,7 @@ const periods = [
   { id: "2026-08", pdf: "IRBIS-Marketing-Campaign-August-MTD.pdf" },
   { id: "2026-07", pdf: "IRBIS-Marketing-Campaign-July-2026.pdf" },
 ];
-const views = ["overview", "channels", "plan", "history"];
+const views = ["overview", "revenue", "channels", "plan", "history"];
 const viewports = [
   { name: "tv-1920x1080", width: 1920, height: 1080 },
   { name: "laptop-1365x768", width: 1365, height: 768 },
@@ -35,6 +35,8 @@ for (const period of periods) {
         const tabs = document.querySelectorAll(".campaign-view-tabs a");
         const sources = document.querySelectorAll(".campaign-source");
         const refresh = document.querySelector(".campaign-refresh__button");
+        const gauges = document.querySelectorAll(".campaign-gauge");
+        const legacyMeters = document.querySelectorAll(".campaign-executive-meter, .campaign-progress");
         const clipped = [...document.querySelectorAll(".campaign-performance strong, .campaign-performance small, .campaign-performance span")]
           .filter((element) => element.scrollWidth > element.clientWidth + 2 && getComputedStyle(element).textOverflow !== "ellipsis")
           .length;
@@ -45,6 +47,8 @@ for (const period of periods) {
           visibleSources: sources.length,
           tabCount: tabs.length,
           refreshPresent: Boolean(refresh),
+          gaugeCount: gauges.length,
+          legacyMeterCount: legacyMeters.length,
           bodyWidthOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           tableWidthOverflow: Math.max(0, ...tables.map((table) => table.scrollWidth - (table.parentElement?.clientWidth ?? table.clientWidth))),
           clippedTextCount: clipped,
@@ -74,9 +78,10 @@ console.log(JSON.stringify(results, null, 2));
 const failed = results.filter((result) =>
   !result.dashboardPresent ||
   result.visibleSources < 4 ||
-  result.tabCount !== 4 ||
+  result.tabCount !== 5 ||
   !result.refreshPresent ||
   result.bodyWidthOverflow > 1 ||
+  (result.view === "overview" && (result.gaugeCount < 5 || result.legacyMeterCount > 0)) ||
   (result.view !== "overview" && result.tableCount < 1) ||
   (result.viewport.name !== "mobile-390x844" && result.tableWidthOverflow > 1)
 );

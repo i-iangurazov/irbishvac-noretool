@@ -276,6 +276,46 @@ function viewHref(month: string, view: CampaignView) {
   return `/campaigns?month=${encodeURIComponent(month)}&view=${view}`;
 }
 
+function CampaignGauge({
+  value,
+  target = 1,
+  valueLabel,
+  label,
+  size = "large",
+}: {
+  value: number | null | undefined;
+  target?: number | null;
+  valueLabel: string;
+  label: string;
+  size?: "large" | "compact" | "mini";
+}) {
+  const clamp = (candidate: number | null | undefined) => Math.max(0, Math.min(1, candidate ?? 0));
+  const point = (candidate: number | null | undefined, radius: number) => {
+    const angle = Math.PI * (1 - clamp(candidate));
+    return {
+      x: 60 + Math.cos(angle) * radius,
+      y: 60 - Math.sin(angle) * radius,
+    };
+  };
+  const progress = clamp(value);
+  const needle = point(value, 39);
+  const targetStart = point(target, 45);
+  const targetEnd = point(target, 53);
+
+  return (
+    <div aria-label={label} className={`campaign-gauge campaign-gauge--${size}${value == null ? " campaign-gauge--empty" : ""}`} role="img">
+      <svg aria-hidden="true" viewBox="0 0 120 80">
+        <path className="campaign-gauge__track" d="M 10 60 A 50 50 0 0 1 110 60" pathLength="100" />
+        <path className="campaign-gauge__progress" d="M 10 60 A 50 50 0 0 1 110 60" pathLength="100" strokeDasharray={`${progress * 100} 100`} />
+        {target != null ? <line className="campaign-gauge__target" x1={targetStart.x} x2={targetEnd.x} y1={targetStart.y} y2={targetEnd.y} /> : null}
+        {value != null ? <line className="campaign-gauge__needle" x1="60" x2={needle.x} y1="60" y2={needle.y} /> : null}
+        <circle className="campaign-gauge__pin" cx="60" cy="60" r="3" />
+      </svg>
+      <span className="campaign-gauge__value">{valueLabel}</span>
+    </div>
+  );
+}
+
 function ChannelTable({
   rows,
   mode = "actual",
@@ -307,12 +347,11 @@ function ChannelTable({
           ) : null}
           {rows.map((row) => {
             const target = effectiveTargets(row);
-            const progress = Math.max(0, Math.min(100, (row.opportunityAttainment ?? 0) * 100));
             const costMissing = missingPaidSpend(row);
             return mode === "actual" ? (
               <tr key={row.channel}>
                 <td><strong>{row.channel}</strong><span>{CATEGORY_LABEL[rowCategory(row)]} · {row.actual.calls} calls · {row.actual.forms} forms</span></td>
-                <td><strong>{formatNumber(row.actual.bookedJobs)} / {target.bookedJobs ?? "-"}</strong><div className="campaign-progress"><span style={{ width: `${progress}%` }} /></div></td>
+                <td><strong>{formatNumber(row.actual.bookedJobs)} / {target.bookedJobs ?? "-"}</strong><CampaignGauge label={`${row.channel} opportunity target attainment ${formatMaybePercent(row.opportunityAttainment)}`} size="mini" value={row.opportunityAttainment} valueLabel={formatMaybePercent(row.opportunityAttainment)} /></td>
                 <td><strong>{formatMaybePercent(row.pace)}</strong><span>working-day pace</span></td>
                 <td><strong>{formatNumber(row.actual.qualifiedLeads)} / {target.qualifiedLeads || "-"}</strong><span>{formatMaybePercent(row.actual.bookingRate)} booked</span></td>
                 <td className={costMissing ? "campaign-cost-missing" : undefined}><strong>{costMissing ? "Not tracked" : formatCompactCurrency(row.actual.spend)}</strong><span>{costMissing ? "Cost input required" : `CPL ${row.actual.costPerLead == null ? "-" : formatCompactCurrency(row.actual.costPerLead)} · CPB ${row.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(row.actual.costPerBookedJob)}`}</span></td>
@@ -361,37 +400,32 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
   const costMetricPrefix = costsComplete ? "" : "Covered ";
   const coverageLabel = `${coverage.trackedPaidChannels}/${coverage.activePaidChannels} paid channels · ${formatMaybePercent(coverage.trackedLeadShare)} of paid leads`;
   const targetLabel = data.plan.approvalStatus === "approved" ? "Target" : "Model target";
-  const progressWidth = (value: number | null) => `${Math.min(100, Math.max(0, (value ?? 0) * 100))}%`;
+  const paidBookingRate = bookingRateFor(paidRows);
+  const organicBookingRate = bookingRateFor(organicRows);
   return (
     <>
       <section className="campaign-executive-grid" aria-label="Marketing month-to-date executive summary">
         <div className="campaign-executive-card campaign-executive-card--revenue">
           <span>Revenue</span>
-          <strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong>
-          <small>{targetLabel} {formatCompactCurrency(data.plan.companyRevenueGoal)} · {formatMaybePercent(revenueAttainment)} achieved</small>
-          <div className="campaign-executive-meter"><span style={{ width: progressWidth(revenueAttainment) }} /></div>
+          <CampaignGauge label={`Revenue target attainment ${formatMaybePercent(revenueAttainment)}`} value={revenueAttainment} valueLabel={formatMaybePercent(revenueAttainment)} />
+          <div className="campaign-gauge-facts"><span>Fact <b>{formatCompactCurrency(data.actual.completedRevenue)}</b></span><span>{targetLabel} <b>{formatCompactCurrency(data.plan.companyRevenueGoal)}</b></span></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--sales">
           <div><span>Sold estimates</span><strong>{formatNumber(data.actual.soldJobs)}</strong></div>
           <div><span>Sales value</span><strong>{formatCompactCurrency(data.actual.soldAmount)}</strong></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--flow">
-          <div><span>Qualified leads</span><strong>{formatNumber(data.actual.qualifiedLeads)} / {formatNumber(data.plan.qualifiedLeadGoal)}</strong><small>{formatMaybePercent(data.pace.qualifiedLeadPace)} pace</small></div>
-          <div className="campaign-executive-meter"><span style={{ width: progressWidth(leadAttainment) }} /></div>
-          <div><span>Booked jobs</span><strong>{formatNumber(data.actual.bookedJobs)} / {formatNumber(data.plan.opportunityGoal)}</strong><small>{formatMaybePercent(data.pace.opportunityPace)} pace</small></div>
-          <div className="campaign-executive-meter"><span style={{ width: progressWidth(opportunityAttainment) }} /></div>
+          <div className="campaign-flow-kpi"><span>Qualified leads</span><CampaignGauge label={`Qualified lead target attainment ${formatMaybePercent(leadAttainment)}`} size="compact" value={leadAttainment} valueLabel={formatMaybePercent(leadAttainment)} /><strong>{formatNumber(data.actual.qualifiedLeads)} / {formatNumber(data.plan.qualifiedLeadGoal)}</strong><small>{formatMaybePercent(data.pace.qualifiedLeadPace)} to working-day pace</small></div>
+          <div className="campaign-flow-kpi"><span>Booked jobs</span><CampaignGauge label={`Booked job target attainment ${formatMaybePercent(opportunityAttainment)}`} size="compact" value={opportunityAttainment} valueLabel={formatMaybePercent(opportunityAttainment)} /><strong>{formatNumber(data.actual.bookedJobs)} / {formatNumber(data.plan.opportunityGoal)}</strong><small>{formatMaybePercent(data.pace.opportunityPace)} to working-day pace</small></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--booking">
           <span>Booking rate</span>
-          <strong>{formatMaybePercent(data.actual.bookingRate)}</strong>
+          <CampaignGauge label={`Booking rate ${formatMaybePercent(data.actual.bookingRate)}, target ${formatMaybePercent(data.plan.targetBookingRate)}`} target={data.plan.targetBookingRate} value={data.actual.bookingRate} valueLabel={formatMaybePercent(data.actual.bookingRate)} />
           <small>{targetLabel} {formatMaybePercent(data.plan.targetBookingRate)}</small>
-          <div className="campaign-executive-split"><span>Paid <b>{formatMaybePercent(bookingRateFor(paidRows))}</b></span><span>Organic <b>{formatMaybePercent(bookingRateFor(organicRows))}</b></span></div>
+          <div className="campaign-booking-split"><div><span>Paid channels</span><CampaignGauge label={`Paid channel booking rate ${formatMaybePercent(paidBookingRate)}`} size="mini" target={data.plan.targetBookingRate} value={paidBookingRate} valueLabel={formatMaybePercent(paidBookingRate)} /></div><div><span>Organic</span><CampaignGauge label={`Organic booking rate ${formatMaybePercent(organicBookingRate)}`} size="mini" target={data.plan.targetBookingRate} value={organicBookingRate} valueLabel={formatMaybePercent(organicBookingRate)} /></div></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--spend">
-          <span>Tracked marketing spend</span>
-          <strong>{formatCompactCurrency(data.actual.spend)} / {formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong>
-          <small>{costsComplete ? `${formatMaybePercent(data.pace.spendPace)} calendar pace` : coverageLabel}</small>
-          <div className="campaign-executive-meter"><span style={{ width: progressWidth(budgetAttainment) }} /></div>
+          <div className="campaign-spend-kpi"><span>Tracked marketing spend</span><CampaignGauge label={`Marketing budget used ${formatMaybePercent(budgetAttainment)}`} size="compact" value={budgetAttainment} valueLabel={formatMaybePercent(budgetAttainment)} /><strong>{formatCompactCurrency(data.actual.spend)} / {formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong><small>{costsComplete ? `${formatMaybePercent(data.pace.spendPace)} calendar pace` : coverageLabel}</small></div>
           <div className="campaign-executive-split"><span>{costMetricPrefix}cost / lead <b>{costPerLead == null ? "Pending" : formatCompactCurrency(costPerLead)}</b></span><span>{costMetricPrefix}cost / booked job <b>{costPerBookedJob == null ? "Pending" : formatCompactCurrency(costPerBookedJob)}</b></span></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--roas">

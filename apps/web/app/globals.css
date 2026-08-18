@@ -3853,6 +3853,61 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
 }
 
 /* Campaign workspace V4: pricing-tool overview and controlled plan inputs */
+.campaign-gauge {
+  position: relative;
+  width: min(100%, calc(var(--vw-unit) * 170));
+  aspect-ratio: 120 / 80;
+  justify-self: center;
+}
+
+.campaign-gauge--compact { width: min(100%, calc(var(--vw-unit) * 118)); }
+.campaign-gauge--mini { width: min(100%, calc(var(--vw-unit) * 72)); }
+
+.campaign-gauge svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.campaign-gauge__track,
+.campaign-gauge__progress {
+  fill: none;
+  stroke-width: 11;
+}
+
+.campaign-gauge__track { stroke: #cfe5f8; }
+.campaign-gauge__progress { stroke: #4c9df1; }
+
+.campaign-gauge__target {
+  stroke: #ef6b3d;
+  stroke-width: 2.5;
+}
+
+.campaign-gauge__needle {
+  stroke: #171b1e;
+  stroke-linecap: round;
+  stroke-width: 2.4;
+}
+
+.campaign-gauge__pin { fill: #171b1e; }
+.campaign-gauge--empty .campaign-gauge__pin { fill: #86939c; }
+
+.campaign-gauge__value {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  color: #1b1e22 !important;
+  font-size: var(--dash-font-xs) !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  text-align: center;
+}
+
+.campaign-gauge--large .campaign-gauge__value { font-size: var(--dash-font-sm) !important; }
+.campaign-gauge--mini .campaign-gauge__value { font-size: var(--dash-font-2xs) !important; }
+
 .campaign-executive-grid {
   display: grid;
   grid-template-columns: 1.05fr 1.25fr 1.45fr 0.9fr;
@@ -3893,8 +3948,27 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
 }
 
 .campaign-executive-card--revenue {
+  justify-items: stretch;
   border-top: calc(var(--dash-border) * 3) solid #2f8ee5;
 }
+
+.campaign-gauge-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dash-space-sm);
+}
+
+.campaign-gauge-facts > span {
+  display: grid;
+  gap: var(--dash-space-2xs);
+  color: #68737d;
+  font-size: var(--dash-font-2xs);
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.campaign-gauge-facts > span:last-child { text-align: right; }
+.campaign-gauge-facts b { color: #1b1e22; font-size: var(--dash-font-xs); }
 
 .campaign-executive-card--sales {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3908,15 +3982,63 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
 
 .campaign-executive-card--flow {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: end;
+  align-items: start;
 }
 
-.campaign-executive-card--flow .campaign-executive-meter {
-  grid-row: 2;
+.campaign-flow-kpi,
+.campaign-spend-kpi {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--dash-space-2xs);
+}
+
+.campaign-flow-kpi {
+  justify-items: center;
+  text-align: center;
+}
+
+.campaign-flow-kpi > span,
+.campaign-spend-kpi > span {
+  color: #5e6973;
+  font-size: var(--dash-font-2xs);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.campaign-flow-kpi > strong,
+.campaign-spend-kpi > strong {
+  font-size: var(--dash-font-sm) !important;
+  white-space: nowrap;
 }
 
 .campaign-executive-card--booking {
+  justify-items: center;
   border-left: calc(var(--dash-border) * 3) solid #ef6b3d;
+  text-align: center;
+}
+
+.campaign-executive-card--booking > span { justify-self: stretch; text-align: left; }
+
+.campaign-booking-split {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--dash-space-xs);
+}
+
+.campaign-booking-split > div {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: var(--dash-space-2xs);
+}
+
+.campaign-booking-split span {
+  color: #5e6973;
+  font-size: var(--dash-font-2xs);
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .campaign-executive-card--spend {
@@ -3924,6 +4046,9 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 2fr);
   align-items: center;
 }
+
+.campaign-executive-card--spend > .campaign-spend-kpi { grid-column: 1; }
+.campaign-spend-kpi { justify-items: center; text-align: center; }
 
 .campaign-executive-card--spend > span,
 .campaign-executive-card--spend > strong,
