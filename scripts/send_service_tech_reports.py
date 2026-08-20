@@ -33,6 +33,14 @@ def main() -> int:
         help="Combined department PDF required by the advisor delivery profile.",
     )
     parser.add_argument(
+        "--combined-hvac-pdf",
+        help="Combined HVAC Service PDF required by the technician delivery profile.",
+    )
+    parser.add_argument(
+        "--combined-plumbing-pdf",
+        help="Combined Plumbing Service PDF required by the technician delivery profile.",
+    )
+    parser.add_argument(
         "--test-recipient",
         help="Send one isolated test message to this address without changing delivery state.",
     )
@@ -63,15 +71,6 @@ def main() -> int:
     plan = []
     for report in reports:
         to = _email(str(report["email"]), f"technician {report['technician']}")
-        if args.delivery_profile == "advisor":
-            cc = []
-        else:
-            manager = (
-                routing["plumbing_manager"]
-                if str(report["department"]).lower().startswith("plumbing")
-                else routing["hvac_manager"]
-            )
-            cc = _unique_emails([routing["tim"], manager], to)
         pdf_path = pdf_dir / str(report["fileName"])
         plan.append(
             {
@@ -80,14 +79,60 @@ def main() -> int:
                 "technician": report["technician"],
                 "department": report["department"],
                 "to": [to],
-                "cc": cc,
+                "cc": [],
                 "attachment": str(pdf_path),
                 "attachmentSha256": _sha256(pdf_path),
                 "subject": _subject(report["technician"], manifest["cutoffDate"]),
             }
         )
 
-    if args.delivery_profile == "advisor":
+    if args.delivery_profile == "technician":
+        department_packets = [
+            (
+                "hvac",
+                "HVAC Service",
+                _validated_combined_pdf(args.combined_hvac_pdf),
+                [routing["hvac_manager"], routing["vadim"], routing["tim"]],
+                [
+                    str(row["technician"])
+                    for row in reports
+                    if not str(row["department"]).lower().startswith("plumbing")
+                ],
+            ),
+            (
+                "plumbing",
+                "Plumbing Service",
+                _validated_combined_pdf(args.combined_plumbing_pdf),
+                [routing["plumbing_manager"], routing["vadim"], routing["tim"]],
+                [
+                    str(row["technician"])
+                    for row in reports
+                    if str(row["department"]).lower().startswith("plumbing")
+                ],
+            ),
+        ]
+        for slug, department, combined_pdf, recipients, technicians in department_packets:
+            if not technicians:
+                raise ValueError(f"{department} management packet has no technicians")
+            plan.append(
+                {
+                    "slug": f"management-{slug}",
+                    "kind": "management",
+                    "recipientName": f"{department} leadership team",
+                    "technician": department,
+                    "department": department,
+                    "managementDepartment": department,
+                    "includedTechnicians": technicians,
+                    "to": _unique_emails(recipients),
+                    "cc": [],
+                    "attachment": str(combined_pdf),
+                    "attachmentSha256": _sha256(combined_pdf),
+                    "subject": _department_management_subject(
+                        department, manifest["cutoffDate"]
+                    ),
+                }
+            )
+    else:
         combined_pdf = _validated_combined_pdf(args.combined_pdf)
         raymond = next(
             (row for row in reports if str(row.get("slug")) == "raymond-porras"),
@@ -118,6 +163,12 @@ def main() -> int:
                     "recipientName": recipient_name,
                     "technician": recipient_name,
                     "department": "HVAC Sales",
+                    "managementDepartment": "Sales Department",
+                    "includedTechnicians": [
+                        "Raymond Porras",
+                        "Rudy-Noel Zapien",
+                        "Matthew Stalcup",
+                    ],
                     "to": [address],
                     "cc": [],
                     "attachment": str(combined_pdf),
@@ -281,6 +332,7 @@ def _routing(env: dict[str, str]) -> dict[str, str]:
     return {
         "from": _email(_required(env, "EMAIL_FROM"), "EMAIL_FROM"),
         "tim": _email(_required(env, "TIM_EMAIL"), "TIM_EMAIL"),
+        "vadim": _email(_required(env, "VADIM_EMAIL"), "VADIM_EMAIL"),
         "hvac_manager": _email(
             _required(env, "TECH_REPORT_HVAC_MANAGER_EMAIL"),
             "TECH_REPORT_HVAC_MANAGER_EMAIL",
@@ -306,15 +358,20 @@ def _message(
     cutoff_label = _date_label(cutoff_date)
     if row.get("kind") == "management":
         recipient_name = str(row["recipientName"])
+        department = str(row.get("managementDepartment") or "Sales Department")
+        technicians = ", ".join(
+            str(value) for value in row.get("includedTechnicians", [])
+        )
+        individual_role = "advisor" if "sales" in department.lower() else "technician"
         message.set_content(
             "\n".join(
                 [
                     f"Hi {recipient_name},",
                     "",
-                    f"Attached is the combined IRBIS Sales Department month-to-date coaching report through {cutoff_label}.",
-                    "It contains the individual reports for Raymond Porras, Rudy-Noel Zapien, and Matthew Stalcup.",
+                    f"Attached is the combined IRBIS {department} month-to-date coaching report through {cutoff_label}.",
+                    f"It contains the individual reports for {technicians}.",
                     "",
-                    "Each advisor is receiving their own report in a separate email.",
+                    f"Each {individual_role} is receiving their own report in a separate email.",
                     "",
                     "IRBIS Performance Coaching",
                 ]
@@ -354,9 +411,13 @@ def _management_subject(cutoff_date: str) -> str:
     return f"IRBIS Sales Department MTD Coaching Reports through {_date_label(cutoff_date)}"
 
 
+def _department_management_subject(department: str, cutoff_date: str) -> str:
+    return f"IRBIS {department} MTD Coaching Reports through {_date_label(cutoff_date)}"
+
+
 def _validated_combined_pdf(value: Optional[str]) -> Path:
     if not value:
-        raise ValueError("--combined-pdf is required for advisor delivery")
+        raise ValueError("A combined department PDF is required for delivery")
     path = Path(value).resolve()
     if not path.is_file() or path.stat().st_size < 10_000:
         raise ValueError(f"Missing or unexpectedly small combined PDF: {path}")

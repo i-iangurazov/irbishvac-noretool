@@ -27,7 +27,11 @@ const manifest = [];
 try {
   for (const technician of snapshot.technicians) {
     const url = `${baseUrl}/performance/${technician.slug}`;
-    await page.goto(url, { waitUntil: "networkidle" });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await page.locator('[data-coaching-report="true"]').waitFor({
+      state: "visible",
+      timeout: 30_000,
+    });
     await page.waitForFunction(() =>
       Array.from(document.images).every((image) => image.complete && image.naturalWidth > 0),
     );

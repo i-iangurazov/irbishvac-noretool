@@ -4,7 +4,10 @@ import argparse
 import csv
 import json
 import re
+import signal
+import socket
 import sys
+import time as time_module
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -17,6 +20,7 @@ MARKETING_REPO = Path(__file__).resolve().parents[2] / "irbishvac-marketing"
 sys.path.insert(0, str(MARKETING_REPO))
 
 from marketing_os_agent.clients.servicetitan import ServiceTitanClient
+from marketing_os_agent.clients.http import HttpClient
 from marketing_os_agent.config import Settings
 
 
@@ -28,6 +32,28 @@ HHR_JOB_TYPES = {
     "water heater diagnostic",
     "water heater repair",
 }
+
+
+class ReportHttpClient(HttpClient):
+    def request_json(self, *args: Any, **kwargs: Any):
+        previous_handler = signal.getsignal(signal.SIGALRM)
+
+        def deadline_handler(_signum: int, _frame: Any) -> None:
+            raise TimeoutError("ServiceTitan response exceeded the wall-clock deadline")
+
+        for attempt in range(3):
+            try:
+                signal.signal(signal.SIGALRM, deadline_handler)
+                signal.setitimer(signal.ITIMER_REAL, 35)
+                return super().request_json(*args, **kwargs)
+            except (TimeoutError, socket.timeout):
+                if attempt == 2:
+                    raise
+                time_module.sleep(1.5 * (2**attempt))
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+                signal.signal(signal.SIGALRM, previous_handler)
+        raise RuntimeError("ServiceTitan report request retry loop exhausted")
 
 
 def main() -> int:
@@ -54,7 +80,10 @@ def main() -> int:
     if not roster:
         raise ValueError("The delivery snapshot does not contain technician IDs")
 
-    client = ServiceTitanClient(Settings.from_env())
+    client = ServiceTitanClient(
+        Settings.from_env(),
+        http=ReportHttpClient(timeout_seconds=30, retries=0),
+    )
     tenant = client.settings.servicetitan_tenant_id
     window_start = datetime.combine(start_date, time.min, BUSINESS_TIMEZONE).astimezone(timezone.utc)
     window_end = datetime.combine(end_date + timedelta(days=1), time.min, BUSINESS_TIMEZONE).astimezone(timezone.utc)
@@ -180,8 +209,28 @@ def main() -> int:
         for job_id in rows
     }
     form_window_start = datetime.combine(
-        hhr_effective_date, time.min, BUSINESS_TIMEZONE
+        max(start_date, hhr_effective_date), time.min, BUSINESS_TIMEZONE
     ).astimezone(timezone.utc)
+    hhr_forms = client._get_paginated(
+        f"/forms/v2/tenant/{tenant}/forms",
+        {
+            "active": "Any",
+            "status": "Published",
+            "pageSize": "200",
+            "includeTotal": "false",
+        },
+    )
+    hhr_form_ids = sorted(
+        {
+            str(row["id"])
+            for row in hhr_forms
+            if row.get("id") is not None
+            and _contains_any(str(row.get("name") or ""), HHR_FORM_KEYWORDS)
+        }
+    )
+    if not hhr_form_ids:
+        raise ValueError("No published Home Health Report/Card forms were found")
+    print(f"hhr forms: {','.join(hhr_form_ids)}", flush=True)
     recent_form_submissions = (
         _load_cached_form_submissions(
             Path(args.form_submissions_cache), form_window_start, window_end
@@ -192,6 +241,8 @@ def main() -> int:
             f"/forms/v2/tenant/{tenant}/submissions",
             form_window_start,
             window_end,
+            hhr_form_ids,
+            sorted(candidate_hhr_job_ids),
         )
     )
     hhr_submissions_by_job: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -353,39 +404,61 @@ def _fetch_recent_form_submissions(
     path: str,
     from_datetime: datetime,
     before_datetime: datetime,
+    form_ids: list[str],
+    job_ids: list[str],
 ) -> list[dict[str, Any]]:
+    if not job_ids:
+        return []
     records: list[dict[str, Any]] = []
-    page = 1
-    consecutive_pages_outside_window = 0
-    while page <= 100:
-        payload = client._get(
-            path,
-            {
+    seen: set[str] = set()
+    pages_scanned = 0
+    for job_batch in _chunks(job_ids, 5):
+        page = 1
+        while page <= 20:
+            params = {
+                "status": "Completed",
+                "formIds": ",".join(form_ids),
+                "ownerType": "Job",
+                "submittedOnOrAfter": _iso(from_datetime),
+                "submittedBefore": _iso(before_datetime),
+                "sort": "-SubmittedOn",
                 "page": str(page),
-                "pageSize": "20",
-                "includeTotal": "true",
-            },
+                "pageSize": "5",
+                "includeTotal": "false",
+            }
+            for index, job_id in enumerate(job_batch):
+                params[f"owners[{index}].type"] = "Job"
+                params[f"owners[{index}].id"] = job_id
+            payload = client._get(path, params)
+            pages_scanned += 1
+            page_records = [
+                row for row in payload.get("data", []) if isinstance(row, dict)
+            ]
+            if not page_records:
+                break
+            for row in page_records:
+                submitted_on = _datetime_value(row.get("submittedOn"))
+                record_id = str(row.get("id") or "")
+                if (
+                    submitted_on is not None
+                    and from_datetime <= submitted_on < before_datetime
+                    and record_id not in seen
+                ):
+                    seen.add(record_id)
+                    records.append(row)
+            if not payload.get("hasMore"):
+                break
+            page += 1
+        print(
+            f"hhr form submissions jobs {job_batch[0]}..{job_batch[-1]}: "
+            f"{len(records)} unique total",
+            flush=True,
         )
-        page_records = [row for row in payload.get("data", []) if isinstance(row, dict)]
-        if not page_records:
-            break
-        submitted = [_datetime_value(row.get("submittedOn")) for row in page_records]
-        in_window = [
-            row
-            for row, submitted_on in zip(page_records, submitted)
-            if submitted_on is not None and from_datetime <= submitted_on < before_datetime
-        ]
-        records.extend(in_window)
-        if in_window:
-            consecutive_pages_outside_window = 0
-        elif records:
-            consecutive_pages_outside_window += 1
-        if consecutive_pages_outside_window >= 3:
-            break
-        if not payload.get("hasMore"):
-            break
-        page += 1
-    print(f"recent form submissions scanned: {len(records)} across {page} page(s)", flush=True)
+    print(
+        f"recent HHR form submissions scanned: {len(records)} across "
+        f"{pages_scanned} targeted page(s)",
+        flush=True,
+    )
     return records
 
 

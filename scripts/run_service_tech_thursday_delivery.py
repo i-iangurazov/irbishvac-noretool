@@ -243,6 +243,14 @@ def _run_cycle(
     generated_snapshot.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(final_snapshot, generated_snapshot)
     _render_and_qa(repo, final_snapshot, pdf_dir, package)
+    hvac_combined_pdf = package / (
+        f"IRBIS-HVAC-Service-MTD-Coaching-Reports-through-{cutoff_date.isoformat()}.pdf"
+    )
+    plumbing_combined_pdf = package / (
+        f"IRBIS-Plumbing-Service-MTD-Coaching-Reports-through-{cutoff_date.isoformat()}.pdf"
+    )
+    _merge_department_pdfs(pdf_dir, hvac_combined_pdf, plumbing=False)
+    _merge_department_pdfs(pdf_dir, plumbing_combined_pdf, plumbing=True)
 
     sender = repo / "scripts" / "send_service_tech_reports.py"
     sender_command = [
@@ -262,12 +270,43 @@ def _run_cycle(
         str(marketing_env),
         "--mode",
         mode,
+        "--combined-hvac-pdf",
+        str(hvac_combined_pdf),
+        "--combined-plumbing-pdf",
+        str(plumbing_combined_pdf),
     ]
     if mode == "dry-run":
         sender_command.append("--smtp-preflight")
     _run(sender_command, repo)
     print(f"package={package}")
     return 0
+
+
+def _merge_department_pdfs(pdf_dir: Path, output: Path, plumbing: bool) -> None:
+    manifest = json.loads((pdf_dir / "manifest.json").read_text(encoding="utf-8"))
+    reports = manifest.get("reports", [])
+    selected = []
+    for row in reports:
+        is_plumbing = str(row.get("department", "")).lower().startswith("plumbing")
+        if is_plumbing == plumbing:
+            selected.append(row)
+    if not selected:
+        label = "Plumbing Service" if plumbing else "HVAC Service"
+        raise ValueError(f"No reports available for the {label} management packet")
+    inputs = [pdf_dir / str(row["fileName"]) for row in selected]
+    join = Path(
+        "/System/Library/Automator/Combine PDF Pages.action/Contents/MacOS/join"
+    )
+    if not join.is_file():
+        raise FileNotFoundError("macOS PDF join utility is unavailable")
+    if output.exists():
+        output.unlink()
+    _run([str(join), "--output", str(output), *(str(path) for path in inputs)], pdf_dir)
+    if not output.is_file() or output.stat().st_size < 10_000:
+        raise ValueError(f"Combined department PDF was not created correctly: {output}")
+    if output.read_bytes()[:5] != b"%PDF-":
+        raise ValueError(f"Combined department attachment is not a PDF: {output}")
+    print(f"combined_pdf={output}")
 
 
 def _render_and_qa(

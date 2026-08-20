@@ -5,8 +5,9 @@
 - Business timezone: `TIMEZONE` from `irbishvac-marketing/.env`.
 - Schedule: Thursday at 06:30 local business time; accepted start window is 06:30-06:49.
 - Reporting window: month start through Wednesday, so an incomplete Thursday is never mixed into the report.
-- Delivery: one PDF to each technician. Tim and the department manager are copied.
-- HVAC, Maintenance, and Commercial route to Tim + Ben. Plumbing routes to Tim + Anthony.
+- Delivery: one PDF to each technician with no CC recipients.
+- One combined HVAC packet routes to Ben, Vadim, and Tim in a single email with no CC.
+- One combined Plumbing packet routes to Anton/Anthony, Vadim, and Tim in a single email with no CC.
 - The SMTP sender is `EMAIL_FROM` from `irbishvac-marketing/.env`.
 
 ## Pipeline
@@ -71,6 +72,7 @@ TECH_REPORT_SEND_MINUTE=30
 TECH_REPORT_SEND_WINDOW_MINUTES=20
 TECH_REPORT_HVAC_MANAGER_EMAIL=ben@irbishvac.com
 TECH_REPORT_PLUMBING_MANAGER_EMAIL=anthony@irbishvac.com
+VADIM_EMAIL=vadim@irbishvac.com
 TECH_REPORT_VERSION=V7
 TECH_REPORT_GOALS_FILE=/absolute/path/to/irbishvac-noretool/docs/august-2026-performance-goals.csv
 ```

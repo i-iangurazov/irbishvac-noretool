@@ -128,6 +128,38 @@ class RoutingTests(unittest.TestCase):
             )
             self.assertNotIn("Cc", message)
 
+    def test_department_management_message_has_group_recipients_without_cc(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            attachment = Path(temporary) / "combined.pdf"
+            attachment.write_bytes(b"%PDF-1.7\nexample")
+            row = {
+                "kind": "management",
+                "recipientName": "HVAC Service leadership team",
+                "managementDepartment": "HVAC Service",
+                "includedTechnicians": ["Tech One", "Tech Two"],
+                "technician": "HVAC Service",
+                "subject": "HVAC reports",
+                "to": ["ben@example.com", "vadim@example.com", "tim@example.com"],
+                "cc": [],
+                "attachment": str(attachment),
+            }
+            message = sender._message(
+                row, "reports@example.com", "2026-08-19", "<test@example.com>"
+            )
+            self.assertEqual(
+                message["To"],
+                "ben@example.com, vadim@example.com, tim@example.com",
+            )
+            self.assertNotIn("Cc", message)
+            self.assertIn(
+                "combined IRBIS HVAC Service",
+                message.get_body().get_content(),
+            )
+            self.assertIn(
+                "Each technician is receiving",
+                message.get_body().get_content(),
+            )
+
     def test_management_message_describes_combined_sales_packet(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             attachment = Path(temporary) / "combined.pdf"
