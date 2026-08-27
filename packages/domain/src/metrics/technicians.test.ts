@@ -31,6 +31,20 @@ describe("buildTechnicianDashboard", () => {
     expect(result.totals.avgMembershipConv).toBe("0.500");
   });
 
+  it("derives close rate from opportunity counts when the reported rate is stale", () => {
+    const result = buildTechnicianDashboard({
+      fields: [
+        { name: "Name" },
+        { name: "SalesOpportunity" },
+        { name: "ClosedOpportunities" },
+        { name: "CloseRate" },
+      ],
+      data: [["Ivan Avila", 29, 19, 0.56]],
+    });
+
+    expect(result.rows[0]?.closeRate).toBeCloseTo(19 / 29, 10);
+  });
+
   it("separates service, plumbing, and electrical technicians from ST position or business unit", () => {
     const result = buildTechnicianDashboard({
       fields: [

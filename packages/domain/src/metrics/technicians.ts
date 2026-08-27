@@ -80,6 +80,12 @@ export function buildTechnicianDashboard(
     const technicianId = readTextField(row, TECHNICIAN_ID_FIELD_KEYS);
     const completedRevenue = toNumber(row.CompletedRevenue);
     const avgSaleFromOpps = toNumber(row.OpportunityAverageSale);
+    const salesOpportunity = toNumber(row.SalesOpportunity);
+    const closedOpportunities = toNumber(row.ClosedOpportunities);
+    const closeRate =
+      salesOpportunity > 0
+        ? closedOpportunities / salesOpportunity
+        : toNumber(row.CloseRate);
     const totalTechLeadSales = toNumber(row.TotalLeadSales);
     const totalInfluencedRevenue = completedRevenue + totalTechLeadSales;
     const department = classifyFieldStaffDepartment({
@@ -97,9 +103,9 @@ export function buildTechnicianDashboard(
       completedRevenue,
       opportunityJobAverage: toNumber(row.OpportunityJobAverage),
       totalSales: toNumber(row.TotalSales),
-      salesOpportunity: toNumber(row.SalesOpportunity),
-      closedOpportunities: toNumber(row.ClosedOpportunities),
-      closeRate: toNumber(row.CloseRate),
+      salesOpportunity,
+      closedOpportunities,
+      closeRate,
       avgSaleFromOpps,
       replacementOpportunity: toNumber(row.ReplacementOpportunity),
       leadsSet: toNumber(row.LeadsSet),

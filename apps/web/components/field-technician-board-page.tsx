@@ -85,7 +85,7 @@ export async function FieldTechnicianBoardPage({
           stats: [
             { label: "Completed Revenue", value: money(row.completedRevenue) },
             { label: "Close / Goal", value: goalValue(ratio(row.closeRate), goal?.targetRate != null ? ratio(goal.targetRate) : null) },
-            { label: "Avg Sale / Goal", value: goalValue(money(row.avgSaleFromOpps), goal?.targetAverage != null ? money(goal.targetAverage) : null) },
+            { label: "Rev / Opp / Goal", value: goalValue(money(row.avgSaleFromOpps), goal?.targetAverage != null ? money(goal.targetAverage) : null) },
             { label: "Opps / Goal", value: goalValue(count(row.salesOpportunity), goal?.targetOpportunitiesMonthly != null ? count(goal.targetOpportunitiesMonthly) : null) },
             { label: "Memberships Sold", value: count(row.membershipsSold) },
             { label: "Lead Conv.", value: ratio(row.replacementLeadConvRate) },
