@@ -49,7 +49,7 @@ export async function InstallerBoardPage({
       freshness={data.snapshotTime}
       filters={filters}
       layout="people-showcase"
-      maxVisibleItems={4}
+      maxVisibleItems={8}
       showcaseColumns={4}
       useHeadshots={true}
       kpis={[
