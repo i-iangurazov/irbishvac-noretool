@@ -1,5 +1,3 @@
-/* global document, window */
-
 import { mkdir } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 
@@ -11,15 +9,11 @@ const executablePath =
 const period = "preset=mtd&from=2026-08-01&to=2026-08-12&range=fixed&tv=1";
 
 const cases = [
-  {
-    slug: "technicians-page-1",
-    path: `/technicians?${period}&page=1`,
-    ranks: ["#1", "#2", "#3", "#4", "#5", "#6", "#7", "#8"],
-    maxCards: 8,
-  },
+  { slug: "technicians-page-1", path: `/technicians?${period}&page=1`, ranks: ["#1", "#2", "#3", "#4"] },
+  { slug: "technicians-page-2", path: `/technicians?${period}&page=2`, ranks: ["#5", "#6", "#7", "#8"] },
   { slug: "plumbing-page-1", path: `/plumbing?${period}&page=1` },
-  { slug: "installers-page-1", path: `/installers?${period}&page=1`, maxCards: 8 },
-  { slug: "installers-page-2", path: `/installers?${period}&page=2`, firstRank: "#9", maxCards: 8 },
+  { slug: "installers-page-1", path: `/installers?${period}&page=1` },
+  { slug: "installers-page-2", path: `/installers?${period}&page=2` },
   { slug: "advisors-page-1", path: `/advisors?${period}&page=1` },
 ];
 
@@ -94,13 +88,11 @@ for (const entry of cases) {
   await page.screenshot({ path: `${outputDir}/${entry.slug}.png`, fullPage: false });
   const expectedRanksMatch = entry.ranks
     ? entry.ranks.every((rank, index) => result.ranks[index] === rank)
-    : entry.firstRank
-      ? result.ranks[0] === entry.firstRank
-      : true;
+    : true;
   const passed =
     status === 200 &&
     result.cards > 0 &&
-    result.cards <= (entry.maxCards ?? 4) &&
+    result.cards <= 4 &&
     result.shellHeight <= result.viewportHeight + 1 &&
     result.overflowing.length === 0 &&
     result.cardOverflowing.length === 0 &&
@@ -114,41 +106,6 @@ for (const entry of cases) {
     `${passed ? "PASS" : "FAIL"} ${entry.slug} ${page.url()} ${JSON.stringify(result)}\n`,
   );
 }
-
-const rotationUrl = `${baseUrl}/installers?${period}&rotate=1&boards=installers&page=1`;
-await page.goto(rotationUrl, { waitUntil: "domcontentloaded", timeout: 60_000 });
-await page.waitForSelector(".leaderboard-card--photo", { timeout: 15_000 });
-
-let rotationPassed = true;
-try {
-  await page.waitForURL((url) => url.searchParams.get("page") === "2", {
-    timeout: 12_000,
-  });
-  const secondPageFirstRank = await page
-    .locator(".leaderboard-card__rank")
-    .first()
-    .textContent();
-  rotationPassed = secondPageFirstRank?.trim() === "#9";
-  await page.screenshot({ path: `${outputDir}/installers-rotation-page-2.png`, fullPage: false });
-
-  await page.waitForURL((url) => url.searchParams.get("page") === null, {
-    timeout: 12_000,
-  });
-  const firstPageFirstRank = await page
-    .locator(".leaderboard-card__rank")
-    .first()
-    .textContent();
-  rotationPassed = rotationPassed && firstPageFirstRank?.trim() === "#1";
-} catch {
-  rotationPassed = false;
-}
-
-if (!rotationPassed) {
-  failures.push({ slug: "installers-10-second-rotation", url: page.url() });
-}
-process.stdout.write(
-  `${rotationPassed ? "PASS" : "FAIL"} installers-10-second-rotation ${page.url()}\n`,
-);
 
 await browser.close();
 

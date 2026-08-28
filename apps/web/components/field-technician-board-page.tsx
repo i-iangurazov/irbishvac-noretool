@@ -62,7 +62,7 @@ export async function FieldTechnicianBoardPage({
       freshness={data.snapshotTime}
       filters={filters}
       layout="people-showcase"
-      maxVisibleItems={8}
+      maxVisibleItems={4}
       showcaseColumns={4}
       useHeadshots={true}
       kpis={[

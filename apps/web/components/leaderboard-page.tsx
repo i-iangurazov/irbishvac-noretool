@@ -201,7 +201,6 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
             <div
               className="leaderboard-showcase-grid grid items-stretch"
               data-card-count={items.length}
-              data-page-size={maxVisibleItems}
               data-showcase-columns={props.showcaseColumns ?? 4}
             >
               {items.map((item, index) => (
