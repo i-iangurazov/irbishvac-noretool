@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { getEnv } from "./env";
-import { resolveBooleanFlag } from "./index";
+import {
+  parseSpreadsheetIdsByMonth,
+  resolveBooleanFlag,
+  resolveMonthlySpreadsheetId,
+} from "./index";
 
 describe("resolveBooleanFlag", () => {
   it("uses the provided default when the env var is unset", () => {
@@ -49,5 +53,32 @@ describe("Meta Ads reporting configuration", () => {
     expect(env.META_ACCESS_TOKEN).toBe("");
     expect(env.META_AD_ACCOUNT_IDS).toBe("");
     expect(env.META_GRAPH_API_VERSION).toBe("v23.0");
+  });
+});
+
+describe("monthly Call Center spreadsheet configuration", () => {
+  it("uses a month-specific sheet and preserves the default fallback", () => {
+    const byMonth = parseSpreadsheetIdsByMonth(
+      '{"2026-09":"september-sheet"}',
+    );
+
+    expect(resolveMonthlySpreadsheetId("august-sheet", byMonth, "2026-08")).toBe(
+      "august-sheet",
+    );
+    expect(resolveMonthlySpreadsheetId("august-sheet", byMonth, "2026-09")).toBe(
+      "september-sheet",
+    );
+  });
+
+  it("rejects malformed month mappings at startup", () => {
+    expect(() => parseSpreadsheetIdsByMonth('{"September":"sheet"}')).toThrow(
+      "expected YYYY-MM",
+    );
+    expect(() => parseSpreadsheetIdsByMonth('{"2026-09":""}')).toThrow(
+      "is empty",
+    );
+    expect(() => parseSpreadsheetIdsByMonth("not-json")).toThrow(
+      "must be a JSON object",
+    );
   });
 });

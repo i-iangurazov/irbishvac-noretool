@@ -96,9 +96,12 @@ export class GoogleSheetsClient {
     return this.token.value;
   }
 
-  async getValues(range: string): Promise<GoogleSheetValues> {
+  async getValues(
+    range: string,
+    spreadsheetIdValue = this.config.spreadsheetId,
+  ): Promise<GoogleSheetValues> {
     const accessToken = await this.getAccessToken();
-    const spreadsheetId = encodeURIComponent(this.config.spreadsheetId);
+    const spreadsheetId = encodeURIComponent(spreadsheetIdValue);
     const encodedRange = encodeURIComponent(range);
     const url = new URL(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedRange}`,
@@ -120,9 +123,12 @@ export class GoogleSheetsClient {
     return (await response.json()) as GoogleSheetValues;
   }
 
-  async getOptionalValues(range: string): Promise<GoogleSheetValues | null> {
+  async getOptionalValues(
+    range: string,
+    spreadsheetId = this.config.spreadsheetId,
+  ): Promise<GoogleSheetValues | null> {
     try {
-      return await this.getValues(range);
+      return await this.getValues(range, spreadsheetId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("Google Sheets read failed (400)")) {

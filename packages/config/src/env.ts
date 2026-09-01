@@ -122,6 +122,7 @@ const envSchema = z.object({
   ASSET_FOLDER_TECHNICIAN_PHOTOS: z.string().optional().default("technicians_photos"),
   ASSET_FOLDER_LOGOS: z.string().optional().default(""),
   GOOGLE_CALL_CENTER_SPREADSHEET_ID: z.string().optional().default(""),
+  GOOGLE_CALL_CENTER_SPREADSHEET_IDS_BY_MONTH: z.string().optional().default(""),
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().optional().default(""),
   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z.string().optional().default(""),
   GOOGLE_ADS_CLIENT_ID: z.string().optional().default(""),

@@ -1,4 +1,4 @@
-import { getConfig } from "@irbis/config";
+import { getConfig, resolveMonthlySpreadsheetId } from "@irbis/config";
 import { DashboardFamily, Prisma, RunStatus, prisma } from "@irbis/db";
 import {
   buildCampaignPerformanceSnapshot,
@@ -414,11 +414,16 @@ export class CampaignPerformanceRefreshRunner {
     const cutoff = cutoffForMonth(month, this.config.app.timezone);
     const from = `${month}-01`;
     const scopeKey = `${SCOPE_PREFIX}${month}`;
+    const spreadsheetId = resolveMonthlySpreadsheetId(
+      this.config.campaignPerformance.google.spreadsheetId,
+      this.config.campaignPerformance.google.spreadsheetIdsByMonth,
+      month,
+    );
     const requestParams = {
       month,
       from,
       to: cutoff,
-      spreadsheetId: this.config.campaignPerformance.google.spreadsheetId,
+      spreadsheetId,
       reports: {
         campaignSummary: this.config.serviceTitan.reports.campaigns.reportId,
         soldEstimates: this.config.serviceTitan.reports.campaignSoldEstimates.reportId,
@@ -477,12 +482,15 @@ export class CampaignPerformanceRefreshRunner {
     });
 
     try {
-      const callCenter = await this.sheets.getValues("Master Sheet!A:N");
+      const callCenter = await this.sheets.getValues(
+        "Master Sheet!A:N",
+        spreadsheetId,
+      );
       const [connectedPlanSheet, capacityPlanSheet, forecastSheet, costSheet] = await Promise.all([
-        this.sheets.getOptionalValues("Campaign Plan!A:O"),
-        this.sheets.getOptionalValues("Capacity Plan!A:G"),
-        this.sheets.getOptionalValues("Campaign Forecast!A:J"),
-        this.sheets.getOptionalValues("Campaign Costs!A:H")
+        this.sheets.getOptionalValues("Campaign Plan!A:O", spreadsheetId),
+        this.sheets.getOptionalValues("Capacity Plan!A:G", spreadsheetId),
+        this.sheets.getOptionalValues("Campaign Forecast!A:J", spreadsheetId),
+        this.sheets.getOptionalValues("Campaign Costs!A:H", spreadsheetId)
       ]);
       const reportSpecs = [
         this.config.serviceTitan.reports.campaigns,

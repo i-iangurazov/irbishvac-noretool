@@ -18,6 +18,49 @@ export function resolveBooleanFlag(value: string | undefined, defaultValue: bool
   return value === "true";
 }
 
+export function parseSpreadsheetIdsByMonth(value: string) {
+  if (value.trim() === "") {
+    return {} as Record<string, string>;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(
+      "GOOGLE_CALL_CENTER_SPREADSHEET_IDS_BY_MONTH must be a JSON object keyed by YYYY-MM",
+    );
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(
+      "GOOGLE_CALL_CENTER_SPREADSHEET_IDS_BY_MONTH must be a JSON object keyed by YYYY-MM",
+    );
+  }
+
+  return Object.fromEntries(
+    Object.entries(parsed).map(([month, spreadsheetId]) => {
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+        throw new Error(
+          `Invalid Call Center spreadsheet month ${month}; expected YYYY-MM`,
+        );
+      }
+      if (typeof spreadsheetId !== "string" || spreadsheetId.trim() === "") {
+        throw new Error(`Call Center spreadsheet ID for ${month} is empty`);
+      }
+      return [month, spreadsheetId.trim()];
+    }),
+  );
+}
+
+export function resolveMonthlySpreadsheetId(
+  defaultSpreadsheetId: string,
+  spreadsheetIdsByMonth: Record<string, string>,
+  month: string,
+) {
+  return spreadsheetIdsByMonth[month] ?? defaultSpreadsheetId;
+}
+
 export function getConfig() {
   const env = getEnv();
 
@@ -174,6 +217,9 @@ export function getConfig() {
       targetBookingRate: env.CAMPAIGN_TARGET_BOOKING_RATE,
       google: {
         spreadsheetId: env.GOOGLE_CALL_CENTER_SPREADSHEET_ID,
+        spreadsheetIdsByMonth: parseSpreadsheetIdsByMonth(
+          env.GOOGLE_CALL_CENTER_SPREADSHEET_IDS_BY_MONTH,
+        ),
         serviceAccountEmail: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
         serviceAccountPrivateKey: env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
       },
