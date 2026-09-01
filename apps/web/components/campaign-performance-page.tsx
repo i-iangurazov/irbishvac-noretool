@@ -2,6 +2,7 @@ import { DashboardShell } from "@irbis/ui";
 import { formatCompactCurrency, formatNumber, formatPercent } from "@irbis/utils";
 import { getBrandLogoUrl } from "../lib/assets";
 import { navItems } from "../lib/api";
+import { CampaignPeriodSelect } from "./campaign-period-select";
 import { CampaignRefreshButton } from "./campaign-refresh-button";
 import { CampaignPlanInputs } from "./campaign-plan-inputs";
 import { PrintReportButton } from "./print-report-button";
@@ -205,6 +206,25 @@ function sourceTimestamp(value: string) {
 function monthLabel(value: string, style: "short" | "long" = "short") {
   return new Intl.DateTimeFormat("en-US", { month: style, year: style === "long" ? "numeric" : undefined, timeZone: "UTC" })
     .format(new Date(`${value}-01T12:00:00.000Z`));
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  "Google Call Center Sheet": "Call Center",
+  "ServiceTitan Campaign Summary": "ST Summary",
+  "ServiceTitan Sold Estimates": "ST Sold",
+  "ServiceTitan Revenue By Campaign": "ST Revenue",
+  "Google Campaign Plan": "Campaign Plan",
+  "Google Campaign Costs": "Campaign Costs",
+  "Google LSA Reporting API": "Google LSA",
+  "Yelp Reporting API": "Yelp API",
+};
+
+function sourceLabel(name: string) {
+  return SOURCE_LABELS[name] ?? name;
+}
+
+function sourceRowLabel(rowCount: number) {
+  return `${formatNumber(rowCount)} ${rowCount === 1 ? "row" : "rows"}`;
 }
 
 function rowCategory(row: CampaignRow): CampaignCategory {
@@ -635,7 +655,7 @@ export function CampaignPerformancePage({ data, periods, refreshEnabled, view, h
         <section className="campaign-performance__intro">
           <div><div className="campaign-performance__eyebrow">Plan / actual / forecast</div><h2>Campaign command center</h2><p>{data.period.label} through {data.period.to} · {data.period.elapsedWorkingDays ?? "-"}/{data.period.workingDaysInMonth ?? "-"} working days</p></div>
           <div className="campaign-performance__controls">
-            <div className="campaign-period-switch" aria-label="Reporting month">{periods.map((period) => <a aria-pressed={period.id === month} className={period.id === month ? "is-active" : ""} href={viewHref(period.id, view)} key={period.id}>{monthLabel(period.id)}</a>)}</div>
+            <CampaignPeriodSelect activeLabel={monthLabel(month, "long")} options={periods.map((period) => ({ active: period.id === month, href: viewHref(period.id, view), label: monthLabel(period.id, "long") }))} />
             <div className="campaign-cutoff"><span>MTD cutoff</span><strong>{data.period.to}</strong><small>{sourceTimestamp(data.generatedAt)}</small></div>
             <CampaignRefreshButton enabled={refreshEnabled} month={month} />
             <PrintReportButton />
@@ -644,7 +664,7 @@ export function CampaignPerformancePage({ data, periods, refreshEnabled, view, h
 
         <nav className="campaign-view-tabs" aria-label="Campaign workspace views">{(["overview", "revenue", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & capacity" : item === "history" ? "History" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>
 
-        <section className="campaign-source-strip" aria-label="Connected data sources">{data.sources.map((source) => <div className="campaign-source" key={`${source.name}-${source.reportId ?? "sheet"}`}><span className={`campaign-source__state campaign-source__state--${source.status ?? "stale"}`} /><div><strong>{source.name}</strong><small>{source.status === "connected" ? "Live" : source.status === "blocked" ? "Input required" : "Snapshot"}{source.rowCount == null ? "" : ` · ${formatNumber(source.rowCount)} rows`}</small></div></div>)}</section>
+        <section className="campaign-source-strip" aria-label="Connected data sources">{data.sources.map((source) => <div className="campaign-source" key={`${source.name}-${source.reportId ?? "sheet"}`}><span className={`campaign-source__state campaign-source__state--${source.status ?? "stale"}`} /><div><strong title={source.name}>{sourceLabel(source.name)}</strong><small>{source.status === "connected" ? "Live" : source.status === "blocked" ? "Input required" : "Snapshot"}{source.rowCount == null ? "" : ` · ${sourceRowLabel(source.rowCount)}`}</small></div></div>)}</section>
 
         {view === "overview" ? <OverviewView data={data} /> : null}
         {view === "revenue" ? <RevenueView data={data} /> : null}

@@ -31,7 +31,7 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     fallback.period.id ?? fallback.period.from.slice(0, 7),
     fallback,
   ]));
-  const monthIds = [...new Set([currentMonth, ...fallbackByMonth.keys()])];
+  const monthIds = [...new Set([currentMonth, ...fallbackByMonth.keys()])].sort();
   const liveDatasets = await Promise.all(monthIds.map(async (month) => {
     try {
       return await fetchApi<CampaignPerformanceData | null>(
@@ -62,7 +62,7 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     }];
   });
   const data = periodDatasets.find((dataset) => (dataset.period.id ?? dataset.period.from.slice(0, 7)) === requestedMonth)
-    ?? periodDatasets[0]!;
+    ?? periodDatasets.at(-1)!;
 
   return (
     <CampaignPerformancePage
