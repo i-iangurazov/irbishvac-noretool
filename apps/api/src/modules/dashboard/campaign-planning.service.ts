@@ -4,7 +4,7 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { getConfig } from "@irbis/config";
+import { getConfig, resolveMonthlySpreadsheetId } from "@irbis/config";
 import { GoogleSheetsClient } from "@irbis/integrations";
 
 type CapacityInput = {
@@ -60,7 +60,17 @@ type CostInput = {
   updatedBy: string;
 };
 
-export type CampaignPlanningInput = CapacityInput | ForecastInput | PlanInput | CostInput;
+type CommissionInput = {
+  type: "commission";
+  month: string;
+  channel: string;
+  monthlyCommission: number;
+  effectiveFrom: string;
+  notes?: string;
+  updatedBy: string;
+};
+
+export type CampaignPlanningInput = CapacityInput | ForecastInput | PlanInput | CostInput | CommissionInput;
 
 const CAPACITY_HEADERS = [
   "Month",
@@ -117,6 +127,16 @@ const COST_HEADERS = [
   "Updated At"
 ];
 
+const COMMISSION_HEADERS = [
+  "Month",
+  "Channel",
+  "Monthly Commission",
+  "Effective From",
+  "Notes",
+  "Updated By",
+  "Updated At"
+];
+
 function requireText(value: unknown, label: string) {
   const normalized = String(value ?? "").trim();
   if (!normalized) throw new BadRequestException(`${label} is required`);
@@ -151,7 +171,16 @@ function requireDate(value: unknown, label: string) {
 @Injectable()
 export class CampaignPlanningService {
   private readonly sheets = new GoogleSheetsClient();
-  private readonly writeToken = getConfig().auth.cookieSecret;
+  private readonly config = getConfig();
+  private readonly writeToken = this.config.auth.cookieSecret;
+
+  private spreadsheetId(month: string) {
+    return resolveMonthlySpreadsheetId(
+      this.config.campaignPerformance.google.spreadsheetId,
+      this.config.campaignPerformance.google.spreadsheetIdsByMonth,
+      month,
+    );
+  }
 
   assertAuthorized(token: string | undefined) {
     if (!token || token !== this.writeToken) {
@@ -168,13 +197,14 @@ export class CampaignPlanningService {
 
     const type = raw?.type;
     const month = requireMonth(raw?.month);
+    const spreadsheetId = this.spreadsheetId(month);
     const updatedBy = requireText(raw?.updatedBy, "Updated by");
     const updatedAt = new Date().toISOString();
 
     try {
       if (type === "capacity") {
         const input = raw as CapacityInput;
-        await this.sheets.ensureSheet("Capacity Plan", CAPACITY_HEADERS);
+        await this.sheets.ensureSheet("Capacity Plan", CAPACITY_HEADERS, spreadsheetId);
         const result = await this.sheets.appendValues("Capacity Plan", [[
           month,
           requireText(input.team, "Team"),
@@ -185,13 +215,13 @@ export class CampaignPlanningService {
           String(input.notes ?? "").trim(),
           updatedBy,
           updatedAt
-        ]]);
+        ]], spreadsheetId);
         return { saved: true, type, updatedRange: result.updates?.updatedRange ?? null };
       }
 
       if (type === "forecast") {
         const input = raw as ForecastInput;
-        await this.sheets.ensureSheet("Campaign Forecast", FORECAST_HEADERS);
+        await this.sheets.ensureSheet("Campaign Forecast", FORECAST_HEADERS, spreadsheetId);
         const result = await this.sheets.appendValues("Campaign Forecast", [[
           month,
           requireText(input.channel, "Channel"),
@@ -204,7 +234,7 @@ export class CampaignPlanningService {
           requireText(input.reason, "Reason"),
           updatedBy,
           updatedAt
-        ]]);
+        ]], spreadsheetId);
         return { saved: true, type, updatedRange: result.updates?.updatedRange ?? null };
       }
 
@@ -222,7 +252,7 @@ export class CampaignPlanningService {
         if (!["draft", "approved"].includes(approvalStatus)) {
           throw new BadRequestException("Approval status is invalid");
         }
-        await this.sheets.ensureSheet("Campaign Plan", PLAN_HEADERS);
+        await this.sheets.ensureSheet("Campaign Plan", PLAN_HEADERS, spreadsheetId);
         const result = await this.sheets.appendValues("Campaign Plan", [[
           month,
           requireText(input.channel, "Channel"),
@@ -239,7 +269,7 @@ export class CampaignPlanningService {
           String(input.notes ?? "").trim(),
           updatedBy,
           updatedAt
-        ]]);
+        ]], spreadsheetId);
         return { saved: true, type, updatedRange: result.updates?.updatedRange ?? null };
       }
 
@@ -249,7 +279,7 @@ export class CampaignPlanningService {
         if (!["platform", "manual", "prepaid"].includes(budgetType)) {
           throw new BadRequestException("Budget type is invalid");
         }
-        await this.sheets.ensureSheet("Campaign Costs", COST_HEADERS);
+        await this.sheets.ensureSheet("Campaign Costs", COST_HEADERS, spreadsheetId);
         const result = await this.sheets.appendValues("Campaign Costs", [[
           month,
           requireText(input.channel, "Channel"),
@@ -259,18 +289,33 @@ export class CampaignPlanningService {
           String(input.notes ?? "").trim(),
           updatedBy,
           updatedAt
-        ]]);
+        ]], spreadsheetId);
         return { saved: true, type, updatedRange: result.updates?.updatedRange ?? null };
       }
 
-      throw new BadRequestException("Type must be plan, capacity, forecast, or cost");
+      if (type === "commission") {
+        const input = raw as CommissionInput;
+        await this.sheets.ensureSheet("Campaign Commissions", COMMISSION_HEADERS, spreadsheetId);
+        const result = await this.sheets.appendValues("Campaign Commissions", [[
+          month,
+          requireText(input.channel, "Channel"),
+          requireNumber(input.monthlyCommission, "Monthly commission"),
+          requireDate(input.effectiveFrom, "Effective from"),
+          String(input.notes ?? "").trim(),
+          updatedBy,
+          updatedAt
+        ]], spreadsheetId);
+        return { saved: true, type, updatedRange: result.updates?.updatedRange ?? null };
+      }
+
+      throw new BadRequestException("Type must be plan, capacity, forecast, cost, or commission");
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new ServiceUnavailableException(error instanceof Error ? error.message : String(error));
     }
   }
 
-  async getWriteStatus() {
+  async getWriteStatus(month?: string) {
     if (!this.sheets.isConfigured()) {
       return {
         writable: false,
@@ -278,7 +323,8 @@ export class CampaignPlanningService {
       };
     }
     try {
-      return await this.sheets.verifyWriteAccess();
+      const spreadsheetId = month ? this.spreadsheetId(requireMonth(month)) : undefined;
+      return await this.sheets.verifyWriteAccess(spreadsheetId);
     } catch {
       return {
         writable: false,

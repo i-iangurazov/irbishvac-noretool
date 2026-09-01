@@ -58,7 +58,7 @@ describe("campaign performance snapshot", () => {
     expect(result.pace.opportunityPace).toBeCloseTo(0.105);
     expect(result.pace.expectedCalendarDayRatio).toBeCloseTo(6 / 31);
     expect(result.pace.opportunityGap).toBe(49);
-    expect(result.sources).toHaveLength(6);
+    expect(result.sources).toHaveLength(7);
     expect(result.spendCoverage).toMatchObject({ status: "complete", activePaidChannels: 1, trackedPaidChannels: 1 });
     expect(result.nextMonthDraft.month).toBe("2026-09");
   });
@@ -183,6 +183,57 @@ describe("campaign performance snapshot", () => {
     expect(result.sources.find((source) => source.name === "Google Campaign Costs")).toMatchObject({ status: "connected", rowCount: 1 });
     expect(inferCampaignBudgetType("Radio")).toBe("manual");
     expect(inferCampaignBudgetType("Direct Mail")).toBe("prepaid");
+  });
+
+  it("keeps commission separate from media spend and uses all-in cost metrics", () => {
+    const result = buildCampaignPerformanceSnapshot({
+      month: "2026-09",
+      cutoff: "2026-09-10",
+      callCenterValues: [
+        ["Date Received", "Medium", "Lead Quality", "Stage", "Lead Source"],
+        ["2026-09-05", "Call", "Good", "Booked", "Workfuel"],
+      ],
+      campaignSummary: {},
+      soldEstimates: {},
+      revenueByCampaign: {
+        fields: [{ name: "Name" }, { name: "CompletedRevenue" }],
+        data: [["Workfuel", 10_000]],
+      },
+      planRows: [{ channel: "Workfuel", qualifiedLeads: 10, bookedJobs: 5, spend: 5_000, soldAmount: null, completedRevenue: null }],
+      manualCostRows: [{ channel: "Workfuel", spend: 5_000, budgetType: "platform" }],
+      commissionRows: [{ channel: "Workfuel", monthlyCommission: 3_000 }],
+      connectedCostRowCount: 1,
+      connectedCommissionRowCount: 1,
+      companyRevenueGoal: 100_000,
+      marketingBudgetRate: 0.07,
+      qualifiedLeadGoal: 10,
+      opportunityGoal: 5,
+      targetBookingRate: 0.5,
+      planStatus: "DRAFT MODEL",
+      channelLeadGoalMethod: "Test",
+      channelBudgetGoalStatus: "Test",
+      sourceReportIds: { campaignSummary: "898", soldEstimates: "7148368", revenueByCampaign: "101394656" },
+    });
+
+    expect(result.rows[0]?.actual).toMatchObject({
+      spend: 5_000,
+      commissionCost: 3_000,
+      totalCost: 8_000,
+      costPerLead: 8_000,
+      costPerBookedJob: 8_000,
+      roas: 1.25,
+    });
+    expect(result.actual).toMatchObject({
+      spend: 5_000,
+      commissionCost: 3_000,
+      totalCost: 8_000,
+      roas: 1.25,
+    });
+    expect(result.spendCoverage).toMatchObject({
+      trackedPaidSpend: 5_000,
+      trackedCommissionCost: 3_000,
+      trackedPaidTotalCost: 8_000,
+    });
   });
 
   it("maps known ServiceTitan campaign names into executive channels", () => {

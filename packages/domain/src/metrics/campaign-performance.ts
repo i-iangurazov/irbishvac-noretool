@@ -48,6 +48,13 @@ export type CampaignManualCostRow = {
   notes?: string | null;
 };
 
+export type CampaignCommissionRow = {
+  channel: string;
+  monthlyCommission: number;
+  effectiveFrom?: string | null;
+  notes?: string | null;
+};
+
 export type CampaignPlanApproval = {
   approvalStatus: "approved" | "draft" | "required";
   version: string;
@@ -62,6 +69,8 @@ export type CampaignActual = {
   bookedJobs: number;
   bookingRate: number | null;
   spend: number;
+  commissionCost: number;
+  totalCost: number;
   costPerLead: number | null;
   costPerBookedJob: number | null;
   soldJobs: number;
@@ -153,6 +162,8 @@ export type CampaignPerformanceSnapshot = {
     missingPaidChannels: string[];
     trackedLeadShare: number | null;
     trackedPaidSpend: number;
+    trackedCommissionCost: number;
+    trackedPaidTotalCost: number;
     trackedPaidLeads: number;
     trackedPaidBookedJobs: number;
     trackedPaidCompletedRevenue: number;
@@ -188,8 +199,10 @@ export type BuildCampaignPerformanceInput = {
   planRows: CampaignPlanRow[];
   forecastRows?: CampaignForecastRow[];
   manualCostRows?: CampaignManualCostRow[];
+  commissionRows?: CampaignCommissionRow[];
   connectedPlanRowCount?: number;
   connectedCostRowCount?: number;
+  connectedCommissionRowCount?: number;
   capacityAssumptions?: CampaignCapacityAssumption[];
   capacityStatus?: "connected" | "model";
   planApproval?: CampaignPlanApproval;
@@ -209,7 +222,10 @@ export type BuildCampaignPerformanceInput = {
   };
 };
 
-type MutableActual = Omit<CampaignActual, "bookingRate" | "costPerLead" | "costPerBookedJob" | "roi" | "roas">;
+type MutableActual = Omit<
+  CampaignActual,
+  "bookingRate" | "commissionCost" | "totalCost" | "costPerLead" | "costPerBookedJob" | "roi" | "roas"
+>;
 
 const EMPTY_ACTUAL: MutableActual = {
   calls: 0,
@@ -483,6 +499,9 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   const manualCosts = new Map(
     (input.manualCostRows ?? []).map((row) => [normalizeCampaignChannel(row.channel), row]),
   );
+  const commissions = new Map(
+    (input.commissionRows ?? []).map((row) => [normalizeCampaignChannel(row.channel), row]),
+  );
   for (const cost of input.manualCostRows ?? []) {
     const channel = normalizeCampaignChannel(cost.channel);
     const actual = actuals.get(channel) ?? { ...EMPTY_ACTUAL };
@@ -499,7 +518,12 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   const workingDaysInMonth = countWeekdays(from, through);
   const expectedWorkingDayRatio = workingDaysInMonth > 0 ? elapsedWorkingDays / workingDaysInMonth : 0;
   const expectedCalendarDayRatio = elapsedCalendarDays / calendarDaysInMonth;
-  const channels = new Set([...actuals.keys(), ...plans.keys(), ...forecasts.keys()]);
+  const channels = new Set([
+    ...actuals.keys(),
+    ...plans.keys(),
+    ...forecasts.keys(),
+    ...commissions.keys(),
+  ]);
 
   const rows: CampaignPerformanceRow[] = [...channels].map((channel) => {
     const raw = actuals.get(channel) ?? { ...EMPTY_ACTUAL };
@@ -512,13 +536,17 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     const budgetType = manualCosts.get(channel)?.budgetType ?? forecastSeed?.budgetType ?? seed?.budgetType ?? inferCampaignBudgetType(channel, category);
     const hasActivity = raw.qualifiedLeads > 0 || raw.bookedJobs > 0 || raw.soldJobs > 0 || raw.completedRevenue > 0;
     const isMissingPaidCost = category === "paid" && hasActivity && raw.spend === 0;
+    const commissionCost = Math.max(0, commissions.get(channel)?.monthlyCommission ?? 0);
+    const totalCost = raw.spend + commissionCost;
     const actual: CampaignActual = {
       ...raw,
       bookingRate: ratio(raw.bookedJobs, raw.qualifiedLeads),
-      costPerLead: isMissingPaidCost ? null : ratio(raw.spend, raw.qualifiedLeads),
-      costPerBookedJob: isMissingPaidCost ? null : ratio(raw.spend, raw.bookedJobs),
-      roi: raw.spend > 0 ? (raw.completedRevenue - raw.spend) / raw.spend : null,
-      roas: ratio(raw.completedRevenue, raw.spend)
+      commissionCost,
+      totalCost,
+      costPerLead: isMissingPaidCost ? null : ratio(totalCost, raw.qualifiedLeads),
+      costPerBookedJob: isMissingPaidCost ? null : ratio(totalCost, raw.bookedJobs),
+      roi: totalCost > 0 ? (raw.completedRevenue - totalCost) / totalCost : null,
+      roas: ratio(raw.completedRevenue, totalCost)
     };
     const plan = metricTargets(seed);
     const forecast = forecastSeed ? metricTargets(forecastSeed) : null;
@@ -558,6 +586,8 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   const activePaidLeads = activePaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
   const trackedPaidLeads = trackedPaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
   const trackedPaidSpend = trackedPaidRows.reduce((sum, row) => sum + row.actual.spend, 0);
+  const trackedCommissionCost = trackedPaidRows.reduce((sum, row) => sum + row.actual.commissionCost, 0);
+  const trackedPaidTotalCost = trackedPaidSpend + trackedCommissionCost;
   const trackedPaidBookedJobs = trackedPaidRows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
   const trackedPaidCompletedRevenue = trackedPaidRows.reduce((sum, row) => sum + row.actual.completedRevenue, 0);
   const spendCoverage: CampaignPerformanceSnapshot["spendCoverage"] = {
@@ -573,31 +603,35 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     missingPaidChannels,
     trackedLeadShare: ratio(trackedPaidLeads, activePaidLeads),
     trackedPaidSpend,
+    trackedCommissionCost,
+    trackedPaidTotalCost,
     trackedPaidLeads,
     trackedPaidBookedJobs,
     trackedPaidCompletedRevenue,
-    coveredCostPerLead: ratio(trackedPaidSpend, trackedPaidLeads),
-    coveredCostPerBookedJob: ratio(trackedPaidSpend, trackedPaidBookedJobs),
-    coveredRoas: ratio(trackedPaidCompletedRevenue, trackedPaidSpend)
+    coveredCostPerLead: ratio(trackedPaidTotalCost, trackedPaidLeads),
+    coveredCostPerBookedJob: ratio(trackedPaidTotalCost, trackedPaidBookedJobs),
+    coveredRoas: ratio(trackedPaidCompletedRevenue, trackedPaidTotalCost)
   };
 
-  const totals = rows.reduce<MutableActual>((sum, row) => ({
+  const totals = rows.reduce((sum, row) => ({
     calls: sum.calls + row.actual.calls,
     forms: sum.forms + row.actual.forms,
     qualifiedLeads: sum.qualifiedLeads + row.actual.qualifiedLeads,
     bookedJobs: sum.bookedJobs + row.actual.bookedJobs,
     spend: sum.spend + row.actual.spend,
+    commissionCost: sum.commissionCost + row.actual.commissionCost,
+    totalCost: sum.totalCost + row.actual.totalCost,
     soldJobs: sum.soldJobs + row.actual.soldJobs,
     soldAmount: sum.soldAmount + row.actual.soldAmount,
     completedRevenue: sum.completedRevenue + row.actual.completedRevenue
-  }), { ...EMPTY_ACTUAL });
+  }), { ...EMPTY_ACTUAL, commissionCost: 0, totalCost: 0 });
   const actual: CampaignActual = {
     ...totals,
     bookingRate: ratio(totals.bookedJobs, totals.qualifiedLeads),
-    costPerLead: spendCoverage.status === "complete" ? ratio(totals.spend, totals.qualifiedLeads) : null,
-    costPerBookedJob: spendCoverage.status === "complete" ? ratio(totals.spend, totals.bookedJobs) : null,
-    roi: spendCoverage.status === "complete" && totals.spend > 0 ? (totals.completedRevenue - totals.spend) / totals.spend : null,
-    roas: spendCoverage.status === "complete" ? ratio(totals.completedRevenue, totals.spend) : null
+    costPerLead: spendCoverage.status === "complete" ? ratio(totals.totalCost, totals.qualifiedLeads) : null,
+    costPerBookedJob: spendCoverage.status === "complete" ? ratio(totals.totalCost, totals.bookedJobs) : null,
+    roi: spendCoverage.status === "complete" && totals.totalCost > 0 ? (totals.completedRevenue - totals.totalCost) / totals.totalCost : null,
+    roas: spendCoverage.status === "complete" ? ratio(totals.completedRevenue, totals.totalCost) : null
   };
   const remainingWorkingDays = Math.max(0, workingDaysInMonth - elapsedWorkingDays);
   const opportunityGap = Math.max(0, input.opportunityGoal - actual.bookedJobs);
@@ -630,7 +664,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   const planApproval = input.planApproval ?? { approvalStatus: "required" as const, version: `${input.month}-unapproved` };
 
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     generatedAt,
     dataStatus: "LIVE",
     period: {
@@ -693,13 +727,15 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
       { name: "ServiceTitan Sold Estimates", role: "Sold jobs and sold amount", reportId: input.sourceReportIds.soldEstimates, status: "connected", refreshedAt: generatedAt, rowCount: soldRows },
       { name: "ServiceTitan Revenue By Campaign", role: "Completed revenue", reportId: input.sourceReportIds.revenueByCampaign, status: "connected", refreshedAt: generatedAt, rowCount: revenueRows },
       { name: "Google Campaign Plan", role: "Approved channel plan, capacity and forecast", status: planApproval.approvalStatus === "approved" && (input.connectedPlanRowCount ?? input.planRows.length) > 0 ? "connected" : "blocked", refreshedAt: generatedAt, rowCount: input.connectedPlanRowCount ?? input.planRows.length },
-      { name: "Google Campaign Costs", role: "Latest MTD paid-channel spend overrides", status: (input.connectedCostRowCount ?? input.manualCostRows?.length ?? 0) > 0 ? "connected" : "blocked", refreshedAt: generatedAt, rowCount: input.connectedCostRowCount ?? input.manualCostRows?.length ?? 0 }
+      { name: "Google Campaign Costs", role: "Latest MTD paid-channel net spend overrides", status: (input.connectedCostRowCount ?? input.manualCostRows?.length ?? 0) > 0 ? "connected" : "blocked", refreshedAt: generatedAt, rowCount: input.connectedCostRowCount ?? input.manualCostRows?.length ?? 0 },
+      { name: "Google Campaign Commissions", role: "Monthly channel commission costs", status: (input.connectedCommissionRowCount ?? input.commissionRows?.length ?? 0) > 0 ? "connected" : "blocked", refreshedAt: generatedAt, rowCount: input.connectedCommissionRowCount ?? input.commissionRows?.length ?? 0 }
     ],
     dataNotes: [
       "Google Sheet rows after the MTD cutoff are excluded.",
       "ServiceTitan campaign names are normalized into Paid channels, Separate spend, Organic / Online Listings, and Automation groups.",
       "Lead and opportunity pace uses weekdays; spend pace uses calendar days.",
-      "Tracked spend includes ServiceTitan costs plus the latest MTD manual cost override for each channel.",
+      "Media spend includes ServiceTitan costs plus the latest MTD override for each channel; explicit billing-net overrides take precedence over provider API gross cost.",
+      "Commission costs are tracked separately from media spend. CPL, CPB, ROI, and ROAS use total cost (media plus commission).",
       spendCoverage.status === "complete"
         ? "Cost coverage is complete for all active paid channels."
         : `Blended cost metrics remain withheld because spend is missing for: ${missingPaidChannels.join(", ") || "active paid channels"}. Covered-subset metrics include only paid channels with tracked spend.`,

@@ -24,6 +24,13 @@ export type MetaAdsSpendResult = {
   accounts: MetaAdsAccountSpend[];
 };
 
+export function campaignChannelForMetaAccount(accountName: string) {
+  const normalized = accountName.trim().toLowerCase();
+  return /(?:^|[^a-z0-9])wf(?:[^a-z0-9]|$)|work\s*fuel/.test(normalized)
+    ? "Workfuel" as const
+    : "Facebook Ads" as const;
+}
+
 type MetaAccount = {
   id: string;
   name: string;

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  campaignChannelForMetaAccount,
   MetaAdsReportingClient,
   parseMetaAccount,
   summarizeMetaInsights,
@@ -19,6 +20,12 @@ function jsonResponse(payload: unknown, status = 200) {
 }
 
 describe("Meta Ads reporting parsing", () => {
+  it("maps the WF account to Workfuel without mixing it into Facebook Ads", () => {
+    expect(campaignChannelForMetaAccount("IRBIS Air Plumbing <WF>")).toBe("Workfuel");
+    expect(campaignChannelForMetaAccount("Work Fuel Bay Area")).toBe("Workfuel");
+    expect(campaignChannelForMetaAccount("IRBIS HVAC Inc")).toBe("Facebook Ads");
+  });
+
   it("validates the account and reporting period", () => {
     const account = parseMetaAccount(
       { id: "act_101", name: "IRBIS HVAC", currency: "usd" },

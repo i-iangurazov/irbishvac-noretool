@@ -30,7 +30,10 @@ function encodeBase64Url(value: string | Buffer) {
 export class GoogleSheetsClient {
   private readonly config = getConfig().campaignPerformance.google;
   private token: AccessToken | null = null;
-  private writeAccess: { value: { writable: boolean; reason: string | null }; expiresAt: number } | null = null;
+  private readonly writeAccess = new Map<
+    string,
+    { value: { writable: boolean; reason: string | null }; expiresAt: number }
+  >();
 
   getMissingConfiguration() {
     const required = [
@@ -138,9 +141,13 @@ export class GoogleSheetsClient {
     }
   }
 
-  private async request(path: string, init: RequestInit = {}) {
+  private async request(
+    path: string,
+    init: RequestInit = {},
+    spreadsheetIdValue = this.config.spreadsheetId,
+  ) {
     const accessToken = await this.getAccessToken();
-    const spreadsheetId = encodeURIComponent(this.config.spreadsheetId);
+    const spreadsheetId = encodeURIComponent(spreadsheetIdValue);
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}${path}`,
       {
@@ -162,10 +169,14 @@ export class GoogleSheetsClient {
     return response;
   }
 
-  async ensureSheet(title: string, headers: string[]) {
+  async ensureSheet(
+    title: string,
+    headers: string[],
+    spreadsheetId = this.config.spreadsheetId,
+  ) {
     const metadataResponse = await this.request("?fields=sheets.properties.title", {
       method: "GET"
-    });
+    }, spreadsheetId);
     const metadata = (await metadataResponse.json()) as {
       sheets?: Array<{ properties?: { title?: string } }>;
     };
@@ -177,10 +188,10 @@ export class GoogleSheetsClient {
         body: JSON.stringify({
           requests: [{ addSheet: { properties: { title } } }]
         })
-      });
+      }, spreadsheetId);
     } else {
       const escapedTitle = title.replace(/'/g, "''");
-      const existing = await this.getOptionalValues(`'${escapedTitle}'!1:1`);
+      const existing = await this.getOptionalValues(`'${escapedTitle}'!1:1`, spreadsheetId);
       const existingHeaders = existing?.values?.[0]?.map((value) => String(value ?? "").trim()) ?? [];
       if (existingHeaders.length > 0) {
         const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -199,10 +210,14 @@ export class GoogleSheetsClient {
     await this.request(`/values/${range}?valueInputOption=RAW`, {
       method: "PUT",
       body: JSON.stringify({ values: [headers] })
-    });
+    }, spreadsheetId);
   }
 
-  async appendValues(sheetTitle: string, values: unknown[][]) {
+  async appendValues(
+    sheetTitle: string,
+    values: unknown[][],
+    spreadsheetId = this.config.spreadsheetId,
+  ) {
     const escapedTitle = sheetTitle.replace(/'/g, "''");
     const range = encodeURIComponent(`'${escapedTitle}'!A:Z`);
     const response = await this.request(
@@ -211,19 +226,21 @@ export class GoogleSheetsClient {
         method: "POST",
         body: JSON.stringify({ values })
       },
+      spreadsheetId,
     );
 
     return response.json() as Promise<{ updates?: { updatedRange?: string } }>;
   }
 
-  async verifyWriteAccess() {
-    if (this.writeAccess && this.writeAccess.expiresAt > Date.now()) {
-      return this.writeAccess.value;
+  async verifyWriteAccess(spreadsheetId = this.config.spreadsheetId) {
+    const cached = this.writeAccess.get(spreadsheetId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
     }
     try {
       const metadataResponse = await this.request("?fields=properties.title", {
         method: "GET"
-      });
+      }, spreadsheetId);
       const metadata = (await metadataResponse.json()) as { properties?: { title?: string } };
       const title = metadata.properties?.title;
       if (!title) throw new Error("Google Sheet title is unavailable");
@@ -237,9 +254,9 @@ export class GoogleSheetsClient {
             }
           }]
         })
-      });
+      }, spreadsheetId);
       const value = { writable: true as const, reason: null };
-      this.writeAccess = { value, expiresAt: Date.now() + 5 * 60_000 };
+      this.writeAccess.set(spreadsheetId, { value, expiresAt: Date.now() + 5 * 60_000 });
       return value;
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
@@ -248,7 +265,7 @@ export class GoogleSheetsClient {
           writable: false as const,
           reason: `Share the Google Sheet with ${this.config.serviceAccountEmail} as Editor.`
         };
-        this.writeAccess = { value, expiresAt: Date.now() + 5 * 60_000 };
+        this.writeAccess.set(spreadsheetId, { value, expiresAt: Date.now() + 5 * 60_000 });
         return value;
       }
       throw error;

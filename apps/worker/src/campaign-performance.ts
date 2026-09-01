@@ -6,6 +6,7 @@ import {
   inferCampaignCategory,
   normalizeCampaignChannel,
   type CampaignCapacityAssumption,
+  type CampaignCommissionRow,
   type CampaignForecastRow,
   type CampaignManualCostRow,
   type CampaignPlanApproval,
@@ -21,7 +22,11 @@ import {
   GoogleLsaReportingClient,
   type GoogleLsaSpendResult,
 } from "./google-lsa-reporting";
-import { MetaAdsReportingClient, type MetaAdsSpendResult } from "./meta-ads-reporting";
+import {
+  campaignChannelForMetaAccount,
+  MetaAdsReportingClient,
+  type MetaAdsSpendResult,
+} from "./meta-ads-reporting";
 import { YelpReportingClient, type YelpSpendResult } from "./yelp-reporting";
 
 const logger = createLogger("campaign-performance-refresh");
@@ -388,6 +393,75 @@ function parseManualCosts(values: unknown[][] | undefined, month: string) {
   return [...latestByChannel.values()];
 }
 
+function parseCommissions(values: unknown[][] | undefined, month: string) {
+  if (!values || values.length < 2) return [];
+  const headers = values[0] ?? [];
+  const monthIndex = columnIndex(headers, ["Month"], 0);
+  const channelIndex = columnIndex(headers, ["Channel", "Campaign"], 1);
+  const commissionIndex = columnIndex(headers, ["Monthly Commission", "Commission", "Commission Cost"], 2);
+  const effectiveIndex = columnIndex(headers, ["Effective From", "As Of"], 3);
+  const notesIndex = columnIndex(headers, ["Notes"], 4);
+  const latestByChannel = new Map<string, CampaignCommissionRow>();
+
+  for (const row of values.slice(1)) {
+    if (!monthMatches(row[monthIndex], month)) continue;
+    const channel = normalizeCampaignChannel(row[channelIndex]);
+    const monthlyCommission = optionalNumber(row[commissionIndex]);
+    if (channel === "Other" || monthlyCommission == null || monthlyCommission < 0) continue;
+    latestByChannel.set(channel, {
+      channel,
+      monthlyCommission,
+      effectiveFrom: effectiveIndex >= 0 ? String(row[effectiveIndex] ?? "").trim() || null : null,
+      notes: notesIndex >= 0 ? String(row[notesIndex] ?? "").trim() || null : null,
+    });
+  }
+
+  return [...latestByChannel.values()];
+}
+
+function mergeProviderCosts(
+  rows: CampaignManualCostRow[],
+  providerRows: CampaignManualCostRow[],
+) {
+  let result = [...rows];
+  for (const providerRow of providerRows) {
+    const channel = normalizeCampaignChannel(providerRow.channel);
+    const existing = result.find(
+      (row) => normalizeCampaignChannel(row.channel) === channel,
+    );
+    if (existing && existing.budgetType !== "platform") continue;
+    result = [
+      ...result.filter(
+        (row) => normalizeCampaignChannel(row.channel) !== channel,
+      ),
+      providerRow,
+    ];
+  }
+  return result;
+}
+
+function metaCampaignCosts(
+  result: MetaAdsSpendResult,
+  from: string,
+  cutoff: string,
+) {
+  const grouped = new Map<string, { spend: number; accountNames: string[] }>();
+  for (const account of result.accounts) {
+    const channel = campaignChannelForMetaAccount(account.accountName);
+    const current = grouped.get(channel) ?? { spend: 0, accountNames: [] };
+    current.spend += account.spend;
+    current.accountNames.push(account.accountName);
+    grouped.set(channel, current);
+  }
+  return [...grouped.entries()].map(([channel, value]) => ({
+    channel,
+    spend: Math.round(value.spend * 100) / 100,
+    budgetType: "platform" as const,
+    effectiveFrom: cutoff,
+    notes: `Live Meta Ads Insights spend for ${value.accountNames.join(", ")} from ${from} through ${cutoff}`,
+  }));
+}
+
 export class CampaignPerformanceRefreshRunner {
   private readonly config = getConfig();
   private readonly sheets = new GoogleSheetsClient();
@@ -486,11 +560,12 @@ export class CampaignPerformanceRefreshRunner {
         "Master Sheet!A:N",
         spreadsheetId,
       );
-      const [connectedPlanSheet, capacityPlanSheet, forecastSheet, costSheet] = await Promise.all([
+      const [connectedPlanSheet, capacityPlanSheet, forecastSheet, costSheet, commissionSheet] = await Promise.all([
         this.sheets.getOptionalValues("Campaign Plan!A:O", spreadsheetId),
         this.sheets.getOptionalValues("Capacity Plan!A:G", spreadsheetId),
         this.sheets.getOptionalValues("Campaign Forecast!A:J", spreadsheetId),
-        this.sheets.getOptionalValues("Campaign Costs!A:H", spreadsheetId)
+        this.sheets.getOptionalValues("Campaign Costs!A:H", spreadsheetId),
+        this.sheets.getOptionalValues("Campaign Commissions!A:G", spreadsheetId),
       ]);
       const reportSpecs = [
         this.config.serviceTitan.reports.campaigns,
@@ -534,6 +609,7 @@ export class CampaignPerformanceRefreshRunner {
       const connectedPlan = parseConnectedPlan(connectedPlanSheet?.values, month);
       const forecastRows = parseForecast(forecastSheet?.values, month);
       const connectedCostRows = parseManualCosts(costSheet?.values, month);
+      const commissionRows = parseCommissions(commissionSheet?.values, month);
       let metaAdsSpend: MetaAdsSpendResult | null = null;
       let metaAdsError: string | null = null;
       if (this.metaAds.isConfigured()) {
@@ -618,44 +694,28 @@ export class CampaignPerformanceRefreshRunner {
       }
       let manualCostRows = connectedCostRows;
       if (metaAdsSpend) {
-        manualCostRows = [
-          ...manualCostRows.filter(
-            (row) => normalizeCampaignChannel(row.channel) !== "Facebook Ads",
-          ),
-          {
-            channel: "Facebook Ads",
-            spend: metaAdsSpend.spend,
-            budgetType: "platform" as const,
-            effectiveFrom: cutoff,
-            notes: `Live Meta Ads Insights spend from ${from} through ${cutoff}`,
-          },
-        ];
+        manualCostRows = mergeProviderCosts(
+          manualCostRows,
+          metaCampaignCosts(metaAdsSpend, from, cutoff),
+        );
       }
       if (googleLsaSpend) {
-        manualCostRows = [
-          ...manualCostRows.filter(
-            (row) => normalizeCampaignChannel(row.channel) !== "Google Local Services",
-          ),
-          {
+        manualCostRows = mergeProviderCosts(manualCostRows, [{
             channel: "Google Local Services",
             spend: googleLsaSpend.spend,
             budgetType: "platform" as const,
             effectiveFrom: cutoff,
-            notes: `Live Google LSA currentPeriodTotalCost from ${from} through ${cutoff}`,
-          },
-        ];
+            notes: `Live Google LSA gross charged-lead cost from ${from} through ${cutoff}`,
+          }]);
       }
       if (yelpSpend) {
-        manualCostRows = [
-          ...manualCostRows.filter((row) => normalizeCampaignChannel(row.channel) !== "Yelp"),
-          {
+        manualCostRows = mergeProviderCosts(manualCostRows, [{
             channel: "Yelp",
             spend: yelpSpend.spend,
             budgetType: "platform" as const,
             effectiveFrom: cutoff,
             notes: `Live Yelp Reporting API ad_cost through ${cutoff}`
-          }
-        ];
+          }]);
       }
       const plan = connectedPlan.rows.length > 0
         ? {
@@ -699,8 +759,10 @@ export class CampaignPerformanceRefreshRunner {
         planRows: plan.rows,
         forecastRows,
         manualCostRows,
+        commissionRows,
         connectedPlanRowCount: connectedPlan.rows.length,
         connectedCostRowCount: connectedCostRows.length,
+        connectedCommissionRowCount: commissionRows.length,
         capacityAssumptions: capacityRows,
         capacityStatus: connectedCapacityRows.length > 0 ? "connected" : "model",
         planApproval: plan.approval,
@@ -728,7 +790,7 @@ export class CampaignPerformanceRefreshRunner {
       });
       snapshot.dataNotes.push(
         metaAdsSpend
-          ? `Meta Ads spend is live for ${metaAdsSpend.accountCount} configured ad account${metaAdsSpend.accountCount === 1 ? "" : "s"} from ${from} through ${cutoff}; ${metaAdsSpend.impressions} impressions and ${metaAdsSpend.clicks} clicks reported.`
+          ? `Meta Ads spend is live and attributed by account name: ${metaAdsSpend.accounts.map((account) => `${account.accountName} -> ${campaignChannelForMetaAccount(account.accountName)} ($${account.spend.toFixed(2)})`).join("; ")}.`
           : this.metaAds.isConfigured()
             ? `Meta Ads Insights was unavailable during refresh; the connected Campaign Costs or ServiceTitan value remains in use. ${metaAdsError ?? ""}`.trim()
             : "Meta Ads Insights is not configured; the connected Campaign Costs or ServiceTitan value remains in use.",
@@ -747,7 +809,14 @@ export class CampaignPerformanceRefreshRunner {
       });
       snapshot.dataNotes.push(
         googleLsaSpend
-          ? `Google Local Services spend is live currentPeriodTotalCost for ${from} through ${cutoff}; ${googleLsaSpend.chargedLeads} charged leads reported.`
+          ? (() => {
+              const override = connectedCostRows.find(
+                (row) => normalizeCampaignChannel(row.channel) === "Google Local Services" && row.budgetType !== "platform",
+              );
+              return override
+                ? `Google LSA reports $${googleLsaSpend.spend.toFixed(2)} gross charged-lead cost; the connected $${override.spend.toFixed(2)} billing-net override is used after adjustments.`
+                : `Google Local Services uses $${googleLsaSpend.spend.toFixed(2)} gross charged-lead cost from the LSA Reporting API because no billing-net override is recorded.`;
+            })()
           : this.googleLsa.isConfigured()
             ? `Google LSA Reporting API was unavailable during refresh; the connected Campaign Costs or ServiceTitan value remains in use. ${googleLsaError ?? ""}`.trim()
             : "Google LSA Reporting API is not configured; the connected Campaign Costs or ServiceTitan value remains in use.",

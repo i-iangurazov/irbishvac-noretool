@@ -3614,6 +3614,17 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
 .campaign-table th:nth-child(7) { width: 16%; }
 .campaign-table th:nth-child(8) { width: 13%; text-align: center; }
 
+.campaign-table--actual { min-width: calc(var(--vw-unit) * 1540); }
+.campaign-table--actual th:nth-child(1) { width: 15%; }
+.campaign-table--actual th:nth-child(2) { width: 12%; }
+.campaign-table--actual th:nth-child(3) { width: 7%; }
+.campaign-table--actual th:nth-child(4) { width: 9%; }
+.campaign-table--actual th:nth-child(5) { width: 10%; }
+.campaign-table--actual th:nth-child(6) { width: 15%; }
+.campaign-table--actual th:nth-child(7) { width: 8%; }
+.campaign-table--actual th:nth-child(8) { width: 14%; text-align: left; }
+.campaign-table--actual th:nth-child(9) { width: 10%; text-align: center; }
+
 .campaign-table td {
   padding: var(--dash-space-xs);
   border-top: var(--dash-border) solid #e7eaed;

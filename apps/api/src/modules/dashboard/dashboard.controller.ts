@@ -166,8 +166,8 @@ export class DashboardController {
   }
 
   @Get("campaigns/performance/inputs/status")
-  async getCampaignPlanningWriteStatus() {
-    return this.campaignPlanningService.getWriteStatus();
+  async getCampaignPlanningWriteStatus(@Query("month") month?: string) {
+    return this.campaignPlanningService.getWriteStatus(month);
   }
 
   @Get("campaigns/performance/refresh/:jobId")

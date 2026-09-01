@@ -10,7 +10,7 @@ type CapacityRow = {
   planningDays: number;
 };
 
-type InputMode = "plan" | "capacity" | "forecast" | "cost";
+type InputMode = "plan" | "capacity" | "forecast" | "cost" | "commission";
 type SaveState = "idle" | "saving" | "refreshing" | "saved" | "failed";
 type WriteConnection = "checking" | "ready" | "blocked";
 
@@ -42,11 +42,16 @@ function inferredBudgetType(channel: string) {
   return "platform";
 }
 
+function inferredCostEntryType(channel: string) {
+  return channel === "Google Local Services" ? "manual" : inferredBudgetType(channel);
+}
+
 export function CampaignPlanInputs(props: {
   month: string;
   cutoffDate: string;
   channels: string[];
   capacityRows: CapacityRow[];
+  commissionRows: Array<{ channel: string; monthlyCommission: number }>;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<InputMode>("plan");
@@ -56,12 +61,18 @@ export function CampaignPlanInputs(props: {
   const [error, setError] = useState<string | null>(null);
   const defaultTeam = props.capacityRows[0]?.team ?? "HVAC Service";
   const defaultChannel = props.channels[0] ?? "Yelp";
+  const defaultCommissionChannel = props.channels.includes("Workfuel")
+    ? "Workfuel"
+    : props.channels.includes("Google Ads")
+      ? "Google Ads"
+      : defaultChannel;
   const [selectedTeam, setSelectedTeam] = useState(defaultTeam);
   const [selectedPlanChannel, setSelectedPlanChannel] = useState(defaultChannel);
   const [selectedPlanCategory, setSelectedPlanCategory] = useState(inferredCategory(defaultChannel));
   const [selectedPlanBudgetType, setSelectedPlanBudgetType] = useState(inferredBudgetType(defaultChannel));
   const [selectedCostChannel, setSelectedCostChannel] = useState(defaultChannel);
-  const [selectedCostBudgetType, setSelectedCostBudgetType] = useState(inferredBudgetType(defaultChannel));
+  const [selectedCostBudgetType, setSelectedCostBudgetType] = useState(inferredCostEntryType(defaultChannel));
+  const [selectedCommissionChannel, setSelectedCommissionChannel] = useState(defaultCommissionChannel);
   const selectedCapacity = useMemo(
     () => props.capacityRows.find((row) => row.team === selectedTeam),
     [props.capacityRows, selectedTeam],
@@ -69,7 +80,7 @@ export function CampaignPlanInputs(props: {
 
   useEffect(() => {
     let active = true;
-    void fetch("/api/dashboard/campaigns/performance/inputs/status", { cache: "no-store" })
+    void fetch(`/api/dashboard/campaigns/performance/inputs/status?month=${encodeURIComponent(props.month)}`, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error((await response.text()) || "Unable to verify Google Sheet access");
         return response.json() as Promise<{ writable?: boolean; reason?: string | null }>;
@@ -150,6 +161,14 @@ export function CampaignPlanInputs(props: {
           budgetType: String(form.get("budgetType") ?? ""),
           notes: String(form.get("notes") ?? ""),
         }
+      : mode === "commission"
+      ? {
+          ...common,
+          effectiveFrom: String(form.get("effectiveFrom") ?? ""),
+          channel: String(form.get("channel") ?? ""),
+          monthlyCommission: Number(form.get("monthlyCommission")),
+          notes: String(form.get("notes") ?? ""),
+        }
       : {
           ...common,
           effectiveFrom: String(form.get("effectiveFrom") ?? ""),
@@ -189,13 +208,14 @@ export function CampaignPlanInputs(props: {
         <div>
           <span>Planning controls</span>
           <h3>Set the monthly plan and record adjustments</h3>
-          <p>Approved goals, capacity changes, forecasts, and MTD costs are kept as separate ledgers.</p>
+          <p>Approved goals, capacity changes, forecasts, media costs, and commissions are kept as separate ledgers.</p>
         </div>
         <div className="campaign-input-mode" aria-label="Adjustment type">
           <button aria-pressed={mode === "plan"} className={mode === "plan" ? "is-active" : ""} onClick={() => setMode("plan")} type="button">Monthly plan</button>
           <button aria-pressed={mode === "capacity"} className={mode === "capacity" ? "is-active" : ""} onClick={() => setMode("capacity")} type="button">Capacity</button>
           <button aria-pressed={mode === "forecast"} className={mode === "forecast" ? "is-active" : ""} onClick={() => setMode("forecast")} type="button">Channel forecast</button>
           <button aria-pressed={mode === "cost"} className={mode === "cost" ? "is-active" : ""} onClick={() => setMode("cost")} type="button">Cost entry</button>
+          <button aria-pressed={mode === "commission"} className={mode === "commission" ? "is-active" : ""} onClick={() => setMode("commission")} type="button">Commission</button>
         </div>
       </div>
 
@@ -228,10 +248,16 @@ export function CampaignPlanInputs(props: {
           </>
         ) : mode === "cost" ? (
           <>
-            <label><span>Channel</span><select name="channel" onChange={(event) => { setSelectedCostChannel(event.target.value); setSelectedCostBudgetType(inferredBudgetType(event.target.value)); }} value={selectedCostChannel}>{props.channels.map((channel) => <option key={channel}>{channel}</option>)}</select></label>
-            <label><span>MTD tracked spend</span><input min="0" name="mtdSpend" required step="0.01" type="number" /></label>
-            <label><span>Budget type</span><select name="budgetType" onChange={(event) => setSelectedCostBudgetType(event.target.value)} value={selectedCostBudgetType}><option value="platform">Platform</option><option value="manual">Manual</option><option value="prepaid">Prepaid</option></select></label>
-            <label className="campaign-input-form__wide"><span>Cost note</span><input name="notes" placeholder="Source, invoice, or correction context" type="text" /></label>
+            <label><span>Channel</span><select name="channel" onChange={(event) => { setSelectedCostChannel(event.target.value); setSelectedCostBudgetType(inferredCostEntryType(event.target.value)); }} value={selectedCostChannel}>{props.channels.map((channel) => <option key={channel}>{channel}</option>)}</select></label>
+            <label><span>Net MTD media cost</span><input min="0" name="mtdSpend" required step="0.01" type="number" /></label>
+            <label><span>Cost basis</span><select name="budgetType" onChange={(event) => setSelectedCostBudgetType(event.target.value)} value={selectedCostBudgetType}><option value="platform">Platform API</option><option value="manual">Billing net override</option><option value="prepaid">Prepaid</option></select></label>
+            <label className="campaign-input-form__wide"><span>Cost note</span><input name="notes" placeholder="Invoice, adjustment, or correction context" type="text" /></label>
+          </>
+        ) : mode === "commission" ? (
+          <>
+            <label><span>Channel</span><select name="channel" onChange={(event) => setSelectedCommissionChannel(event.target.value)} value={selectedCommissionChannel}>{props.channels.map((channel) => <option key={channel}>{channel}</option>)}</select></label>
+            <label><span>Monthly commission</span><input defaultValue={props.commissionRows.find((row) => row.channel === selectedCommissionChannel)?.monthlyCommission ?? ""} key={`${selectedCommissionChannel}-commission`} min="0" name="monthlyCommission" required step="0.01" type="number" /></label>
+            <label className="campaign-input-form__wide"><span>Commission note</span><input name="notes" placeholder="Agreement, invoice, or monthly fee context" type="text" /></label>
           </>
         ) : (
           <>

@@ -37,6 +37,8 @@ type CampaignRow = {
     bookedJobs: number;
     bookingRate: number | null;
     spend: number;
+    commissionCost?: number;
+    totalCost?: number;
     costPerLead: number | null;
     costPerBookedJob?: number | null;
     soldJobs: number;
@@ -118,6 +120,8 @@ export type CampaignPerformanceData = {
     bookedJobs: number;
     bookingRate: number | null;
     spend: number;
+    commissionCost?: number;
+    totalCost?: number;
     costPerLead: number | null;
     costPerBookedJob?: number | null;
     soldJobs: number;
@@ -132,6 +136,8 @@ export type CampaignPerformanceData = {
     missingPaidChannels: string[];
     trackedLeadShare: number | null;
     trackedPaidSpend?: number;
+    trackedCommissionCost?: number;
+    trackedPaidTotalCost?: number;
     trackedPaidLeads?: number;
     trackedPaidBookedJobs?: number;
     trackedPaidCompletedRevenue?: number;
@@ -215,6 +221,7 @@ const SOURCE_LABELS: Record<string, string> = {
   "ServiceTitan Revenue By Campaign": "ST Revenue",
   "Google Campaign Plan": "Campaign Plan",
   "Google Campaign Costs": "Campaign Costs",
+  "Google Campaign Commissions": "Commissions",
   "Google LSA Reporting API": "Google LSA",
   "Yelp Reporting API": "Yelp API",
   "Meta Ads Insights API": "Meta Ads",
@@ -253,6 +260,23 @@ function missingPaidSpend(row: CampaignRow) {
   return rowCategory(row) === "paid" && active && row.actual.spend === 0;
 }
 
+function rowCommissionCost(row: CampaignRow) {
+  return row.actual.commissionCost ?? 0;
+}
+
+function rowTotalCost(row: CampaignRow) {
+  return row.actual.totalCost ?? row.actual.spend + rowCommissionCost(row);
+}
+
+function totalCommissionCost(data: CampaignPerformanceData) {
+  return data.actual.commissionCost
+    ?? data.rows.reduce((sum, row) => sum + rowCommissionCost(row), 0);
+}
+
+function totalAcquisitionCost(data: CampaignPerformanceData) {
+  return data.actual.totalCost ?? data.actual.spend + totalCommissionCost(data);
+}
+
 function spendCoverage(data: CampaignPerformanceData) {
   const activePaidRows = data.rows.filter((row) => rowCategory(row) === "paid" && (
     row.actual.qualifiedLeads > 0 || row.actual.bookedJobs > 0 || row.actual.soldJobs > 0 || row.actual.completedRevenue > 0
@@ -263,6 +287,8 @@ function spendCoverage(data: CampaignPerformanceData) {
   const activePaidLeads = activePaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
   const trackedPaidLeads = trackedPaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
   const trackedPaidSpend = trackedPaidRows.reduce((sum, row) => sum + row.actual.spend, 0);
+  const trackedCommissionCost = trackedPaidRows.reduce((sum, row) => sum + rowCommissionCost(row), 0);
+  const trackedPaidTotalCost = trackedPaidSpend + trackedCommissionCost;
   const trackedPaidBookedJobs = trackedPaidRows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
   const trackedPaidCompletedRevenue = trackedPaidRows.reduce((sum, row) => sum + row.actual.completedRevenue, 0);
   const derived = {
@@ -272,12 +298,14 @@ function spendCoverage(data: CampaignPerformanceData) {
     missingPaidChannels,
     trackedLeadShare: activePaidLeads > 0 ? trackedPaidLeads / activePaidLeads : null,
     trackedPaidSpend,
+    trackedCommissionCost,
+    trackedPaidTotalCost,
     trackedPaidLeads,
     trackedPaidBookedJobs,
     trackedPaidCompletedRevenue,
-    coveredCostPerLead: trackedPaidLeads > 0 ? trackedPaidSpend / trackedPaidLeads : null,
-    coveredCostPerBookedJob: trackedPaidBookedJobs > 0 ? trackedPaidSpend / trackedPaidBookedJobs : null,
-    coveredRoas: trackedPaidSpend > 0 ? trackedPaidCompletedRevenue / trackedPaidSpend : null,
+    coveredCostPerLead: trackedPaidLeads > 0 ? trackedPaidTotalCost / trackedPaidLeads : null,
+    coveredCostPerBookedJob: trackedPaidBookedJobs > 0 ? trackedPaidTotalCost / trackedPaidBookedJobs : null,
+    coveredRoas: trackedPaidTotalCost > 0 ? trackedPaidCompletedRevenue / trackedPaidTotalCost : null,
   };
   return { ...derived, ...data.spendCoverage };
 }
@@ -353,7 +381,7 @@ function ChannelTable({
           {mode === "actual" ? (
             <tr>
               <th>Channel</th><th>Opportunities / target</th><th>Pace</th><th>Qualified / booking</th>
-              <th>Spend / cost</th><th>Sold</th><th>Revenue / ROAS</th><th>Status</th>
+              <th>Net media cost</th><th>Commission / total</th><th>Sold</th><th>Revenue / ROAS</th><th>Status</th>
             </tr>
           ) : (
             <tr>
@@ -364,7 +392,7 @@ function ChannelTable({
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr><td colSpan={8}><strong>{emptyMessage}</strong></td></tr>
+            <tr><td colSpan={mode === "actual" ? 9 : 8}><strong>{emptyMessage}</strong></td></tr>
           ) : null}
           {rows.map((row) => {
             const target = effectiveTargets(row);
@@ -375,7 +403,8 @@ function ChannelTable({
                 <td><strong>{formatNumber(row.actual.bookedJobs)} / {target.bookedJobs ?? "-"}</strong><CampaignGauge label={`${row.channel} opportunity target attainment ${formatMaybePercent(row.opportunityAttainment)}`} size="mini" value={row.opportunityAttainment} valueLabel={formatMaybePercent(row.opportunityAttainment)} /></td>
                 <td><strong>{formatMaybePercent(row.pace)}</strong><span>working-day pace</span></td>
                 <td><strong>{formatNumber(row.actual.qualifiedLeads)} / {target.qualifiedLeads || "-"}</strong><span>{formatMaybePercent(row.actual.bookingRate)} booked</span></td>
-                <td className={costMissing ? "campaign-cost-missing" : undefined}><strong>{costMissing ? "Not tracked" : formatCompactCurrency(row.actual.spend)}</strong><span>{costMissing ? "Cost input required" : `CPL ${row.actual.costPerLead == null ? "-" : formatCompactCurrency(row.actual.costPerLead)} · CPB ${row.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(row.actual.costPerBookedJob)}`}</span></td>
+                <td className={costMissing ? "campaign-cost-missing" : undefined}><strong>{costMissing ? "Not tracked" : formatCompactCurrency(row.actual.spend)}</strong><span>{costMissing ? "Billing/API cost required" : "Media spend after adjustments"}</span></td>
+                <td><strong>{formatCompactCurrency(rowCommissionCost(row))}</strong><span>Total {formatCompactCurrency(rowTotalCost(row))} · CPL {row.actual.costPerLead == null ? "-" : formatCompactCurrency(row.actual.costPerLead)} · CPB {row.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(row.actual.costPerBookedJob)}</span></td>
                 <td><strong>{formatNumber(row.actual.soldJobs)}</strong><span>{formatCompactCurrency(row.actual.soldAmount)}</span></td>
                 <td><strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong><span>ROAS {row.actual.roas == null ? "-" : `${row.actual.roas.toFixed(1)}x`}</span></td>
                 <td><span className={`campaign-status campaign-status--${row.status}`}>{STATUS_LABEL[row.status]}</span></td>
@@ -423,6 +452,8 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
   const targetLabel = data.plan.approvalStatus === "approved" ? "Target" : "Model target";
   const paidBookingRate = bookingRateFor(paidRows);
   const organicBookingRate = bookingRateFor(organicRows);
+  const commissionCost = totalCommissionCost(data);
+  const acquisitionCost = totalAcquisitionCost(data);
   return (
     <>
       <section className="campaign-executive-grid" aria-label="Marketing month-to-date executive summary">
@@ -446,13 +477,13 @@ function OverviewView({ data }: { data: CampaignPerformanceData }) {
           <div className="campaign-booking-split"><div><span>Paid channels</span><CampaignGauge label={`Paid channel booking rate ${formatMaybePercent(paidBookingRate)}`} size="mini" target={data.plan.targetBookingRate} value={paidBookingRate} valueLabel={formatMaybePercent(paidBookingRate)} /></div><div><span>Organic</span><CampaignGauge label={`Organic booking rate ${formatMaybePercent(organicBookingRate)}`} size="mini" target={data.plan.targetBookingRate} value={organicBookingRate} valueLabel={formatMaybePercent(organicBookingRate)} /></div></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--spend">
-          <div className="campaign-spend-kpi"><span>Tracked marketing spend</span><CampaignGauge label={`Marketing budget used ${formatMaybePercent(budgetAttainment)}`} size="compact" value={budgetAttainment} valueLabel={formatMaybePercent(budgetAttainment)} /><strong>{formatCompactCurrency(data.actual.spend)} / {formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong><small>{costsComplete ? `${formatMaybePercent(data.pace.spendPace)} calendar pace` : coverageLabel}</small></div>
+          <div className="campaign-spend-kpi"><span>Net media spend</span><CampaignGauge label={`Marketing budget used ${formatMaybePercent(budgetAttainment)}`} size="compact" value={budgetAttainment} valueLabel={formatMaybePercent(budgetAttainment)} /><strong>{formatCompactCurrency(data.actual.spend)} / {formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong><small>{formatCompactCurrency(commissionCost)} commissions · {formatCompactCurrency(acquisitionCost)} total cost · {costsComplete ? `${formatMaybePercent(data.pace.spendPace)} calendar pace` : coverageLabel}</small></div>
           <div className="campaign-executive-split"><span>{costMetricPrefix}cost / lead <b>{costPerLead == null ? "Pending" : formatCompactCurrency(costPerLead)}</b></span><span>{costMetricPrefix}cost / booked job <b>{costPerBookedJob == null ? "Pending" : formatCompactCurrency(costPerBookedJob)}</b></span></div>
         </div>
         <div className="campaign-executive-card campaign-executive-card--roas">
-          <span>{costMetricPrefix}ROAS</span>
+          <span>{costMetricPrefix}all-in ROAS</span>
           <strong>{roas == null ? "Pending" : `${roas.toFixed(1)}x`}</strong>
-          <small>{costsComplete ? "Completed revenue / tracked spend" : `${coverage.missingPaidChannels.length} paid channel costs missing · covered channels only`}</small>
+          <small>{costsComplete ? "Completed revenue / media plus commission" : `${coverage.missingPaidChannels.length} paid channel costs missing · covered channels only`}</small>
         </div>
       </section>
 
@@ -491,6 +522,8 @@ function RevenueView({ data }: { data: CampaignPerformanceData }) {
     const rows = data.rows.filter((row) => revenueGroup(row) === group);
     const completedRevenue = rows.reduce((sum, row) => sum + row.actual.completedRevenue, 0);
     const spend = rows.reduce((sum, row) => sum + row.actual.spend, 0);
+    const commissionCost = rows.reduce((sum, row) => sum + rowCommissionCost(row), 0);
+    const totalCost = spend + commissionCost;
     return {
       group,
       rows,
@@ -498,12 +531,14 @@ function RevenueView({ data }: { data: CampaignPerformanceData }) {
       soldAmount: rows.reduce((sum, row) => sum + row.actual.soldAmount, 0),
       completedRevenue,
       spend,
+      commissionCost,
+      totalCost,
       share: data.actual.completedRevenue > 0 ? completedRevenue / data.actual.completedRevenue : null,
     };
   });
   const coverage = spendCoverage(data);
   const channelRows = [...data.rows]
-    .filter((row) => row.actual.completedRevenue > 0 || row.actual.soldAmount > 0 || row.actual.spend > 0)
+    .filter((row) => row.actual.completedRevenue > 0 || row.actual.soldAmount > 0 || rowTotalCost(row) > 0)
     .sort((left, right) => right.actual.completedRevenue - left.actual.completedRevenue || right.actual.soldAmount - left.actual.soldAmount);
   const paidGroup = groups.find((group) => group.group === "paid")!;
   const unpaidGroup = groups.find((group) => group.group === "unpaid")!;
@@ -519,20 +554,20 @@ function RevenueView({ data }: { data: CampaignPerformanceData }) {
 
       <section className="campaign-table-panel">
         <div className="campaign-table-panel__heading"><div><h3>Paid vs unpaid revenue</h3><p>Every ServiceTitan dollar remains visible, including channels that are not yet mapped to Emil's acquisition groups.</p></div><div className="campaign-table-panel__plan"><span>Paid cost coverage</span><strong>{coverage.trackedPaidChannels}/{coverage.activePaidChannels} channels</strong><small>{formatMaybePercent(coverage.trackedLeadShare)} of paid leads covered</small></div></div>
-        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--revenue-groups"><thead><tr><th>Acquisition group</th><th>Channels</th><th>Sold</th><th>Sales value</th><th>Completed revenue</th><th>Revenue share</th><th>Tracked spend</th><th>ROAS</th></tr></thead><tbody>
+        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--revenue-groups"><thead><tr><th>Acquisition group</th><th>Channels</th><th>Sold</th><th>Sales value</th><th>Completed revenue</th><th>Revenue share</th><th>Media / commission</th><th>All-in ROAS</th></tr></thead><tbody>
           {groups.map((group) => {
             const roas = group.group === "paid"
-              ? coverage.status === "complete" ? (group.spend > 0 ? group.completedRevenue / group.spend : null) : coverage.coveredRoas
-              : group.group === "other" && group.spend > 0 ? group.completedRevenue / group.spend : null;
-            return <tr key={group.group}><td><strong>{REVENUE_GROUP_LABEL[group.group]}</strong><span>{group.group === "unpaid" ? "Organic + Automation" : group.group === "paid" && coverage.status !== "complete" ? "ROAS uses covered paid channels" : ""}</span></td><td><strong>{formatNumber(group.rows.length)}</strong></td><td><strong>{formatNumber(group.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(group.soldAmount)}</strong></td><td><strong>{formatCompactCurrency(group.completedRevenue)}</strong></td><td><strong>{formatMaybePercent(group.share)}</strong></td><td><strong>{formatCompactCurrency(group.spend)}</strong></td><td><strong>{roas == null ? "-" : `${roas.toFixed(1)}x${group.group === "paid" && coverage.status !== "complete" ? " covered" : ""}`}</strong></td></tr>;
+              ? coverage.status === "complete" ? (group.totalCost > 0 ? group.completedRevenue / group.totalCost : null) : coverage.coveredRoas
+              : group.group === "other" && group.totalCost > 0 ? group.completedRevenue / group.totalCost : null;
+            return <tr key={group.group}><td><strong>{REVENUE_GROUP_LABEL[group.group]}</strong><span>{group.group === "unpaid" ? "Organic + Automation" : group.group === "paid" && coverage.status !== "complete" ? "ROAS uses covered paid channels" : ""}</span></td><td><strong>{formatNumber(group.rows.length)}</strong></td><td><strong>{formatNumber(group.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(group.soldAmount)}</strong></td><td><strong>{formatCompactCurrency(group.completedRevenue)}</strong></td><td><strong>{formatMaybePercent(group.share)}</strong></td><td><strong>{formatCompactCurrency(group.spend)}</strong><span>{formatCompactCurrency(group.commissionCost)} commission · {formatCompactCurrency(group.totalCost)} total</span></td><td><strong>{roas == null ? "-" : `${roas.toFixed(1)}x${group.group === "paid" && coverage.status !== "complete" ? " covered" : ""}`}</strong></td></tr>;
           })}
         </tbody></table></div>
       </section>
 
       <section className="campaign-table-panel">
         <div className="campaign-table-panel__heading"><div><h3>Revenue by channel</h3><p>Sales value is sold estimates; completed revenue is recognized ServiceTitan revenue through the MTD cutoff.</p></div><div className="campaign-table-panel__plan"><span>Reconciled total</span><strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong><small>{channelRows.length} channels with financial activity</small></div></div>
-        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--revenue"><thead><tr><th>Channel</th><th>Type</th><th>Sold</th><th>Sales value</th><th>Completed revenue</th><th>Revenue share</th><th>Tracked spend</th><th>ROAS</th></tr></thead><tbody>
-          {channelRows.map((row) => <tr key={row.channel}><td><strong>{row.channel}</strong></td><td><span className={`campaign-revenue-type campaign-revenue-type--${revenueGroup(row)}`}>{REVENUE_GROUP_LABEL[revenueGroup(row)]}</span></td><td><strong>{formatNumber(row.actual.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(row.actual.soldAmount)}</strong></td><td><strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong></td><td><strong>{formatMaybePercent(data.actual.completedRevenue > 0 ? row.actual.completedRevenue / data.actual.completedRevenue : null)}</strong></td><td className={missingPaidSpend(row) ? "campaign-cost-missing" : undefined}><strong>{missingPaidSpend(row) ? "Missing" : formatCompactCurrency(row.actual.spend)}</strong></td><td><strong>{revenueGroup(row) === "separate-spend" || row.actual.roas == null ? "-" : `${row.actual.roas.toFixed(1)}x`}</strong></td></tr>)}
+        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--revenue"><thead><tr><th>Channel</th><th>Type</th><th>Sold</th><th>Sales value</th><th>Completed revenue</th><th>Revenue share</th><th>Media / commission</th><th>All-in ROAS</th></tr></thead><tbody>
+          {channelRows.map((row) => <tr key={row.channel}><td><strong>{row.channel}</strong></td><td><span className={`campaign-revenue-type campaign-revenue-type--${revenueGroup(row)}`}>{REVENUE_GROUP_LABEL[revenueGroup(row)]}</span></td><td><strong>{formatNumber(row.actual.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(row.actual.soldAmount)}</strong></td><td><strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong></td><td><strong>{formatMaybePercent(data.actual.completedRevenue > 0 ? row.actual.completedRevenue / data.actual.completedRevenue : null)}</strong></td><td className={missingPaidSpend(row) ? "campaign-cost-missing" : undefined}><strong>{missingPaidSpend(row) ? "Missing" : formatCompactCurrency(row.actual.spend)}</strong><span>{formatCompactCurrency(rowCommissionCost(row))} commission · {formatCompactCurrency(rowTotalCost(row))} total</span></td><td><strong>{revenueGroup(row) === "separate-spend" || row.actual.roas == null ? "-" : `${row.actual.roas.toFixed(1)}x`}</strong></td></tr>)}
         </tbody></table></div>
       </section>
     </>
@@ -548,13 +583,14 @@ function ChannelsView({ data }: { data: CampaignPerformanceData }) {
       leads: rows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0),
       booked: rows.reduce((sum, row) => sum + row.actual.bookedJobs, 0),
       spend: rows.reduce((sum, row) => sum + row.actual.spend, 0),
+      commissionCost: rows.reduce((sum, row) => sum + rowCommissionCost(row), 0),
       revenue: rows.reduce((sum, row) => sum + row.actual.completedRevenue, 0),
     };
   }).filter((item) => item.category !== "other" || item.count > 0);
   return (
     <>
       <section className="campaign-category-strip">
-        {categories.map((item) => <div key={item.category}><span>{CATEGORY_LABEL[item.category]}</span><strong>{formatNumber(item.booked)} booked</strong><small>{formatNumber(item.leads)} leads · {formatCompactCurrency(item.spend)} tracked spend · {formatCompactCurrency(item.revenue)} revenue</small></div>)}
+        {categories.map((item) => <div key={item.category}><span>{CATEGORY_LABEL[item.category]}</span><strong>{formatNumber(item.booked)} booked</strong><small>{formatNumber(item.leads)} leads · {formatCompactCurrency(item.spend)} media · {formatCompactCurrency(item.commissionCost)} commission · {formatCompactCurrency(item.revenue)} revenue</small></div>)}
       </section>
       {categories.map((item) => (
         <section className="campaign-table-panel" key={item.category}>
@@ -581,6 +617,7 @@ function PlanView({ data, inputsEnabled }: { data: CampaignPerformanceData; inpu
         <CampaignPlanInputs
           capacityRows={assumptions}
           channels={data.rows.map((row) => row.channel)}
+          commissionRows={data.rows.map((row) => ({ channel: row.channel, monthlyCommission: rowCommissionCost(row) }))}
           cutoffDate={data.period.to}
           month={periodId(data)}
         />
@@ -627,8 +664,8 @@ function HistoryView({ history }: { history: CampaignPerformanceData[] }) {
     <>
       <section className="campaign-table-panel">
         <div className="campaign-table-panel__heading"><div><h3>Monthly executive history</h3><p>Completed months and current MTD are kept separate.</p></div></div>
-        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--history"><thead><tr><th>Month</th><th>Qualified leads</th><th>Booked</th><th>Booking rate</th><th>Tracked spend</th><th>Sold</th><th>Completed revenue</th><th>Plan status</th></tr></thead><tbody>
-          {sorted.map((period) => <tr key={periodId(period)}><td><strong>{monthLabel(periodId(period), "long")}</strong><span>through {period.period.to}</span></td><td><strong>{formatNumber(period.actual.qualifiedLeads)}</strong></td><td><strong>{formatNumber(period.actual.bookedJobs)}</strong></td><td><strong>{formatMaybePercent(period.actual.bookingRate)}</strong></td><td><strong>{formatCompactCurrency(period.actual.spend)}</strong></td><td><strong>{formatNumber(period.actual.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(period.actual.completedRevenue)}</strong></td><td><span className={`campaign-plan-state campaign-plan-state--${period.plan.approvalStatus ?? "required"}`}>{period.plan.status}</span></td></tr>)}
+        <div className="campaign-table-wrap"><table className="campaign-table campaign-table--history"><thead><tr><th>Month</th><th>Qualified leads</th><th>Booked</th><th>Booking rate</th><th>Net media</th><th>Commission</th><th>Total cost</th><th>Sold</th><th>Completed revenue</th><th>Plan status</th></tr></thead><tbody>
+          {sorted.map((period) => <tr key={periodId(period)}><td><strong>{monthLabel(periodId(period), "long")}</strong><span>through {period.period.to}</span></td><td><strong>{formatNumber(period.actual.qualifiedLeads)}</strong></td><td><strong>{formatNumber(period.actual.bookedJobs)}</strong></td><td><strong>{formatMaybePercent(period.actual.bookingRate)}</strong></td><td><strong>{formatCompactCurrency(period.actual.spend)}</strong></td><td><strong>{formatCompactCurrency(totalCommissionCost(period))}</strong></td><td><strong>{formatCompactCurrency(totalAcquisitionCost(period))}</strong></td><td><strong>{formatNumber(period.actual.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(period.actual.completedRevenue)}</strong></td><td><span className={`campaign-plan-state campaign-plan-state--${period.plan.approvalStatus ?? "required"}`}>{period.plan.status}</span></td></tr>)}
         </tbody></table></div>
       </section>
       <section className="campaign-table-panel">
