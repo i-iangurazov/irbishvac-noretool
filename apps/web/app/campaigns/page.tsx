@@ -18,7 +18,6 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
   const params: Record<string, string | string[] | undefined> = await (
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>)
   );
-  const requestedMonth = typeof params.month === "string" ? params.month : "2026-08";
   const requestedView = typeof params.view === "string" && ["overview", "revenue", "channels", "plan", "history"].includes(params.view)
     ? params.view as "overview" | "revenue" | "channels" | "plan" | "history"
     : "overview";
@@ -27,20 +26,29 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     month: "2-digit",
     timeZone: process.env.APP_TIMEZONE ?? "America/Los_Angeles"
   }).format(new Date());
-  const liveDatasets = await Promise.all(fallbackDatasets.map(async (fallback) => {
+  const requestedMonth = typeof params.month === "string" ? params.month : currentMonth;
+  const fallbackByMonth = new Map(fallbackDatasets.map((fallback) => [
+    fallback.period.id ?? fallback.period.from.slice(0, 7),
+    fallback,
+  ]));
+  const monthIds = [...new Set([currentMonth, ...fallbackByMonth.keys()])];
+  const liveDatasets = await Promise.all(monthIds.map(async (month) => {
     try {
       return await fetchApi<CampaignPerformanceData | null>(
-        `/dashboard/campaigns/performance?month=${encodeURIComponent(fallback.period.id ?? fallback.period.from.slice(0, 7))}`,
+        `/dashboard/campaigns/performance?month=${encodeURIComponent(month)}`,
       );
     } catch {
       return null;
     }
   }));
-  const periodDatasets = fallbackDatasets.map((fallback, index) => {
+  const periodDatasets = monthIds.flatMap((month, index) => {
+    const fallback = fallbackByMonth.get(month);
     const live = liveDatasets[index];
-    if (live && Date.parse(live.generatedAt) >= Date.parse(fallback.generatedAt)) return live;
-    const month = fallback.period.id ?? fallback.period.from.slice(0, 7);
-    return {
+    if (live && (!fallback || Date.parse(live.generatedAt) >= Date.parse(fallback.generatedAt))) {
+      return [live];
+    }
+    if (!fallback) return [];
+    return [{
       ...fallback,
       dataStatus: "SNAPSHOT" as const,
       plan: {
@@ -51,7 +59,7 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
         status: month === "2026-08" ? "DRAFT MODEL - APPROVAL REQUIRED" : fallback.plan.status
       },
       sources: fallback.sources.map((source) => ({ ...source, status: "stale" as const, refreshedAt: fallback.generatedAt }))
-    };
+    }];
   });
   const data = periodDatasets.find((dataset) => (dataset.period.id ?? dataset.period.from.slice(0, 7)) === requestedMonth)
     ?? periodDatasets[0]!;

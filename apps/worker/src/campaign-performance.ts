@@ -17,6 +17,10 @@ import {
   type ReportParameter
 } from "@irbis/integrations";
 import { createLogger, getDateParts } from "@irbis/utils";
+import {
+  GoogleLsaReportingClient,
+  type GoogleLsaSpendResult,
+} from "./google-lsa-reporting";
 import { YelpReportingClient, type YelpSpendResult } from "./yelp-reporting";
 
 const logger = createLogger("campaign-performance-refresh");
@@ -387,6 +391,9 @@ export class CampaignPerformanceRefreshRunner {
   private readonly config = getConfig();
   private readonly sheets = new GoogleSheetsClient();
   private readonly serviceTitan = new ServiceTitanClient();
+  private readonly googleLsa = new GoogleLsaReportingClient(
+    this.config.campaignPerformance.googleLsa,
+  );
   private readonly yelp = new YelpReportingClient(this.config.campaignPerformance.yelp);
 
   getMissingConfiguration() {
@@ -416,6 +423,9 @@ export class CampaignPerformanceRefreshRunner {
       yelp: {
         configured: this.yelp.isConfigured(),
         businessCount: this.config.campaignPerformance.yelp.businessIds.length
+      },
+      googleLsa: {
+        configured: this.googleLsa.isConfigured()
       }
     };
     const businessDateFrom = new Date(`${from}T00:00:00.000Z`);
@@ -508,6 +518,35 @@ export class CampaignPerformanceRefreshRunner {
       const connectedPlan = parseConnectedPlan(connectedPlanSheet?.values, month);
       const forecastRows = parseForecast(forecastSheet?.values, month);
       const connectedCostRows = parseManualCosts(costSheet?.values, month);
+      let googleLsaSpend: GoogleLsaSpendResult | null = null;
+      let googleLsaError: string | null = null;
+      if (this.googleLsa.isConfigured()) {
+        try {
+          googleLsaSpend = await this.googleLsa.getMtdSpend(from, cutoff);
+          if (googleLsaSpend.currency !== "USD") {
+            throw new Error(
+              `Google LSA Reporting API returned unsupported currency ${googleLsaSpend.currency}`,
+            );
+          }
+          logger.info("Loaded live Google LSA MTD cost", {
+            correlationId,
+            month,
+            cutoff,
+            spend: googleLsaSpend.spend,
+            chargedLeads: googleLsaSpend.chargedLeads,
+            accountCount: googleLsaSpend.accountCount,
+          });
+        } catch (error) {
+          googleLsaError = error instanceof Error ? error.message : String(error);
+          googleLsaSpend = null;
+          logger.warn("Google LSA MTD cost unavailable; retaining connected cost fallback", {
+            correlationId,
+            month,
+            cutoff,
+            error: googleLsaError,
+          });
+        }
+      }
       let yelpSpend: YelpSpendResult | null = null;
       let yelpError: string | null = null;
       if (this.yelp.isConfigured()) {
@@ -531,18 +570,33 @@ export class CampaignPerformanceRefreshRunner {
           });
         }
       }
-      const manualCostRows = yelpSpend
-        ? [
-            ...connectedCostRows.filter((row) => normalizeCampaignChannel(row.channel) !== "Yelp"),
-            {
-              channel: "Yelp",
-              spend: yelpSpend.spend,
-              budgetType: "platform" as const,
-              effectiveFrom: cutoff,
-              notes: `Live Yelp Reporting API ad_cost through ${cutoff}`
-            }
-          ]
-        : connectedCostRows;
+      let manualCostRows = connectedCostRows;
+      if (googleLsaSpend) {
+        manualCostRows = [
+          ...manualCostRows.filter(
+            (row) => normalizeCampaignChannel(row.channel) !== "Google Local Services",
+          ),
+          {
+            channel: "Google Local Services",
+            spend: googleLsaSpend.spend,
+            budgetType: "platform" as const,
+            effectiveFrom: cutoff,
+            notes: `Live Google LSA currentPeriodTotalCost from ${from} through ${cutoff}`,
+          },
+        ];
+      }
+      if (yelpSpend) {
+        manualCostRows = [
+          ...manualCostRows.filter((row) => normalizeCampaignChannel(row.channel) !== "Yelp"),
+          {
+            channel: "Yelp",
+            spend: yelpSpend.spend,
+            budgetType: "platform" as const,
+            effectiveFrom: cutoff,
+            notes: `Live Yelp Reporting API ad_cost through ${cutoff}`
+          }
+        ];
+      }
       const plan = connectedPlan.rows.length > 0
         ? {
             rows: connectedPlan.rows,
@@ -600,6 +654,25 @@ export class CampaignPerformanceRefreshRunner {
         channelBudgetGoalStatus: plan.budgetMethod,
         sourceReportIds: requestParams.reports
       });
+
+      snapshot.sources.push({
+        name: "Google LSA Reporting API",
+        role: "Live MTD Google Local Services charged-lead cost override",
+        status: googleLsaSpend
+          ? "connected"
+          : this.googleLsa.isConfigured()
+            ? "stale"
+            : "blocked",
+        refreshedAt: generatedAt,
+        rowCount: googleLsaSpend?.rowCount ?? 0,
+      });
+      snapshot.dataNotes.push(
+        googleLsaSpend
+          ? `Google Local Services spend is live currentPeriodTotalCost for ${from} through ${cutoff}; ${googleLsaSpend.chargedLeads} charged leads reported.`
+          : this.googleLsa.isConfigured()
+            ? `Google LSA Reporting API was unavailable during refresh; the connected Campaign Costs or ServiceTitan value remains in use. ${googleLsaError ?? ""}`.trim()
+            : "Google LSA Reporting API is not configured; the connected Campaign Costs or ServiceTitan value remains in use.",
+      );
 
       snapshot.sources.push({
         name: "Yelp Reporting API",

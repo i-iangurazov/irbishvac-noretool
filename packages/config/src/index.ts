@@ -177,6 +177,13 @@ export function getConfig() {
         serviceAccountEmail: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
         serviceAccountPrivateKey: env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
       },
+      googleLsa: {
+        clientId: env.GOOGLE_ADS_CLIENT_ID,
+        clientSecret: env.GOOGLE_ADS_CLIENT_SECRET,
+        refreshToken: env.GOOGLE_ADS_REFRESH_TOKEN,
+        managerCustomerId: env.GOOGLE_LSA_MANAGER_CUSTOMER_ID,
+        customerId: env.GOOGLE_LSA_CUSTOMER_ID
+      },
       yelp: {
         apiKey: env.YELP_API_KEY,
         businessIds: env.YELP_BUSINESS_IDS

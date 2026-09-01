@@ -168,6 +168,11 @@ APP_TIMEZONE=America/Los_Angeles
 GOOGLE_CALL_CENTER_SPREADSHEET_ID=1b1aZBH1cd5KSJwtpop8Wlpgm0Gfv-DR9zwh0Blunu60
 GOOGLE_SERVICE_ACCOUNT_EMAIL=<client_email>
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=<private_key>
+GOOGLE_ADS_CLIENT_ID=<OAuth client ID>
+GOOGLE_ADS_CLIENT_SECRET=<OAuth client secret>
+GOOGLE_ADS_REFRESH_TOKEN=<OAuth refresh token with adwords scope>
+GOOGLE_LSA_MANAGER_CUSTOMER_ID=<10 digit manager customer ID>
+GOOGLE_LSA_CUSTOMER_ID=<10 digit linked LSA customer ID>
 YELP_API_KEY=<Yelp Fusion API key with Reporting API access>
 YELP_BUSINESS_IDS=<comma-separated Yelp business IDs>
 CAMPAIGN_COMPANY_REVENUE_GOAL=2000000
@@ -179,7 +184,7 @@ ST_REPORT_CAMPAIGN_SOLD_ESTIMATES=7148368
 ST_REPORT_CAMPAIGN_REVENUE=101394656
 ```
 
-Worker также должен использовать существующие production `DATABASE_URL`, `REDIS_URL` и ServiceTitan credentials. `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` и `YELP_API_KEY` нужно сделать sealed variables. Multiline Google private key допустим; код также понимает literal `\n`. `YELP_BUSINESS_IDS` принимает несколько Yelp Business ID через запятую.
+Worker также должен использовать существующие production `DATABASE_URL`, `REDIS_URL` и ServiceTitan credentials. `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_REFRESH_TOKEN` и `YELP_API_KEY` нужно сделать sealed variables. Multiline Google private key допустим; код также понимает literal `\n`. `YELP_BUSINESS_IDS` принимает несколько Yelp Business ID через запятую.
 
 Не добавлять Google private key в Web service или browser-visible `NEXT_PUBLIC_*` variables.
 
