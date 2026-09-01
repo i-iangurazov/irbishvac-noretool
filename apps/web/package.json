@@ -13,10 +13,11 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.8.3",
     "@irbis/config": "workspace:*",
-    "@irbis/utils": "workspace:*",
     "@irbis/ui": "workspace:*",
-    "next": "^15.2.0",
+    "@irbis/utils": "workspace:*",
+    "next": "^15.5.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.1"

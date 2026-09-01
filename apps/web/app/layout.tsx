@@ -1,3 +1,4 @@
+import { ClerkProvider, Show, UserButton } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { getBrandLogoUrl } from "../lib/assets";
 import "./globals.css";
@@ -13,7 +14,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body data-vw-app="true">{children}</body>
+      <body data-vw-app="true">
+        <ClerkProvider dynamic>
+          <Show when="signed-in">
+            <div className="irbis-account-control" aria-label="Account settings">
+              <UserButton />
+            </div>
+          </Show>
+          {children}
+        </ClerkProvider>
+      </body>
     </html>
   );
 }

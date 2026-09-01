@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Inject, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Post, Query, UseGuards } from "@nestjs/common";
 import { GoalsService, type GoalTrackerDto } from "./goals.service";
+import { DashboardAccessGuard } from "../dashboard/dashboard-access.guard";
 
 @Controller("dashboard/goals")
+@UseGuards(DashboardAccessGuard)
 export class GoalsController {
   private readonly goalsService: GoalsService;
 

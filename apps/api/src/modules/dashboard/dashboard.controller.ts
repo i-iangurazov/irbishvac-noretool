@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Inject, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Inject, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { parseDatePreset } from "@irbis/utils";
 import {
   DashboardService,
@@ -6,6 +6,7 @@ import {
   type DashboardRequestContext
 } from "./dashboard.service";
 import { CampaignPlanningService, type CampaignPlanningInput } from "./campaign-planning.service";
+import { DashboardAccessGuard } from "./dashboard-access.guard";
 
 type DashboardQuery = {
   preset?: string;
@@ -33,6 +34,7 @@ function toRequestContext(query: DashboardQuery): DashboardRequestContext {
 }
 
 @Controller("dashboard")
+@UseGuards(DashboardAccessGuard)
 export class DashboardController {
   private readonly dashboardService: DashboardService;
   private readonly campaignPlanningService: CampaignPlanningService;
