@@ -14,99 +14,99 @@ export const navItems: DashboardNavItem[] = [
     href: "/company-wide",
     label: "Company-wide",
     shortLabel: "CW",
-    section: "Overview"
+    section: "Overview",
   },
   {
     id: "performance",
     href: "/performance",
     label: "Performance Coaching",
     shortLabel: "PC",
-    section: "Coaching"
+    section: "Coaching",
   },
   {
     id: "technicians",
     href: "/technicians",
     label: "HVAC Service",
     shortLabel: "HS",
-    section: "Field Performance"
+    section: "Field Performance",
   },
   {
     id: "plumbing",
     href: "/plumbing",
     label: "Plumbing Service",
     shortLabel: "PS",
-    section: "Field Performance"
+    section: "Field Performance",
   },
   {
     id: "electrical",
     href: "/electrical",
     label: "Electrical Service",
     shortLabel: "ES",
-    section: "Field Performance"
+    section: "Field Performance",
   },
   {
     id: "installers",
     href: "/installers",
     label: "HVAC Install",
     shortLabel: "HI",
-    section: "Field Performance"
+    section: "Field Performance",
   },
   {
     id: "plumbing-install",
     href: "/plumbing-install",
     label: "Plumbing Install",
     shortLabel: "PI",
-    section: "Field Performance"
+    section: "Field Performance",
   },
   {
     id: "electrical-install",
     href: "/electrical-install",
     label: "Electrical Install",
     shortLabel: "EI",
-    section: "Field Performance"
+    section: "Field Performance",
   },
   {
     id: "advisors",
     href: "/advisors",
     label: "Advisors",
     shortLabel: "AD",
-    section: "Field Performance"
+    section: "Field Performance",
   },
   {
     id: "call-center-summary",
     href: "/call-center/summary",
     label: "Call Center Summary",
     shortLabel: "CS",
-    section: "Call Center"
+    section: "Call Center",
   },
   {
     id: "call-center-by-csr",
     href: "/call-center/by-csr",
     label: "Call Center By CSR",
     shortLabel: "CR",
-    section: "Call Center"
+    section: "Call Center",
   },
   {
     id: "leads",
     href: "/leads",
     label: "Lead Generation",
     shortLabel: "LG",
-    section: "Demand"
+    section: "Demand",
   },
   {
     id: "campaigns",
     href: "/campaigns",
     label: "Campaigns",
     shortLabel: "CM",
-    section: "Demand"
+    section: "Demand",
   },
   {
     id: "ops",
     href: "/ops",
     label: "Operations Docs",
     shortLabel: "OP",
-    section: "Operations"
-  }
+    section: "Operations",
+  },
 ];
 
 async function getWebOrigin() {
@@ -117,13 +117,14 @@ async function getWebOrigin() {
   try {
     const requestHeaders = await headers();
     const host =
-      requestHeaders.get("x-forwarded-host") ??
-      requestHeaders.get("host");
+      requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
     if (host) {
       const protocol =
         requestHeaders.get("x-forwarded-proto") ??
-        (host.includes("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+        (host.includes("localhost") || host.startsWith("127.0.0.1")
+          ? "http"
+          : "https");
 
       return `${protocol}://${host}`;
     }
@@ -150,8 +151,22 @@ export class DashboardApiError extends Error {
 
 export async function fetchApi<T>(path: string): Promise<T> {
   const baseUrl = await getWebOrigin();
+  const requestHeaders = new Headers();
+
+  try {
+    const incomingHeaders = await headers();
+    const cookie = incomingHeaders.get("cookie");
+
+    if (cookie) {
+      requestHeaders.set("cookie", cookie);
+    }
+  } catch {
+    // Unit tests and build-time evaluation do not always have request context.
+  }
+
   const response = await fetch(`${baseUrl}/api${path}`, {
-    cache: "no-store"
+    cache: "no-store",
+    headers: requestHeaders,
   });
 
   if (!response.ok) {
