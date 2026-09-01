@@ -23,3 +23,20 @@ export function isPublicAuthPath(pathname: string) {
     pathname === "/access-denied"
   );
 }
+
+export function resolvePublicRequestUrl(
+  requestUrl: string,
+  configuredOrigin: string | undefined,
+) {
+  const request = new URL(requestUrl);
+  if (!configuredOrigin) {
+    return request.toString();
+  }
+
+  const origin = new URL(configuredOrigin);
+  if (origin.protocol !== "https:" && origin.protocol !== "http:") {
+    throw new Error("DASHBOARD_PUBLIC_URL must use HTTP or HTTPS");
+  }
+
+  return new URL(`${request.pathname}${request.search}`, origin).toString();
+}

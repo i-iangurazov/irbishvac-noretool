@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isAllowedIrbisEmail, isPublicAuthPath } from "./auth-policy";
+import {
+  isAllowedIrbisEmail,
+  isPublicAuthPath,
+  resolvePublicRequestUrl,
+} from "./auth-policy";
 
 describe("IRBIS authentication policy", () => {
   it.each([
@@ -30,5 +34,31 @@ describe("IRBIS authentication policy", () => {
     expect(isPublicAuthPath("/access-denied")).toBe(true);
     expect(isPublicAuthPath("/campaigns")).toBe(false);
     expect(isPublicAuthPath("/api/dashboard/campaigns")).toBe(false);
+  });
+
+  it("replaces Railway's internal origin while preserving path and query", () => {
+    expect(
+      resolvePublicRequestUrl(
+        "https://0.0.0.0:8080/campaigns?month=2026-09",
+        "https://irbisweb-production.up.railway.app",
+      ),
+    ).toBe(
+      "https://irbisweb-production.up.railway.app/campaigns?month=2026-09",
+    );
+  });
+
+  it("uses the request URL when no public origin is configured", () => {
+    expect(resolvePublicRequestUrl("http://localhost:3000/campaigns", undefined)).toBe(
+      "http://localhost:3000/campaigns",
+    );
+  });
+
+  it("rejects non-http public origins", () => {
+    expect(() =>
+      resolvePublicRequestUrl(
+        "http://localhost:3000/campaigns",
+        "javascript:alert(1)",
+      ),
+    ).toThrow("must use HTTP or HTTPS");
   });
 });
