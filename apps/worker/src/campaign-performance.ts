@@ -21,6 +21,7 @@ import {
   GoogleLsaReportingClient,
   type GoogleLsaSpendResult,
 } from "./google-lsa-reporting";
+import { MetaAdsReportingClient, type MetaAdsSpendResult } from "./meta-ads-reporting";
 import { YelpReportingClient, type YelpSpendResult } from "./yelp-reporting";
 
 const logger = createLogger("campaign-performance-refresh");
@@ -394,6 +395,9 @@ export class CampaignPerformanceRefreshRunner {
   private readonly googleLsa = new GoogleLsaReportingClient(
     this.config.campaignPerformance.googleLsa,
   );
+  private readonly metaAds = new MetaAdsReportingClient(
+    this.config.campaignPerformance.metaAds,
+  );
   private readonly yelp = new YelpReportingClient(this.config.campaignPerformance.yelp);
 
   getMissingConfiguration() {
@@ -426,6 +430,10 @@ export class CampaignPerformanceRefreshRunner {
       },
       googleLsa: {
         configured: this.googleLsa.isConfigured()
+      },
+      metaAds: {
+        configured: this.metaAds.isConfigured(),
+        accountCount: this.config.campaignPerformance.metaAds.accountIds.length
       }
     };
     const businessDateFrom = new Date(`${from}T00:00:00.000Z`);
@@ -518,6 +526,36 @@ export class CampaignPerformanceRefreshRunner {
       const connectedPlan = parseConnectedPlan(connectedPlanSheet?.values, month);
       const forecastRows = parseForecast(forecastSheet?.values, month);
       const connectedCostRows = parseManualCosts(costSheet?.values, month);
+      let metaAdsSpend: MetaAdsSpendResult | null = null;
+      let metaAdsError: string | null = null;
+      if (this.metaAds.isConfigured()) {
+        try {
+          metaAdsSpend = await this.metaAds.getMtdSpend(from, cutoff);
+          if (metaAdsSpend.currency !== "USD") {
+            throw new Error(
+              `Meta Ads Insights returned unsupported currency ${metaAdsSpend.currency}`,
+            );
+          }
+          logger.info("Loaded live Meta Ads MTD cost", {
+            correlationId,
+            month,
+            cutoff,
+            spend: metaAdsSpend.spend,
+            impressions: metaAdsSpend.impressions,
+            clicks: metaAdsSpend.clicks,
+            accountCount: metaAdsSpend.accountCount,
+          });
+        } catch (error) {
+          metaAdsError = error instanceof Error ? error.message : String(error);
+          metaAdsSpend = null;
+          logger.warn("Meta Ads MTD cost unavailable; retaining connected cost fallback", {
+            correlationId,
+            month,
+            cutoff,
+            error: metaAdsError,
+          });
+        }
+      }
       let googleLsaSpend: GoogleLsaSpendResult | null = null;
       let googleLsaError: string | null = null;
       if (this.googleLsa.isConfigured()) {
@@ -571,6 +609,20 @@ export class CampaignPerformanceRefreshRunner {
         }
       }
       let manualCostRows = connectedCostRows;
+      if (metaAdsSpend) {
+        manualCostRows = [
+          ...manualCostRows.filter(
+            (row) => normalizeCampaignChannel(row.channel) !== "Facebook Ads",
+          ),
+          {
+            channel: "Facebook Ads",
+            spend: metaAdsSpend.spend,
+            budgetType: "platform" as const,
+            effectiveFrom: cutoff,
+            notes: `Live Meta Ads Insights spend from ${from} through ${cutoff}`,
+          },
+        ];
+      }
       if (googleLsaSpend) {
         manualCostRows = [
           ...manualCostRows.filter(
@@ -654,6 +706,25 @@ export class CampaignPerformanceRefreshRunner {
         channelBudgetGoalStatus: plan.budgetMethod,
         sourceReportIds: requestParams.reports
       });
+
+      snapshot.sources.push({
+        name: "Meta Ads Insights API",
+        role: "Live MTD Facebook and Instagram ad spend override",
+        status: metaAdsSpend
+          ? "connected"
+          : this.metaAds.isConfigured()
+            ? "stale"
+            : "blocked",
+        refreshedAt: generatedAt,
+        rowCount: metaAdsSpend?.rowCount ?? 0,
+      });
+      snapshot.dataNotes.push(
+        metaAdsSpend
+          ? `Meta Ads spend is live for ${metaAdsSpend.accountCount} configured ad account${metaAdsSpend.accountCount === 1 ? "" : "s"} from ${from} through ${cutoff}; ${metaAdsSpend.impressions} impressions and ${metaAdsSpend.clicks} clicks reported.`
+          : this.metaAds.isConfigured()
+            ? `Meta Ads Insights was unavailable during refresh; the connected Campaign Costs or ServiceTitan value remains in use. ${metaAdsError ?? ""}`.trim()
+            : "Meta Ads Insights is not configured; the connected Campaign Costs or ServiceTitan value remains in use.",
+      );
 
       snapshot.sources.push({
         name: "Google LSA Reporting API",

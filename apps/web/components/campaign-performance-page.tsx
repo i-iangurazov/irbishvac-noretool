@@ -217,6 +217,7 @@ const SOURCE_LABELS: Record<string, string> = {
   "Google Campaign Costs": "Campaign Costs",
   "Google LSA Reporting API": "Google LSA",
   "Yelp Reporting API": "Yelp API",
+  "Meta Ads Insights API": "Meta Ads",
 };
 
 function sourceLabel(name: string) {

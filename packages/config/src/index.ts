@@ -190,6 +190,14 @@ export function getConfig() {
           .split(",")
           .map((value) => value.trim())
           .filter(Boolean)
+      },
+      metaAds: {
+        accessToken: env.META_ACCESS_TOKEN,
+        accountIds: env.META_AD_ACCOUNT_IDS
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean),
+        apiVersion: env.META_GRAPH_API_VERSION
       }
     }
   };

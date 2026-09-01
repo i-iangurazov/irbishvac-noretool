@@ -37,3 +37,17 @@ describe("Yelp reporting configuration", () => {
     expect(env.YELP_BUSINESS_IDS).toBe("");
   });
 });
+
+describe("Meta Ads reporting configuration", () => {
+  it("keeps Meta optional and provides a versioned API default", () => {
+    const env = getEnv({
+      META_ACCESS_TOKEN: undefined,
+      META_AD_ACCOUNT_IDS: undefined,
+      META_GRAPH_API_VERSION: undefined,
+    });
+
+    expect(env.META_ACCESS_TOKEN).toBe("");
+    expect(env.META_AD_ACCOUNT_IDS).toBe("");
+    expect(env.META_GRAPH_API_VERSION).toBe("v23.0");
+  });
+});
