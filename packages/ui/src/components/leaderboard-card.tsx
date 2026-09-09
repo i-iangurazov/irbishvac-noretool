@@ -16,7 +16,7 @@ type LeaderboardCardProps = {
   stats: Stat[];
   imageUrl?: string | null | undefined;
   featured?: boolean;
-  presentation?: "standard" | "photo-card";
+  presentation?: "standard" | "photo-card" | "install-card";
   children?: ReactNode;
 };
 
@@ -40,12 +40,18 @@ function buildInitials(input: string) {
     tokens
       .slice()
       .reverse()
-      .find((part) => part.replace(/\./g, "").length > 1) ?? tokens[tokens.length - 1] ?? "";
+      .find((part) => part.replace(/\./g, "").length > 1) ??
+    tokens[tokens.length - 1] ??
+    "";
 
   return `${first[0] ?? ""}${last[0] ?? ""}`.toUpperCase();
 }
 
-function Avatar(props: { title: string; imageUrl?: string | null | undefined; featured: boolean }) {
+function Avatar(props: {
+  title: string;
+  imageUrl?: string | null | undefined;
+  featured: boolean;
+}) {
   const [hasError, setHasError] = useState(false);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const initials = useMemo(() => buildInitials(props.title), [props.title]);
@@ -132,6 +138,43 @@ function StatRows(props: { stats: Stat[] }) {
 export function LeaderboardCard(props: LeaderboardCardProps) {
   const featured = props.featured ?? props.rank === 1;
 
+  if (props.presentation === "install-card") {
+    return (
+      <article className="installer-card" data-installer-card={props.rank}>
+        <header className="installer-card__identity">
+          <Avatar
+            featured={false}
+            imageUrl={props.imageUrl}
+            title={props.title}
+          />
+          <h3 className="installer-card__name">{props.title}</h3>
+          <span
+            className="installer-card__rank"
+            aria-label={`Rank ${props.rank}`}
+          >
+            #{props.rank}
+          </span>
+        </header>
+        <div className="installer-card__revenue">
+          <span className="installer-card__revenue-label">
+            {props.valueLabel}
+          </span>
+          <strong className="installer-card__revenue-value">
+            {props.value}
+          </strong>
+        </div>
+        <dl className="installer-card__metrics">
+          {props.stats.map((stat) => (
+            <div className="installer-card__metric" key={stat.label}>
+              <dt>{stat.label}</dt>
+              <dd>{stat.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </article>
+    );
+  }
+
   if (props.presentation === "photo-card") {
     return (
       <article
@@ -139,7 +182,11 @@ export function LeaderboardCard(props: LeaderboardCardProps) {
         data-stat-count={props.stats.length}
       >
         <div className="leaderboard-card__photo-frame">
-          <Avatar featured={false} imageUrl={props.imageUrl} title={props.title} />
+          <Avatar
+            featured={false}
+            imageUrl={props.imageUrl}
+            title={props.title}
+          />
         </div>
 
         <div className="leaderboard-card__photo-content">
@@ -185,9 +232,7 @@ export function LeaderboardCard(props: LeaderboardCardProps) {
     >
       <div className="leaderboard-card__header flex items-start justify-between">
         <div className="min-w-0">
-          <h3
-            className="leaderboard-card__title font-black leading-[1.02] text-[#111827]"
-          >
+          <h3 className="leaderboard-card__title font-black leading-[1.02] text-[#111827]">
             {props.title}
           </h3>
           {props.subtitle ? (
@@ -205,7 +250,11 @@ export function LeaderboardCard(props: LeaderboardCardProps) {
         <div className="leaderboard-card__body leaderboard-card__body--featured">
           <div className="leaderboard-card__featured-layout grid md:items-center">
             <div className="leaderboard-card__avatar-wrap flex justify-center md:justify-start">
-              <Avatar featured={true} imageUrl={props.imageUrl} title={props.title} />
+              <Avatar
+                featured={true}
+                imageUrl={props.imageUrl}
+                title={props.title}
+              />
             </div>
             <div className="leaderboard-card__revenue text-center md:text-left">
               <div className="leaderboard-card__value-label font-black uppercase tracking-[0.08em] text-slate-500">
@@ -221,9 +270,15 @@ export function LeaderboardCard(props: LeaderboardCardProps) {
       ) : (
         <div className="leaderboard-card__body leaderboard-card__body--compact grid h-full grid-rows-[auto_1fr]">
           <div className="leaderboard-card__compact-top grid items-start">
-            <Avatar featured={false} imageUrl={props.imageUrl} title={props.title} />
+            <Avatar
+              featured={false}
+              imageUrl={props.imageUrl}
+              title={props.title}
+            />
             <div className="leaderboard-card__revenue min-w-0 flex-1">
-              <div className="leaderboard-card__value-label font-black leading-tight text-[#111827]">{props.valueLabel}</div>
+              <div className="leaderboard-card__value-label font-black leading-tight text-[#111827]">
+                {props.valueLabel}
+              </div>
               <div className="leaderboard-card__value font-black leading-none tracking-tight text-[#2d8c44]">
                 {props.value}
               </div>

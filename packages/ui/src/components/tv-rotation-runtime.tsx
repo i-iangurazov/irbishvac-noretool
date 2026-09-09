@@ -19,6 +19,7 @@ type TvRotationRuntimeProps = {
   pageCount?: number | undefined;
   presetQuery: string;
   rotateBoards?: boolean;
+  minViewportWidth?: number | undefined;
 };
 
 const DEFAULT_ROTATION_INTERVAL_MS = 10_000;
@@ -31,16 +32,20 @@ export function TvRotationRuntime({
   navItems,
   pageCount = 1,
   presetQuery,
-  rotateBoards = false
+  rotateBoards = false,
+  minViewportWidth = 0,
 }: TvRotationRuntimeProps) {
   const router = useRouter();
+  // Server refreshes recreate nav objects; only a route change should reset the timer.
+  const routeKey = JSON.stringify(navItems.map((item) => item.href));
 
   useEffect(() => {
-    if (!enabled || navItems.length === 0) {
+    const routes = JSON.parse(routeKey) as string[];
+    if (!enabled || routes.length === 0) {
       return;
     }
 
-    if (pageCount <= 1 && (!rotateBoards || navItems.length <= 1)) {
+    if (pageCount <= 1 && (!rotateBoards || routes.length <= 1)) {
       return;
     }
 
@@ -50,41 +55,62 @@ export function TvRotationRuntime({
       });
     };
 
-    const timeout = window.setTimeout(() => {
-      const params = new URLSearchParams(presetQuery);
+    const query = window.matchMedia(`(min-width: ${minViewportWidth}px)`);
+    let timeout: number | undefined;
+    const schedule = () => {
+      window.clearTimeout(timeout);
+      if (!query.matches) return;
+      timeout = window.setTimeout(() => {
+        const params = new URLSearchParams(presetQuery);
 
-      if (currentPage < pageCount) {
-        params.set("page", String(currentPage + 1));
-        navigate(`${activePath}?${params.toString()}`);
-        return;
-      }
+        if (currentPage < pageCount) {
+          params.set("page", String(currentPage + 1));
+          navigate(`${activePath}?${params.toString()}`);
+          return;
+        }
 
-      params.delete("page");
+        params.delete("page");
 
-      if (!rotateBoards) {
+        if (!rotateBoards) {
+          navigate(
+            params.size > 0 ? `${activePath}?${params.toString()}` : activePath,
+          );
+          return;
+        }
+
+        const activeIndex = routes.indexOf(activePath);
+        const nextIndex =
+          activeIndex >= 0 ? (activeIndex + 1) % routes.length : 0;
+        const nextItem = routes[nextIndex];
+
+        if (!nextItem) {
+          return;
+        }
+
         navigate(
-          params.size > 0 ? `${activePath}?${params.toString()}` : activePath,
+          params.size > 0 ? `${nextItem}?${params.toString()}` : nextItem,
         );
-        return;
-      }
-
-      const activeIndex = navItems.findIndex((item) => item.href === activePath);
-      const nextIndex = activeIndex >= 0 ? (activeIndex + 1) % navItems.length : 0;
-      const nextItem = navItems[nextIndex];
-
-      if (!nextItem) {
-        return;
-      }
-
-      navigate(
-        params.size > 0 ? `${nextItem.href}?${params.toString()}` : nextItem.href,
-      );
-    }, intervalMs);
+      }, intervalMs);
+    };
+    schedule();
+    query.addEventListener("change", schedule);
 
     return () => {
       window.clearTimeout(timeout);
+      query.removeEventListener("change", schedule);
     };
-  }, [activePath, currentPage, enabled, intervalMs, navItems, pageCount, presetQuery, rotateBoards, router]);
+  }, [
+    activePath,
+    currentPage,
+    enabled,
+    intervalMs,
+    routeKey,
+    pageCount,
+    presetQuery,
+    rotateBoards,
+    router,
+    minViewportWidth,
+  ]);
 
   return null;
 }

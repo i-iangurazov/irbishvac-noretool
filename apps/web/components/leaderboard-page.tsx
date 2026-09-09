@@ -57,6 +57,7 @@ type LeaderboardPageProps = {
   useHeadshots?: boolean;
   layout?: "standard" | "people-showcase";
   showcaseColumns?: 4;
+  showcaseVariant?: "standard" | "install-eight";
 };
 
 const TV_ROTATION_INTERVAL_MS = 10_000;
@@ -82,19 +83,24 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
     ? getDashboardRotationNavItems(navItems, props.filters.rotationBoardIds)
     : undefined;
   const allRotationBoardsSelected =
-    props.filters.rotationBoardIds.length === DASHBOARD_ROTATION_BOARDS.length &&
+    props.filters.rotationBoardIds.length ===
+      DASHBOARD_ROTATION_BOARDS.length &&
     DASHBOARD_ROTATION_BOARDS.every((board) =>
       props.filters.rotationBoardIds.includes(board.id),
     );
   const layout = props.layout ?? "standard";
   const isPeopleShowcase = layout === "people-showcase";
+  const isInstallEight = props.showcaseVariant === "install-eight";
   const maxVisibleItems = props.maxVisibleItems ?? (isPeopleShowcase ? 4 : 9);
   const pageCount = isPeopleShowcase
     ? Math.max(1, Math.ceil(props.items.length / maxVisibleItems))
     : 1;
   const currentPage = Math.min(props.filters.page, pageCount);
   const itemOffset = isPeopleShowcase ? (currentPage - 1) * maxVisibleItems : 0;
-  const visibleItems = props.items.slice(itemOffset, itemOffset + maxVisibleItems);
+  const visibleItems = props.items.slice(
+    itemOffset,
+    itemOffset + maxVisibleItems,
+  );
   const items = visibleItems.map((item) => ({
     ...item,
     imageUrl: props.useHeadshots
@@ -117,6 +123,7 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
       rotationNavItems={rotationNavItems}
       rotationPage={{ current: currentPage, total: pageCount }}
       rotationIntervalMs={TV_ROTATION_INTERVAL_MS}
+      rotationMinViewportWidth={isInstallEight ? 1280 : 0}
       tvMenu={{
         enabled: tvMode,
         toggleHref: buildTvModeHref(props.path, props.filters, !tvMode),
@@ -151,23 +158,29 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
               rotationBoardOptions: [
                 {
                   label: "All Field Boards",
-                  href: buildRotationBoardHref(props.path, props.filters, "all"),
-                  active: allRotationBoardsSelected
+                  href: buildRotationBoardHref(
+                    props.path,
+                    props.filters,
+                    "all",
+                  ),
+                  active: allRotationBoardsSelected,
                 },
                 ...DASHBOARD_ROTATION_BOARDS.map((board) => ({
                   label: `${board.label} only`,
-                  href: buildRotationBoardHref(props.path, props.filters, board.id),
+                  href: buildRotationBoardHref(
+                    props.path,
+                    props.filters,
+                    board.id,
+                  ),
                   active:
                     props.filters.rotationBoardIds.length === 1 &&
-                    props.filters.rotationBoardIds.includes(board.id)
-                }))
+                    props.filters.rotationBoardIds.includes(board.id),
+                })),
               ],
             }
           : {}),
       }}
-      contentClassName={
-        "leaderboard-page__main"
-      }
+      contentClassName={"leaderboard-page__main"}
       headerContent={
         <div className="dashboard-header-tools flex flex-wrap items-center justify-end">
           <FilterBar
@@ -188,9 +201,30 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
           />
           <DataFreshnessBadge value={props.freshness} />
           {isPeopleShowcase && props.items.length > maxVisibleItems ? (
-            <div className="leaderboard-page__page-indicator font-black text-slate-600">
-              {itemOffset + 1}–{Math.min(itemOffset + items.length, props.items.length)} of {props.items.length}
+            <div
+              className="leaderboard-page__page-indicator font-black text-slate-600"
+              aria-live="polite"
+            >
+              {itemOffset + 1}–
+              {Math.min(itemOffset + items.length, props.items.length)} of{" "}
+              {props.items.length}
             </div>
+          ) : null}
+          {isInstallEight && pageCount > 1 ? (
+            <nav className="installer-pagination" aria-label="Installer pages">
+              <a
+                aria-label="Previous installers"
+                href={`${props.path}?${buildDashboardQueryString(props.filters)}&page=${currentPage === 1 ? pageCount : currentPage - 1}`}
+              >
+                Previous
+              </a>
+              <a
+                aria-label="Next installers"
+                href={`${props.path}?${buildDashboardQueryString(props.filters)}&page=${currentPage === pageCount ? 1 : currentPage + 1}`}
+              >
+                Next
+              </a>
+            </nav>
           ) : null}
         </div>
       }
@@ -202,13 +236,14 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
               className="leaderboard-showcase-grid grid items-stretch"
               data-card-count={items.length}
               data-showcase-columns={props.showcaseColumns ?? 4}
+              data-showcase-layout={props.showcaseVariant ?? "standard"}
             >
               {items.map((item, index) => (
                 <LeaderboardCard
                   featured={false}
                   imageUrl={item.imageUrl}
                   key={`${item.title}-${itemOffset + index + 1}`}
-                  presentation="photo-card"
+                  presentation={isInstallEight ? "install-card" : "photo-card"}
                   rank={itemOffset + index + 1}
                   stats={item.stats}
                   subtitle={item.subtitle}

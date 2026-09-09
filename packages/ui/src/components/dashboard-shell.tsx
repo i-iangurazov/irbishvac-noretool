@@ -21,11 +21,14 @@ type DashboardShellProps = {
   kioskMode?: boolean | undefined;
   navQueryString?: string | undefined;
   rotationNavItems?: NavItem[] | undefined;
-  rotationPage?: {
-    current: number;
-    total: number;
-  } | undefined;
+  rotationPage?:
+    | {
+        current: number;
+        total: number;
+      }
+    | undefined;
   rotationIntervalMs?: number | undefined;
+  rotationMinViewportWidth?: number | undefined;
   tvMenu?:
     | {
         enabled: boolean;
@@ -156,9 +159,10 @@ export function DashboardShell(props: DashboardShellProps) {
         currentPage={props.rotationPage?.current}
         enabled={Boolean(
           (props.rotationPage?.total ?? 1) > 1 ||
-            (props.tvMode && props.tvMenu?.rotateMode),
+          (props.tvMode && props.tvMenu?.rotateMode),
         )}
         intervalMs={props.rotationIntervalMs}
+        minViewportWidth={props.rotationMinViewportWidth}
         navItems={props.rotationNavItems ?? props.navItems}
         pageCount={props.rotationPage?.total}
         presetQuery={props.navQueryString ?? ""}

@@ -1,6 +1,15 @@
-import { compactMoney, LeaderboardPage, money, ratio } from "./leaderboard-page";
+import {
+  compactMoney,
+  LeaderboardPage,
+  money,
+  ratio,
+} from "./leaderboard-page";
 import { fetchApi } from "../lib/api";
-import { resolveDashboardFilters, type DashboardSearchParams } from "../lib/dashboard-filters";
+import {
+  resolveDashboardFilters,
+  type DashboardSearchParams,
+} from "../lib/dashboard-filters";
+import "./installer-board.css";
 
 type InstallerBoardPageProps = {
   searchParams?: DashboardSearchParams | undefined;
@@ -15,7 +24,7 @@ export async function InstallerBoardPage({
   path,
   apiPath,
   title,
-  subtitle
+  subtitle,
 }: InstallerBoardPageProps) {
   const filters = await resolveDashboardFilters(
     searchParams,
@@ -49,14 +58,21 @@ export async function InstallerBoardPage({
       freshness={data.snapshotTime}
       filters={filters}
       layout="people-showcase"
-      maxVisibleItems={4}
+      maxVisibleItems={path === "/installers" ? 8 : 4}
+      showcaseVariant={path === "/installers" ? "install-eight" : "standard"}
       showcaseColumns={4}
       useHeadshots={true}
       kpis={[
-        { label: "Installed Revenue", value: money(data.totals.installedRevenue) },
+        {
+          label: "Installed Revenue",
+          value: money(data.totals.installedRevenue),
+        },
         { label: "Jobs Completed", value: String(data.totals.jobsCompleted) },
         { label: "Recalls Caused", value: String(data.totals.recallsCaused) },
-        { label: "Billable Efficiency", value: ratio(data.totals.billableEfficiencyAvg) }
+        {
+          label: "Billable Efficiency",
+          value: ratio(data.totals.billableEfficiencyAvg),
+        },
       ]}
       items={data.rowsRanked.map((row) => ({
         title: row.name,
@@ -67,8 +83,8 @@ export async function InstallerBoardPage({
           { label: "Jobs Completed", value: String(row.jobsCompleted) },
           { label: "Recalls Caused", value: String(row.recallsCaused) },
           { label: "Efficiency", value: ratio(row.billableEfficiency) },
-          { label: "Average Install", value: money(row.averageInstall) }
-        ]
+          { label: "Average Install", value: money(row.averageInstall) },
+        ],
       }))}
     />
   );
