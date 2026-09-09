@@ -42,6 +42,13 @@
   letter-spacing: 0 !important;
 }
 
+[data-dashboard-shell="true"]
+  .installer-card
+  .leaderboard-card__avatar--initials {
+  background: #0d4f5b !important;
+  color: #ffffff !important;
+}
+
 .installer-card__name {
   margin: 0;
   font-size: 24px;
