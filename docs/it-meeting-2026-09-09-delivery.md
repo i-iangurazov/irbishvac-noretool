@@ -9,7 +9,8 @@ Date: September 9, 2026. Repository: `irbishvac-noretool`. Branch: `main`.
 | Eight HVAC Install technicians on one TV screen | Deployed in `f75b822`, with installer-initials contrast polished in `2b0cc28`. Both Railway web deployments succeeded. |
 | Predictable page rotation | Implemented; first eight, remaining staff, then wrap; ten seconds per page. |
 | Other boards unchanged | Four-card presentations retained; local regression checks passed. |
-| Shared username/password account with full Dashboard access | NOT CREATED. The execution approval layer rejected the persistent Clerk configuration change. A specific approval request is pending. No read-only restriction was introduced. |
+| Shared username/password account with full Dashboard access | CREATED after explicit approval and deployed in `830b76c`. Username `irbis-tv`; no email, phone or 2FA requirement. Full access retained, including budgets and goals. |
+| Reply to Vadim, copying Tim | DRAFT ONLY. User cancelled sending before any message was sent. A private local draft contains the actual credentials and the experimental eight-technician layout update. |
 | Google Workspace account/recovery policy | Prepared with official Google references and a blank inventory schema. |
 | Actual Workspace account, role and recovery changes | NOT PERFORMED. No verified Admin Directory access or target recovery contacts were available. |
 
@@ -43,19 +44,35 @@ The checks inspect text overflow, card bounds, card overlap, horizontal overflow
 
 One earlier optimized-build run emitted a React hydration error (#418). The subsequent full run did not reproduce it and completed with zero browser page errors. Its root cause was not established; live checks must also watch for recurrence. Existing build warnings about Browserslist data and Next.js ESLint plugin detection were not changed by this task.
 
-The isolated server also logged Clerk session-refresh redirect warnings during QA. Final browser scenarios and the live signed-in/anonymous checks passed; these warnings are not presented as an authentication issue resolved by this installer-only release. Shared-account authentication remains a separate unfinished task.
+The isolated server also logged Clerk session-refresh redirect warnings during the installer QA. Final browser scenarios and the live signed-in/anonymous checks passed; these warnings are not presented as an issue resolved by the installer-only release. The subsequent shared-account release is recorded below.
 
 The first full-repository test attempts exposed isolated-environment prerequisites, not application changes: Turbo's default environment filtering omitted fixture variables, and Prisma's generated client was absent. The final run used synthetic environment passthrough and a locally generated Prisma client. No database migration or production connection was used.
 
-## Shared Account: Exact Outstanding Boundary
+## Shared Account: Completed Follow-Up
 
 The intended account is `irbis-tv`, with the same full Dashboard access as organizational Google users, including budgets and goals. It must not require a mailbox or Google second-factor prompt. Existing Google sign-in must remain available.
 
-This account does not exist yet. No password was generated or sent. Attempts to enable username sign-in and broaden the app's account eligibility were rejected by the execution approval layer. The rejected changes were not deployed, and the partial local helper was removed without reverting pre-existing user changes.
+After the user's exact approval, account `irbis-tv` was created in the existing Clerk Development instance. It has a strong generated password and no email address, phone number or second factor. Username sign-in is enabled; Google sign-in remains enabled. Email remains required for normal self-service registration. The temporary required-email configuration change needed for administrator provisioning was immediately restored.
 
-The pending confirmation explicitly covers enabling username/password in the current Clerk Development instance and creating `irbis-tv` with full Dashboard access while preserving Google login. This is a persistent authentication change: anyone holding the shared password would have the account's full access, and activity would be attributable to the shared account rather than an individual employee.
+The server exception is bound to the exact authenticated Clerk user ID in `apps/web/lib/dashboard-identity.ts`, not a username, request header or editable metadata. Both page middleware and API proxy use the same rule. Other users still require the existing corporate-email policy. There is no new read-only restriction or role system. Anyone holding this shared password has full account access; activity is attributable to the shared account rather than an individual employee.
 
-After approval: bind the exception to this exact Clerk user, create the account securely, test username/password and existing Google paths, check full application access, and deliver the credential through an approved private channel. This report contains no credentials.
+Authentication release: `830b76c`. Railway web deployment succeeded; API and worker were skipped. No production budgets, goals or database records were changed to test access.
+
+Verification:
+
+- 165 unit tests passed across the repository, including 21 new identity/proxy tests; 27/27 test, typecheck and lint tasks passed. Unchanged package tasks reused their matching Turbo cache.
+- 9/9 production-build tasks passed.
+- Actual username/password sign-in succeeded in two fresh browser contexts without email or OTP. Both sessions remained usable concurrently after deployment.
+- Final production run: 19/19 checks passed, zero browser runtime errors, completed at 2026-09-09 15:06 UTC.
+- Full shared-account access to company, service, installation, advisor and campaign pages; enabled Plan & Capacity inputs; planning-status API HTTP 200.
+- Budget/goal write authorization and unchanged upstream credentials were verified with mocked upstream requests, not real production writes.
+- Anonymous boards redirect to sign-in; anonymous API requests do not return protected data. The Google sign-in button remains available. A new human Google consent flow was not completed during this follow-up.
+- Live Install screenshots checked at 1920x1080, 3840x2160, 1280x720 and 390x844; eight cards, no detected overlaps, text overflow or broken portraits. Timed pagination remains 8 -> 3 -> 8.
+- An initial QA request used GET on the existing POST-only web goals route and received HTTP 405. The harness was corrected to use the supported read-only planning-status endpoint; no unrelated route change was made.
+
+The private credential file and ready-to-send reply are under ignored `local-data/access/`, with owner-only file permissions. Neither is committed. The user explicitly cancelled email sending; no SMTP message was sent. The configured mailbox is `marketing@irbishvac.com`, which did not contain Vadim's original thread; no original-message ID was fabricated.
+
+Administration: reset this account's password through Clerk if needed and revoke its sessions when retiring a TV or following password exposure. Since it has no mailbox, email self-service recovery is unavailable. Deleting/recreating the account requires updating the exact server-bound ID through a reviewed change. Keep organizational Google sign-in enabled. The application still uses the previously approved Clerk Development setup; this release does not convert it to a custom-domain production instance.
 
 ## Google Workspace
 
@@ -77,15 +94,15 @@ Execution requires authorized Google Admin access plus actual target accounts an
 - Previous deployed source: `3ce4e3b295ad09416edfa4a91e745d8b679522c9`.
 - Work was committed directly on `main`; no feature PR was opened.
 - The main implementation commit contains ten scoped files; the follow-up changes only seven lines in the installer stylesheet. The source matched the isolated tested copy byte-for-byte.
-- Existing dirty authentication, reporting and integration files were not staged, reverted or deployed.
-- No production environment variables, Clerk settings, Workspace settings, database records or budgets were changed.
+- Existing dirty authentication, reporting and integration changes were not staged, reverted or deployed. The later auth release staged only the isolated shared-account hunks in middleware/proxy and three new identity/test files.
+- The installer releases changed no production environment variables, Clerk settings, Workspace settings, database records or budgets. The approved auth follow-up changed only the documented Clerk account/sign-in configuration and deployed web code.
 - Railway automatically skipped API/worker deployment because their watched paths were unchanged.
 - Temporary local servers on ports 3049/3051 were stopped. The two recorded QA-only Clerk sessions were revoked successfully (HTTP 200 each), and generated local credential/session files were removed. Existing human sessions were not revoked.
 - Rollback, if required: revert `2b0cc28` and then `f75b822` in new commits and redeploy the web service; no schema rollback is needed. Do not reset the dirty worktree.
 
 ## Production Evidence
 
-Final deployed source: `2b0cc28`. Railway reports a successful web deployment; API and worker remain unchanged.
+Installer-specific deployed source: `2b0cc28`; subsequent authentication source: `830b76c`. Railway reports successful web deployments; API and worker remain unchanged.
 
 The final read-only live run passed **14/14 checks**, with **zero browser page errors**:
 
@@ -111,7 +128,7 @@ Local evidence files, intentionally not published with employee images to the re
 ## Next Actions
 
 1. Tim/Vadim can review the deployed Install screen on the actual office TV. Physical viewing distance and the TV's browser scaling cannot be validated remotely through screenshots alone.
-2. Complete the pending execution approval for the full-access shared username/password account. No additional Dashboard roles or read-only restrictions are proposed.
+2. The user can send the prepared private reply to Vadim and Tim. Shared-account creation and production verification are complete; no additional approval is pending for that account.
 3. Obtain authorized Google Admin access and approved recovery owners, then execute the documented staged Workspace inventory and remediation. The policy alone is not a completed tenant change.
 
-No login credentials or completion email were sent to Tim or Vadim because the shared account is not yet created. This report does not mark all meeting actions complete.
+No login credentials or completion email were sent to Tim or Vadim, following the user's final instruction to prepare a draft only. Actual Google Workspace administration remains outstanding; this report does not mark all meeting actions complete.
