@@ -1,10 +1,10 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import {
-  isAllowedIrbisEmail,
   isPublicAuthPath,
   resolvePublicRequestUrl,
 } from "./lib/auth-policy";
+import { isAllowedDashboardIdentity } from "./lib/dashboard-identity";
 
 export default clerkMiddleware(async (auth, request) => {
   if (isPublicAuthPath(request.nextUrl.pathname)) {
@@ -22,7 +22,11 @@ export default clerkMiddleware(async (auth, request) => {
     });
   }
 
-  if (!isAllowedIrbisEmail(authState.sessionClaims.primaryEmail)) {
+  if (!isAllowedDashboardIdentity({
+    isAuthenticated: authState.isAuthenticated,
+    userId: authState.userId,
+    primaryEmail: authState.sessionClaims.primaryEmail,
+  })) {
     return NextResponse.redirect(
       new URL(
         "/access-denied",
