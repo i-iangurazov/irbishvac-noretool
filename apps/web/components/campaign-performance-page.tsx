@@ -1,3 +1,6 @@
+import { MarketingIcon } from "./marketing-icon";
+import { MarketingOverview } from "./marketing-overview";
+import { rowCategory, missingPaidSpend, rowCommissionCost, rowTotalCost, totalCommissionCost, totalAcquisitionCost, spendCoverage } from "../lib/campaign-overview";
 import { DashboardShell } from "@irbis/ui";
 import { formatCompactCurrency, formatNumber, formatPercent } from "@irbis/utils";
 import { getBrandLogoUrl } from "../lib/assets";
@@ -9,7 +12,7 @@ import { PrintReportButton } from "./print-report-button";
 
 type CampaignStatus = "on-track" | "watch" | "off-track" | "risk" | "unplanned";
 type CampaignView = "overview" | "revenue" | "channels" | "plan" | "history";
-type CampaignCategory = "paid" | "separate-spend" | "organic" | "automation" | "partner" | "retention" | "other";
+export type CampaignCategory = "paid" | "separate-spend" | "organic" | "automation" | "partner" | "retention" | "other";
 type CampaignDisplayCategory = "paid" | "separate-spend" | "organic" | "automation" | "other";
 type CampaignRevenueGroup = "paid" | "unpaid" | "separate-spend" | "other";
 
@@ -21,7 +24,7 @@ type CampaignTargets = {
   completedRevenue: number | null;
 };
 
-type CampaignRow = {
+export type CampaignRow = {
   channel: string;
   category?: CampaignCategory;
   budgetType?: "platform" | "manual" | "prepaid" | "none";
@@ -64,6 +67,8 @@ type CapacityAssumption = {
 };
 
 export type CampaignPerformanceData = {
+  revenueByDepartment?: Array<{ department: string; completedRevenue: number }>;
+  leadDataStatus?: "available" | "unavailable";
   schemaVersion?: number;
   generatedAt: string;
   dataStatus?: "LIVE" | "SNAPSHOT";
@@ -214,38 +219,6 @@ function monthLabel(value: string, style: "short" | "long" = "short") {
     .format(new Date(`${value}-01T12:00:00.000Z`));
 }
 
-const SOURCE_LABELS: Record<string, string> = {
-  "Google Call Center Sheet": "Call Center",
-  "ServiceTitan Campaign Summary": "ST Summary",
-  "ServiceTitan Sold Estimates": "ST Sold",
-  "ServiceTitan Revenue By Campaign": "ST Revenue",
-  "Google Campaign Plan": "Campaign Plan",
-  "Google Campaign Costs": "Campaign Costs",
-  "Google Campaign Commissions": "Commissions",
-  "Google LSA Reporting API": "Google LSA",
-  "Yelp Reporting API": "Yelp API",
-  "Meta Ads Insights API": "Meta Ads",
-};
-
-function sourceLabel(name: string) {
-  return SOURCE_LABELS[name] ?? name;
-}
-
-function sourceRowLabel(rowCount: number) {
-  return `${formatNumber(rowCount)} ${rowCount === 1 ? "row" : "rows"}`;
-}
-
-function rowCategory(row: CampaignRow): CampaignCategory {
-  if (row.category) return row.category;
-  if (["Yelp", "Google Ads", "Google Local Services", "Google LSA", "Facebook Ads", "Facebook", "Paid Social", "Workfuel", "Direct Mail", "Mail Shark", "Refer Pro", "Website"].includes(row.channel)) return "paid";
-  if (["Billboard", "Radio"].includes(row.channel)) return "separate-spend";
-  if (["669-COOLING", "Home Care", "Home Care Plan", "3rd Party Websites", "Carrier", "Rheem", "Switch Is On", "EnergySage", "CPAU", "GBP San Jose", "Existing Customers", "Email Marketing"].includes(row.channel)) return "organic";
-  if (row.channel === "Hatch Campaigns") return "automation";
-  if (row.channel === "Scheduling Pro") return "retention";
-  if (row.channel === "Now Operator") return "partner";
-  return "other";
-}
-
 function rowDisplayCategory(row: CampaignRow): CampaignDisplayCategory {
   const category = rowCategory(row);
   return category === "paid" || category === "separate-spend" || category === "organic" || category === "automation" ? category : "other";
@@ -253,61 +226,6 @@ function rowDisplayCategory(row: CampaignRow): CampaignDisplayCategory {
 
 function effectiveTargets(row: CampaignRow) {
   return row.effectivePlan ?? row.forecast ?? row.plan;
-}
-
-function missingPaidSpend(row: CampaignRow) {
-  const active = row.actual.qualifiedLeads > 0 || row.actual.bookedJobs > 0 || row.actual.soldJobs > 0 || row.actual.completedRevenue > 0;
-  return rowCategory(row) === "paid" && active && row.actual.spend === 0;
-}
-
-function rowCommissionCost(row: CampaignRow) {
-  return row.actual.commissionCost ?? 0;
-}
-
-function rowTotalCost(row: CampaignRow) {
-  return row.actual.totalCost ?? row.actual.spend + rowCommissionCost(row);
-}
-
-function totalCommissionCost(data: CampaignPerformanceData) {
-  return data.actual.commissionCost
-    ?? data.rows.reduce((sum, row) => sum + rowCommissionCost(row), 0);
-}
-
-function totalAcquisitionCost(data: CampaignPerformanceData) {
-  return data.actual.totalCost ?? data.actual.spend + totalCommissionCost(data);
-}
-
-function spendCoverage(data: CampaignPerformanceData) {
-  const activePaidRows = data.rows.filter((row) => rowCategory(row) === "paid" && (
-    row.actual.qualifiedLeads > 0 || row.actual.bookedJobs > 0 || row.actual.soldJobs > 0 || row.actual.completedRevenue > 0
-  ));
-  const missingPaidChannels = activePaidRows.filter(missingPaidSpend).map((row) => row.channel);
-  const trackedPaidRows = activePaidRows.filter((row) => row.actual.spend > 0);
-  const trackedPaidChannels = trackedPaidRows.length;
-  const activePaidLeads = activePaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
-  const trackedPaidLeads = trackedPaidRows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
-  const trackedPaidSpend = trackedPaidRows.reduce((sum, row) => sum + row.actual.spend, 0);
-  const trackedCommissionCost = trackedPaidRows.reduce((sum, row) => sum + rowCommissionCost(row), 0);
-  const trackedPaidTotalCost = trackedPaidSpend + trackedCommissionCost;
-  const trackedPaidBookedJobs = trackedPaidRows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
-  const trackedPaidCompletedRevenue = trackedPaidRows.reduce((sum, row) => sum + row.actual.completedRevenue, 0);
-  const derived = {
-    status: activePaidRows.length === 0 ? "not-applicable" as const : missingPaidChannels.length === 0 ? "complete" as const : trackedPaidChannels === 0 ? "unavailable" as const : "partial" as const,
-    activePaidChannels: activePaidRows.length,
-    trackedPaidChannels,
-    missingPaidChannels,
-    trackedLeadShare: activePaidLeads > 0 ? trackedPaidLeads / activePaidLeads : null,
-    trackedPaidSpend,
-    trackedCommissionCost,
-    trackedPaidTotalCost,
-    trackedPaidLeads,
-    trackedPaidBookedJobs,
-    trackedPaidCompletedRevenue,
-    coveredCostPerLead: trackedPaidLeads > 0 ? trackedPaidTotalCost / trackedPaidLeads : null,
-    coveredCostPerBookedJob: trackedPaidBookedJobs > 0 ? trackedPaidTotalCost / trackedPaidBookedJobs : null,
-    coveredRoas: trackedPaidTotalCost > 0 ? trackedPaidCompletedRevenue / trackedPaidTotalCost : null,
-  };
-  return { ...derived, ...data.spendCoverage };
 }
 
 function revenueGroup(row: CampaignRow): CampaignRevenueGroup {
@@ -425,94 +343,6 @@ function ChannelTable({
         </tbody>
       </table>
     </div>
-  );
-}
-
-function OverviewView({ data }: { data: CampaignPerformanceData }) {
-  const opportunityAttainment = data.plan.opportunityGoal > 0 ? data.actual.bookedJobs / data.plan.opportunityGoal : null;
-  const revenueAttainment = data.plan.companyRevenueGoal > 0 ? data.actual.completedRevenue / data.plan.companyRevenueGoal : null;
-  const leadAttainment = data.plan.qualifiedLeadGoal > 0 ? data.actual.qualifiedLeads / data.plan.qualifiedLeadGoal : null;
-  const budgetAttainment = data.plan.marketingBudgetGoal > 0 ? data.actual.spend / data.plan.marketingBudgetGoal : null;
-  const paidRows = data.rows.filter((row) => rowDisplayCategory(row) === "paid");
-  const separateSpendRows = data.rows.filter((row) => rowDisplayCategory(row) === "separate-spend");
-  const organicRows = data.rows.filter((row) => rowDisplayCategory(row) === "organic");
-  const automationRows = data.rows.filter((row) => rowDisplayCategory(row) === "automation");
-  const bookingRateFor = (rows: CampaignRow[]) => {
-    const leads = rows.reduce((sum, row) => sum + row.actual.qualifiedLeads, 0);
-    const booked = rows.reduce((sum, row) => sum + row.actual.bookedJobs, 0);
-    return leads > 0 ? booked / leads : null;
-  };
-  const coverage = spendCoverage(data);
-  const costsComplete = coverage.status === "complete";
-  const costPerLead = costsComplete ? data.actual.costPerLead : coverage.coveredCostPerLead;
-  const costPerBookedJob = costsComplete ? data.actual.costPerBookedJob : coverage.coveredCostPerBookedJob;
-  const roas = costsComplete ? data.actual.roas ?? null : coverage.coveredRoas;
-  const costMetricPrefix = costsComplete ? "" : "Covered ";
-  const coverageLabel = `${coverage.trackedPaidChannels}/${coverage.activePaidChannels} paid channels · ${formatMaybePercent(coverage.trackedLeadShare)} of paid leads`;
-  const targetLabel = data.plan.approvalStatus === "approved" ? "Target" : "Model target";
-  const paidBookingRate = bookingRateFor(paidRows);
-  const organicBookingRate = bookingRateFor(organicRows);
-  const commissionCost = totalCommissionCost(data);
-  const acquisitionCost = totalAcquisitionCost(data);
-  return (
-    <>
-      <section className="campaign-executive-grid" aria-label="Marketing month-to-date executive summary">
-        <div className="campaign-executive-card campaign-executive-card--revenue">
-          <span>Revenue</span>
-          <CampaignGauge label={`Revenue target attainment ${formatMaybePercent(revenueAttainment)}`} value={revenueAttainment} valueLabel={formatMaybePercent(revenueAttainment)} />
-          <div className="campaign-gauge-facts"><span>Fact <b>{formatCompactCurrency(data.actual.completedRevenue)}</b></span><span>{targetLabel} <b>{formatCompactCurrency(data.plan.companyRevenueGoal)}</b></span></div>
-        </div>
-        <div className="campaign-executive-card campaign-executive-card--sales">
-          <div><span>Sold estimates</span><strong>{formatNumber(data.actual.soldJobs)}</strong></div>
-          <div><span>Sales value</span><strong>{formatCompactCurrency(data.actual.soldAmount)}</strong></div>
-        </div>
-        <div className="campaign-executive-card campaign-executive-card--flow">
-          <div className="campaign-flow-kpi"><span>Qualified leads</span><CampaignGauge label={`Qualified lead target attainment ${formatMaybePercent(leadAttainment)}`} size="compact" value={leadAttainment} valueLabel={formatMaybePercent(leadAttainment)} /><strong>{formatNumber(data.actual.qualifiedLeads)} / {formatNumber(data.plan.qualifiedLeadGoal)}</strong><small>{formatMaybePercent(data.pace.qualifiedLeadPace)} to working-day pace</small></div>
-          <div className="campaign-flow-kpi"><span>Booked jobs</span><CampaignGauge label={`Booked job target attainment ${formatMaybePercent(opportunityAttainment)}`} size="compact" value={opportunityAttainment} valueLabel={formatMaybePercent(opportunityAttainment)} /><strong>{formatNumber(data.actual.bookedJobs)} / {formatNumber(data.plan.opportunityGoal)}</strong><small>{formatMaybePercent(data.pace.opportunityPace)} to working-day pace</small></div>
-        </div>
-        <div className="campaign-executive-card campaign-executive-card--booking">
-          <span>Booking rate</span>
-          <CampaignGauge label={`Booking rate ${formatMaybePercent(data.actual.bookingRate)}, target ${formatMaybePercent(data.plan.targetBookingRate)}`} target={data.plan.targetBookingRate} value={data.actual.bookingRate} valueLabel={formatMaybePercent(data.actual.bookingRate)} />
-          <small>{targetLabel} {formatMaybePercent(data.plan.targetBookingRate)}</small>
-          <div className="campaign-booking-split"><div><span>Paid channels</span><CampaignGauge label={`Paid channel booking rate ${formatMaybePercent(paidBookingRate)}`} size="mini" target={data.plan.targetBookingRate} value={paidBookingRate} valueLabel={formatMaybePercent(paidBookingRate)} /></div><div><span>Organic</span><CampaignGauge label={`Organic booking rate ${formatMaybePercent(organicBookingRate)}`} size="mini" target={data.plan.targetBookingRate} value={organicBookingRate} valueLabel={formatMaybePercent(organicBookingRate)} /></div></div>
-        </div>
-        <div className="campaign-executive-card campaign-executive-card--spend">
-          <div className="campaign-spend-kpi"><span>Net media spend</span><CampaignGauge label={`Marketing budget used ${formatMaybePercent(budgetAttainment)}`} size="compact" value={budgetAttainment} valueLabel={formatMaybePercent(budgetAttainment)} /><strong>{formatCompactCurrency(data.actual.spend)} / {formatCompactCurrency(data.plan.marketingBudgetGoal)}</strong><small>{formatCompactCurrency(commissionCost)} commissions · {formatCompactCurrency(acquisitionCost)} total cost · {costsComplete ? `${formatMaybePercent(data.pace.spendPace)} calendar pace` : coverageLabel}</small></div>
-          <div className="campaign-executive-split"><span>{costMetricPrefix}cost / lead <b>{costPerLead == null ? "Pending" : formatCompactCurrency(costPerLead)}</b></span><span>{costMetricPrefix}cost / booked job <b>{costPerBookedJob == null ? "Pending" : formatCompactCurrency(costPerBookedJob)}</b></span></div>
-        </div>
-        <div className="campaign-executive-card campaign-executive-card--roas">
-          <span>{costMetricPrefix}all-in ROAS</span>
-          <strong>{roas == null ? "Pending" : `${roas.toFixed(1)}x`}</strong>
-          <small>{costsComplete ? "Completed revenue / media plus commission" : `${coverage.missingPaidChannels.length} paid channel costs missing · covered channels only`}</small>
-        </div>
-      </section>
-
-      <section className="campaign-alerts" aria-label="Campaign alerts">
-        <div className="campaign-alerts__label"><span>Action queue</span><strong>{data.alerts.length}</strong></div>
-        {data.alerts.slice(0, 4).map((alert) => <div className={`campaign-alert campaign-alert--${alert.severity}`} key={`${alert.channel}-${alert.message}`}><strong>{alert.channel}</strong><span>{alert.message}</span></div>)}
-        {data.alerts.length === 0 ? <div className="campaign-alert campaign-alert--source"><strong>No active alerts</strong><span>All connected rules are clear at this cutoff.</span></div> : null}
-      </section>
-
-      <section className="campaign-table-panel">
-        <div className="campaign-table-panel__heading"><div><h3>Paid channels performance</h3><p>Plan, actual spend, lead flow, sold value and completed revenue.</p></div><div className="campaign-table-panel__plan"><span>Plan authority</span><strong>{data.plan.approvalStatus === "approved" ? "Approved" : "Not approved"}</strong><small>{data.plan.status}</small></div></div>
-        <ChannelTable rows={paidRows} />
-      </section>
-
-      <section className="campaign-table-panel">
-        <div className="campaign-table-panel__heading"><div><h3>Separate spend</h3><p>Billboard and radio costs tracked outside lead-generating channel performance.</p></div></div>
-        <ChannelTable emptyMessage="No billboard or radio spend is recorded for this month." rows={separateSpendRows} />
-      </section>
-
-      <section className="campaign-table-panel">
-        <div className="campaign-table-panel__heading"><div><h3>Organic / Online Listings</h3><p>Organic demand, existing customers and third-party listing contribution.</p></div></div>
-        <ChannelTable rows={organicRows} />
-      </section>
-
-      <section className="campaign-table-panel">
-        <div className="campaign-table-panel__heading"><div><h3>Automation</h3><p>Lead and revenue contribution generated through Hatch automation.</p></div></div>
-        <ChannelTable emptyMessage="No Hatch automation activity is recorded for this month." rows={automationRows} />
-      </section>
-    </>
   );
 }
 
@@ -678,39 +508,41 @@ function HistoryView({ history }: { history: CampaignPerformanceData[] }) {
   );
 }
 
-export function CampaignPerformancePage({ data, periods, refreshEnabled, view, history }: {
+export function CampaignPerformancePage({ data, periods, refreshEnabled, view, history, unavailableMonth }: {
   data: CampaignPerformanceData;
   periods: Array<{ id: string; from: string }>;
   refreshEnabled: boolean;
   view: CampaignView;
   history: CampaignPerformanceData[];
+  unavailableMonth?: string | undefined;
 }) {
   const month = periodId(data);
   return (
-    <DashboardShell activePath="/campaigns" brandLogoUrl={getBrandLogoUrl()} contentClassName="campaign-performance__main" navItems={navItems} title="Marketing Performance" subtitle="Campaign command center" headerContent={<div className="campaign-performance__header-meta"><span>{data.period.label}</span><strong className={`campaign-data-status campaign-data-status--${(data.dataStatus ?? "SNAPSHOT").toLowerCase()}`}>{data.dataStatus ?? "SNAPSHOT"} DATA</strong><em>{data.plan.status}</em></div>}>
+    <DashboardShell activePath="/campaigns" brandLogoUrl={getBrandLogoUrl()} contentClassName="campaign-performance__main" navItems={navItems} title="Marketing Performance Dashboard" headerContent={<nav className="campaign-view-tabs marketing-header-tabs" aria-label="Marketing views">{(["overview", "revenue", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & Capacity" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>}>
       <div className="campaign-performance" data-campaign-performance="true">
-        <div className="campaign-performance__print-brand"><img alt="IRBIS HVAC" src={getBrandLogoUrl() ?? undefined} /><div><span>IRBIS Heating Air Plumbing</span><strong>Marketing Campaign Performance</strong></div></div>
+        <div className="campaign-performance__print-brand"><img alt="IRBIS HVAC" src={getBrandLogoUrl() ?? undefined} /><div><span>IRBIS Heating Air Plumbing</span><strong>Marketing Performance Dashboard</strong></div></div>
         <section className="campaign-performance__intro">
-          <div><div className="campaign-performance__eyebrow">Plan / actual / forecast</div><h2>Campaign command center</h2><p>{data.period.label} through {data.period.to} · {data.period.elapsedWorkingDays ?? "-"}/{data.period.workingDaysInMonth ?? "-"} working days</p></div>
+          <div className="marketing-title-copy">
+            <div className="campaign-performance__eyebrow"><span>Marketing analytics</span><span className={`campaign-data-status campaign-data-status--${(data.dataStatus ?? "SNAPSHOT").toLowerCase()}`}>{data.dataStatus ?? "SNAPSHOT"} DATA</span></div>
+            <h2>Marketing Performance Dashboard</h2>
+            <p><span>{data.period.label} · through {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${data.period.to}T12:00:00Z`))}</span><span className="marketing-metadata-divider" aria-hidden="true" /><span className="marketing-updated"><MarketingIcon name="clock" size={14} />Updated {sourceTimestamp(data.generatedAt)}</span></p>
+          </div>
           <div className="campaign-performance__controls">
             <CampaignPeriodSelect activeLabel={monthLabel(month, "long")} options={periods.map((period) => ({ active: period.id === month, href: viewHref(period.id, view), label: monthLabel(period.id, "long") }))} />
-            <div className="campaign-cutoff"><span>MTD cutoff</span><strong>{data.period.to}</strong><small>{sourceTimestamp(data.generatedAt)}</small></div>
             <CampaignRefreshButton enabled={refreshEnabled} month={month} />
-            <PrintReportButton />
+            <PrintReportButton><MarketingIcon name="download" />Export PDF</PrintReportButton>
           </div>
         </section>
 
-        <nav className="campaign-view-tabs" aria-label="Campaign workspace views">{(["overview", "revenue", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & capacity" : item === "history" ? "History" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>
-
-        <section className="campaign-source-strip" aria-label="Connected data sources">{data.sources.map((source) => <div className="campaign-source" key={`${source.name}-${source.reportId ?? "sheet"}`}><span className={`campaign-source__state campaign-source__state--${source.status ?? "stale"}`} /><div><strong title={source.name}>{sourceLabel(source.name)}</strong><small>{source.status === "connected" ? "Live" : source.status === "blocked" ? "Input required" : "Snapshot"}{source.rowCount == null ? "" : ` · ${sourceRowLabel(source.rowCount)}`}</small></div></div>)}</section>
-
-        {view === "overview" ? <OverviewView data={data} /> : null}
+        {unavailableMonth ? <p className="marketing-data-notice" role="status">{monthLabel(unavailableMonth, "long")} data is unavailable. Showing {monthLabel(month, "long")} through {data.period.to}.</p> : null}
+        {data.leadDataStatus === "unavailable" ? <p className="marketing-data-notice" role="status">This month’s call-center data is unavailable. Booking and lead metrics will appear when the report is connected and refreshed.</p> : null}
+        {view === "overview" ? <MarketingOverview data={data} history={history} /> : null}
         {view === "revenue" ? <RevenueView data={data} /> : null}
         {view === "channels" ? <ChannelsView data={data} /> : null}
         {view === "plan" ? <PlanView data={data} inputsEnabled={refreshEnabled} /> : null}
         {view === "history" ? <HistoryView history={history} /> : null}
 
-        <footer className="campaign-performance__footer"><span>{data.sources.filter((source) => source.status === "connected").length}/{data.sources.length} sources connected · refreshed {sourceTimestamp(data.generatedAt)}</span><span>Lead pace: weekdays · spend pace: calendar days · original plan locked</span></footer>
+        <footer className="campaign-performance__footer"><span>{data.sources.filter((source) => source.status === "connected").length}/{data.sources.length} sources connected · refreshed {sourceTimestamp(data.generatedAt)}</span><span>All reporting times are Pacific Time</span></footer>
       </div>
     </DashboardShell>
   );

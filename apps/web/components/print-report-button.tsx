@@ -1,13 +1,15 @@
 "use client";
 
-export function PrintReportButton() {
+import type { ReactNode } from "react";
+
+export function PrintReportButton({ children }: { children?: ReactNode } = {}) {
   return (
     <button
       className="performance-report-toolbar__print"
       type="button"
       onClick={() => window.print()}
     >
-      Print / save PDF
+      {children ?? "Print / save PDF"}
     </button>
   );
 }

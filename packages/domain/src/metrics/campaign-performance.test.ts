@@ -44,6 +44,7 @@ describe("campaign performance snapshot", () => {
     });
 
     expect(result.dataStatus).toBe("LIVE");
+    expect(result.leadDataStatus).toBe("available");
     expect(result.actual.qualifiedLeads).toBe(2);
     expect(result.actual.bookedJobs).toBe(1);
     expect(result.actual.spend).toBe(500);
@@ -88,6 +89,8 @@ describe("campaign performance snapshot", () => {
       sourceReportIds: { campaignSummary: "898", soldEstimates: "7148368", revenueByCampaign: "101394656" }
     });
 
+    expect(result.leadDataStatus).toBe("unavailable");
+    expect(result.sources.find((source) => source.name === "Google Call Center Sheet")?.status).toBe("blocked");
     expect(result.rows[0]?.plan.bookedJobs).toBe(50);
     expect(result.rows[0]?.forecast?.bookedJobs).toBe(40);
     expect(result.rows[0]?.effectivePlan.bookedJobs).toBe(40);
@@ -341,5 +344,15 @@ describe("campaign performance snapshot", () => {
       soldAmount: 1_250,
       completedRevenue: 900,
     });
+  });
+});
+
+describe("department revenue", () => {
+  it("preserves source departments and exposes attribution differences instead of scaling values", async () => {
+    const { buildDepartmentRevenue } = await import("./campaign-performance");
+    const rows = buildDepartmentRevenue({ fields: [{ name: "Name" }, { name: "CompletedRevenue" }], data: [["HVAC", 1000], ["HVAC", 100], ["Plumbing", 500]] }, 1550);
+    expect(rows).toEqual([{ department: "HVAC", completedRevenue: 1100 }, { department: "Plumbing", completedRevenue: 500 }, { department: "Reporting reconciliation", completedRevenue: -50 }]);
+    expect(rows.reduce((sum, row) => sum + row.completedRevenue, 0)).toBe(1550);
+    expect(buildDepartmentRevenue({}, 1000)).toEqual([]);
   });
 });

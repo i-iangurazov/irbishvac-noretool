@@ -1,5 +1,6 @@
 "use client";
 
+import { MarketingIcon } from "./marketing-icon";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 type CampaignPeriodOption = {
@@ -87,8 +88,9 @@ export function CampaignPeriodSelect({ activeLabel, options }: {
         ref={buttonRef}
         type="button"
       >
-        <span>Month</span>
+        <MarketingIcon name="calendar" />
         <strong>{activeLabel}</strong>
+        <MarketingIcon name="chevron" className="campaign-period-select__chevron" />
       </button>
       {open ? (
         <nav
@@ -108,6 +110,7 @@ export function CampaignPeriodSelect({ activeLabel, options }: {
               role="menuitemradio"
             >
               {option.label}
+              {option.active ? <MarketingIcon name="check" size={15} /> : null}
             </a>
           ))}
         </nav>

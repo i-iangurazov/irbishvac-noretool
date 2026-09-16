@@ -1,0 +1,1391 @@
+/* One visual system for the entire Marketing workspace. */
+body:has(.campaign-performance) .dashboard-shell {
+  --marketing-ink: #23392d;
+  --marketing-muted: #6e7c72;
+  --marketing-green: #315b44;
+  --marketing-orange: #eb9b71;
+  --marketing-canvas: #f4f6f2;
+  --marketing-surface: #ffffff;
+  --marketing-soft: #f3f6ef;
+  --marketing-border: #e4e9e1;
+  --marketing-radius: 18px;
+  --marketing-control-radius: 10px;
+  --dash-radius-sm: 10px;
+  --dash-radius-md: 12px;
+  --dash-radius-lg: 18px;
+  --dash-space-2xs: 4px;
+  --dash-space-xs: 8px;
+  --dash-space-sm: 12px;
+  --dash-space-md: 18px;
+  --dash-space-lg: 24px;
+  --dash-space-xl: 32px;
+  --dash-font-2xs: 11px;
+  --dash-font-xs: 12px;
+  --dash-font-sm: 14px;
+  --dash-font-md: 18px;
+  --dash-font-lg: 24px;
+  --dash-font-xl: 28px;
+  --dash-header-gap: 12px;
+  --dash-logo-size: 42px;
+  --dash-icon-button: 40px;
+  --dash-menu-width: 380px;
+  --dash-border: 1px;
+  --dash-main-gap: 0px;
+  --dash-shell-pad-y: 0px;
+  --dash-shell-pad-x: 0px;
+  --dash-header-pad-y: 14px;
+  --dash-header-pad-x: 32px;
+  background: var(--marketing-canvas);
+  color: var(--marketing-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+body:has(.campaign-performance) .dashboard-shell__inner {
+  max-width: none !important;
+}
+body:has(.campaign-performance) .dashboard-shell__header {
+  margin-inline: 0 !important;
+  background: #fff;
+  border-bottom: 1px solid var(--marketing-border);
+  backdrop-filter: none;
+}
+body:has(.campaign-performance) .dashboard-shell__header-row {
+  max-width: 1496px;
+  margin: auto;
+}
+body:has(.campaign-performance) .dashboard-shell__brand {
+  gap: 12px !important;
+}
+body:has(.campaign-performance) .dashboard-shell__logo {
+  padding: 4px !important;
+  box-shadow: none;
+  border-color: var(--marketing-border);
+}
+body:has(.campaign-performance) .dashboard-shell__title {
+  color: var(--marketing-ink);
+  font-size: 17px !important;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+}
+body:has(.campaign-performance) .dashboard-shell__section {
+  margin-bottom: 5px;
+  font-size: 9px !important;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--marketing-muted);
+}
+body:has(.campaign-performance) .dashboard-shell__menu-button,
+body:has(.campaign-performance) .dashboard-shell__fullscreen-button {
+  border: 1px solid var(--marketing-border);
+  color: var(--marketing-ink);
+  background: #fff;
+  box-shadow: none;
+  font-weight: 400;
+}
+body:has(.campaign-performance) .dashboard-shell__menu-button:hover,
+body:has(.campaign-performance) .dashboard-shell__fullscreen-button:hover {
+  border-color: #c6d3c4;
+  background: var(--marketing-soft);
+  color: var(--marketing-green);
+}
+body:has(.campaign-performance)
+  .dashboard-shell__fullscreen-button[data-active="true"] {
+  background: var(--marketing-green) !important;
+  border-color: var(--marketing-green) !important;
+}
+body:has(.campaign-performance) .dashboard-shell__menu {
+  border-color: var(--marketing-border);
+  box-shadow: 0 12px 40px #21372614;
+}
+body:has(.campaign-performance) .dashboard-shell__menu-link {
+  border-radius: 10px;
+  background: var(--marketing-soft);
+  color: var(--marketing-ink);
+}
+body:has(.campaign-performance) .dashboard-shell__menu-link:hover {
+  background: #e8eee2;
+  color: var(--marketing-ink);
+}
+body:has(.campaign-performance) .dashboard-shell__menu-link-label,
+body:has(.campaign-performance) .dashboard-shell__menu-current {
+  font-weight: 600;
+}
+body:has(.campaign-performance) .campaign-performance__main {
+  scrollbar-gutter: auto;
+}
+body:has(.campaign-performance) .campaign-performance {
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 32px;
+  gap: 24px;
+  color: var(--marketing-ink);
+}
+.marketing-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Navigation and page toolbar */
+.campaign-view-tabs.marketing-header-tabs {
+  display: flex;
+  gap: 4px;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 4px;
+  border: 1px solid var(--marketing-border);
+  border-radius: 28px;
+  background: #f7f9f5;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.campaign-view-tabs.marketing-header-tabs a {
+  display: block;
+  flex: 0 0 auto;
+  padding: 9px 20px;
+  border: 0;
+  border-radius: 22px;
+  color: #647467;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  transition:
+    background 140ms,
+    color 140ms;
+}
+.campaign-view-tabs.marketing-header-tabs a:hover {
+  background: #e9eee4;
+  color: var(--marketing-ink);
+}
+.campaign-view-tabs.marketing-header-tabs a.is-active {
+  background: var(--marketing-ink);
+  color: #fff;
+  box-shadow: 0 2px 4px #20382812;
+}
+body:has(.campaign-performance) .campaign-performance__intro {
+  padding: 2px 0 6px;
+  border: 0;
+  align-items: center;
+  gap: 24px;
+}
+.marketing-title-copy {
+  min-width: 0;
+}
+.campaign-performance .campaign-performance__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: var(--marketing-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.3px;
+}
+.campaign-performance .campaign-data-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: #e9eee4;
+  color: #52684f;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+}
+.campaign-performance .campaign-data-status::before {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+.campaign-performance .campaign-data-status--live {
+  background: #e8f2e8 !important;
+  color: #467247 !important;
+}
+body:has(.campaign-performance) .campaign-performance__intro h2 {
+  margin: 0;
+  font-size: clamp(23px, 1.9vw, 29px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.95px;
+}
+body:has(.campaign-performance) .campaign-performance__intro p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  color: var(--marketing-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.marketing-updated {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.marketing-metadata-divider {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #bec8b9;
+}
+.campaign-performance .campaign-performance__controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+.campaign-performance .campaign-period-select {
+  min-width: 184px;
+}
+.campaign-performance .campaign-period-select > button,
+.campaign-performance .campaign-refresh__button,
+.campaign-performance .performance-report-toolbar__print,
+.campaign-performance .campaign-input-form__save {
+  display: inline-flex;
+  min-width: 0;
+  height: 42px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--marketing-border);
+  border-radius: var(--marketing-control-radius);
+  background: #fff;
+  color: var(--marketing-ink);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px #24332003;
+  cursor: pointer;
+  transition:
+    background 140ms,
+    border-color 140ms,
+    box-shadow 140ms;
+}
+.campaign-performance .campaign-period-select > button {
+  width: 100%;
+  justify-content: flex-start;
+}
+.campaign-performance .campaign-period-select > button::after {
+  display: none;
+}
+.campaign-performance .campaign-period-select > button strong {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 500;
+}
+.campaign-period-select__chevron {
+  margin-left: auto;
+  transition: transform 140ms;
+}
+.campaign-period-select[data-open="true"] .campaign-period-select__chevron {
+  transform: rotate(180deg);
+}
+.campaign-performance .performance-report-toolbar__print,
+.campaign-performance .campaign-input-form__save {
+  border-color: var(--marketing-green);
+  background: var(--marketing-green);
+  color: #fff;
+}
+.campaign-performance .campaign-period-select > button:hover,
+.campaign-performance .campaign-refresh__button:not(:disabled):hover {
+  border-color: #b9cbb6;
+  background: #f9fbf7;
+}
+.campaign-performance .performance-report-toolbar__print:hover,
+.campaign-performance .campaign-input-form__save:not(:disabled):hover {
+  background: #244833;
+  border-color: #244833;
+}
+.campaign-performance .campaign-refresh__button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.campaign-performance .campaign-refresh__button--succeeded {
+  color: #387348;
+  border-color: #b8d8b8;
+  background: #f1f8ef;
+}
+.campaign-performance .campaign-refresh__button--failed {
+  color: #a34832;
+  border-color: #e6c1b8;
+  background: #fff7f4;
+}
+.campaign-performance .campaign-refresh__icon {
+  width: 16px;
+  height: 16px;
+  font-size: inherit;
+}
+.campaign-performance .campaign-refresh__error {
+  top: calc(100% + 8px);
+  max-width: 320px;
+  padding: 12px;
+  border: 1px solid #ecd5c9;
+  border-radius: 10px;
+  background: #fff9f6;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px #292d2210;
+}
+.campaign-performance .campaign-period-select__menu {
+  top: calc(100% + 8px);
+  min-width: 100%;
+  padding: 5px;
+  border: 1px solid var(--marketing-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 30px #283e2514;
+}
+.campaign-performance .campaign-period-select__menu a {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--marketing-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.campaign-performance .campaign-period-select__menu a.is-active,
+.campaign-performance .campaign-period-select__menu a:hover {
+  background: var(--marketing-soft);
+  color: var(--marketing-green);
+}
+.campaign-performance :is(button, select, input, summary, a):focus-visible,
+.marketing-header-tabs a:focus-visible {
+  outline: 2px solid #5d8c65;
+  outline-offset: 3px;
+}
+
+/* Executive cards */
+.marketing-overview {
+  display: grid;
+  grid-template-columns: 1.04fr 1.1fr 1fr;
+  grid-template-areas: "revenue metrics booking" "costs graph graph" "costs channels channels";
+  gap: 20px;
+  align-items: stretch;
+}
+.marketing-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--marketing-border);
+  border-radius: var(--marketing-radius);
+  background: var(--marketing-surface);
+  box-shadow:
+    0 2px 3px #26362302,
+    0 6px 20px #26362302;
+}
+.marketing-card h3,
+.marketing-kpi h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.15px;
+}
+.marketing-card p {
+  margin: 7px 0 0;
+  color: var(--marketing-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.marketing-card small {
+  display: block;
+  color: var(--marketing-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.marketing-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.marketing-card-heading p {
+  margin-top: 5px;
+}
+.marketing-period-tag {
+  padding: 4px 7px;
+  border: 1px solid #eaf0e6;
+  border-radius: 6px;
+  color: #647a61;
+  background: #f7faf4;
+  font-size: 9px;
+  font-weight: 500;
+}
+.marketing-revenue {
+  grid-area: revenue;
+}
+.marketing-revenue-total {
+  display: block;
+  font-size: clamp(32px, 3vw, 46px);
+  font-weight: 550;
+  letter-spacing: -1.8px;
+  line-height: 1.15;
+}
+.marketing-roas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--marketing-muted);
+  font-size: 11px;
+}
+.marketing-roas b {
+  display: inline-flex;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #eaf3e8;
+  color: #437448;
+  font-size: 11px;
+  font-weight: 600;
+}
+.marketing-departments {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #eef1ea;
+}
+.marketing-departments h4 {
+  margin: 0;
+  color: #516650;
+  font-size: 11px;
+  font-weight: 500;
+}
+.marketing-department-distribution {
+  display: flex;
+  height: 9px;
+  gap: 3px;
+  margin: 12px 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f1f4ed;
+}
+.marketing-department-distribution span {
+  min-width: 2px;
+  border-radius: 2px;
+}
+.marketing-department {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  font-size: 11px;
+}
+.marketing-department > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #667461;
+}
+.marketing-department i {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+}
+.marketing-department b {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.marketing-department-details {
+  margin-top: 12px;
+}
+.marketing-department-details summary {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: fit-content;
+  color: #4e694b;
+  font-size: 10px;
+  font-weight: 500;
+  list-style: none;
+  cursor: pointer;
+}
+.marketing-department-details summary::-webkit-details-marker {
+  display: none;
+}
+.marketing-department-details[open] summary svg {
+  transform: rotate(180deg);
+}
+.marketing-department-details small {
+  margin-top: 10px;
+  font-size: 10px;
+}
+.marketing-kpis {
+  grid-area: metrics;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 16px;
+  min-width: 0;
+}
+.marketing-kpi {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 15px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #e3e9dc;
+  border-radius: var(--marketing-radius);
+  background: #edf2e7;
+}
+.marketing-kpi > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.marketing-kpi h3 {
+  color: #475c3f;
+  font-size: 12px;
+  font-weight: 500;
+}
+.marketing-kpi-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 1px solid #dce5d2;
+  border-radius: 9px;
+  background: #e6eddf;
+  color: #617955;
+}
+.marketing-kpi > strong {
+  display: block;
+  font-size: clamp(28px, 2.55vw, 38px);
+  font-weight: 550;
+  line-height: 1.1;
+  letter-spacing: -1.3px;
+  white-space: nowrap;
+}
+.marketing-kpi small {
+  color: #697b60;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.marketing-booking {
+  grid-area: booking;
+  display: flex;
+  flex-direction: column;
+}
+.marketing-heading-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ebefe6;
+  border-radius: 8px;
+  background: #f8faf5;
+  color: #778b6e;
+}
+.marketing-muted {
+  color: var(--marketing-muted);
+  font-size: 11px;
+}
+.marketing-booking-total {
+  display: block;
+  margin-top: 8px;
+  font-size: clamp(44px, 4vw, 58px);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -2.5px;
+}
+.marketing-booking > p {
+  font-size: 11px;
+}
+.marketing-booking-meter {
+  height: 5px;
+  margin-top: 18px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #eef2e9;
+}
+.marketing-booking-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #91ae83;
+}
+.marketing-booking-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: auto 0 12px;
+  padding-top: 20px;
+}
+.marketing-booking-split > div {
+  padding: 12px 14px;
+  border: 1px solid #e9eee2;
+  border-radius: 12px;
+  background: #f9faf7;
+}
+.marketing-booking-split span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--marketing-muted);
+  font-size: 10px;
+}
+.marketing-booking-split strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.6px;
+}
+.marketing-card .marketing-booking-note {
+  font-size: 10px;
+}
+.marketing-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+.marketing-dot--paid {
+  background: var(--marketing-orange);
+}
+.marketing-dot--organic {
+  background: #345e48;
+}
+
+/* Spend, charts, and channel rankings */
+.marketing-costs {
+  grid-area: costs;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.marketing-spend-total {
+  font-size: 32px;
+  font-weight: 550;
+  letter-spacing: -1px;
+  line-height: 1.2;
+}
+.marketing-spend p b {
+  float: right;
+  color: #50684d;
+  font-weight: 500;
+}
+.marketing-budget-track {
+  height: 8px;
+  margin-top: 18px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    120deg,
+    #e9eee2,
+    #e9eee2 2px,
+    #f7f9f3 2px,
+    #f7f9f3 5px
+  );
+}
+.marketing-budget-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--marketing-orange);
+}
+.marketing-budget-track.is-over i {
+  background: #bf6450;
+}
+.marketing-budget-caption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 12px 0 16px;
+  color: var(--marketing-muted);
+  font-size: 10px;
+}
+.marketing-card p.marketing-coverage {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #eef1e9;
+  font-size: 11px;
+}
+.marketing-cost-metrics {
+  display: grid;
+  grid-template-rows: auto auto auto auto;
+}
+.marketing-cost-metrics > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px 0;
+  border-bottom: 1px solid #e9eee4;
+}
+.marketing-cost-metrics > div > span {
+  color: var(--marketing-muted);
+  font-size: 12px;
+}
+.marketing-cost-metrics strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 36px;
+  font-weight: 500;
+  letter-spacing: -1.1px;
+  line-height: 1.1;
+}
+.marketing-cost-metrics small {
+  margin-top: 18px;
+}
+.marketing-performance-graph {
+  grid-area: graph;
+}
+.marketing-card select,
+.campaign-performance .campaign-input-form select {
+  appearance: none;
+  max-width: 100%;
+  height: 40px;
+  padding: 0 34px 0 13px;
+  border: 1px solid var(--marketing-border);
+  border-radius: var(--marketing-control-radius);
+  color: #51644b;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2351644b' stroke-width='1.3' viewBox='0 0 24 24'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E")
+    right 12px center / 14px no-repeat;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 140ms,
+    background-color 140ms;
+}
+.marketing-card select:hover {
+  background-color: #fafcf7;
+  border-color: #becfb8;
+}
+.marketing-chart-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+  color: var(--marketing-muted);
+  font-size: 11px;
+}
+.marketing-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.marketing-chart {
+  width: 100%;
+  min-width: 0;
+  height: 190px;
+  margin-top: 8px;
+}
+.marketing-card .marketing-chart-note {
+  margin-top: 8px;
+  font-size: 10px;
+}
+.marketing-top-channels {
+  grid-area: channels;
+}
+.marketing-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--marketing-muted);
+  font-size: 11px;
+}
+.marketing-table-wrap {
+  overflow-x: auto;
+}
+.marketing-channel-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.marketing-channel-table :is(th, td) {
+  padding: 12px 10px;
+  border-bottom: 1px solid #edf1e7;
+  text-align: right;
+}
+.marketing-channel-table thead {
+  color: #6b7b62;
+  background: #f7f9f3;
+  font-size: 10px;
+}
+.marketing-channel-table thead th:first-child {
+  border-radius: 8px 0 0 8px;
+}
+.marketing-channel-table thead th:last-child {
+  border-radius: 0 8px 8px 0;
+}
+.marketing-channel-table th {
+  font-weight: 500;
+}
+.marketing-channel-table th:first-child,
+.marketing-channel-table td:nth-child(2),
+.marketing-channel-table th:nth-child(2) {
+  text-align: left;
+}
+.marketing-channel-table tbody tr:last-child :is(td, th) {
+  border-bottom: 0;
+}
+.marketing-channel-table tbody tr:nth-child(4) :is(td, th) {
+  border-top: 1px solid #dce5d6;
+}
+.marketing-channel-table tbody tr:hover {
+  background: #fafcf7;
+}
+.marketing-channel-rank {
+  display: inline-block;
+  width: 20px;
+  margin-right: 6px;
+  color: #8c9982;
+  font-size: 9px;
+}
+.marketing-channel-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 9px;
+  border: 1px solid #e5ebdd;
+  border-radius: 8px;
+  color: #5b7350;
+  background: #f3f7ed;
+  font-size: 11px;
+  font-weight: 600;
+}
+.marketing-channel-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #edf3e6;
+  color: #5e7a49;
+  font-size: 9px;
+}
+.marketing-channel-type::before {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+.marketing-channel-type--paid {
+  color: #ac6c3f;
+  background: #fff2e7;
+}
+.marketing-top-channels > small {
+  margin-top: 16px;
+  font-size: 10px;
+}
+.marketing-empty {
+  padding: 12px 0;
+}
+
+/* Detail tabs use the same cards, forms, buttons, and table hierarchy. */
+.campaign-performance
+  :is(
+    .campaign-table-panel,
+    .campaign-category-strip,
+    .campaign-plan-banner,
+    .campaign-input-panel,
+    .campaign-next-plan
+  ) {
+  border: 1px solid var(--marketing-border);
+  border-radius: var(--marketing-radius);
+  overflow: hidden;
+  background: #fff;
+}
+.campaign-performance .campaign-table-panel__heading,
+.campaign-performance .campaign-input-panel__heading {
+  padding: 20px 24px;
+  border-color: var(--marketing-border);
+  background: #fff;
+}
+.campaign-performance
+  :is(.campaign-table-panel__heading h3, .campaign-input-panel__heading h3) {
+  color: var(--marketing-ink);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+.campaign-performance
+  :is(.campaign-table-panel__heading p, .campaign-input-panel__heading p) {
+  margin-top: 6px;
+  color: var(--marketing-muted);
+  font-size: 12px;
+}
+.campaign-performance .campaign-table-panel__plan {
+  gap: 2px 8px;
+}
+.campaign-performance .campaign-table-panel__plan span {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+}
+.campaign-performance .campaign-table-panel__plan strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.campaign-performance .campaign-table {
+  min-width: 980px;
+}
+.campaign-performance .campaign-table--capacity {
+  min-width: 640px;
+}
+.campaign-performance .campaign-table th {
+  padding: 13px 16px;
+  background: #f7f9f4;
+  color: #697960;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: none;
+}
+.campaign-performance .campaign-table td {
+  padding: 17px 16px;
+  border-color: #edf1e8;
+}
+.campaign-performance .campaign-table td > strong {
+  color: var(--marketing-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+.campaign-performance .campaign-table td > span:not(.campaign-status) {
+  color: var(--marketing-muted);
+  font-size: 10px;
+}
+.campaign-performance .campaign-table tbody tr:hover {
+  background: #fbfcf9;
+}
+.campaign-performance
+  :is(
+    .campaign-status,
+    .campaign-category,
+    .campaign-revenue-type,
+    .campaign-plan-state
+  ) {
+  min-width: 0;
+  min-height: 0;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 500;
+}
+.campaign-performance .campaign-category-strip > div,
+.campaign-performance .campaign-plan-banner > div {
+  padding: 24px;
+  border-color: var(--marketing-border);
+}
+.campaign-performance .campaign-category-strip span,
+.campaign-performance .campaign-plan-banner span {
+  color: var(--marketing-muted);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+}
+.campaign-performance .campaign-category-strip strong {
+  margin: 5px 0;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.8px;
+}
+.campaign-performance .campaign-category-strip small {
+  font-size: 11px;
+}
+.campaign-performance .campaign-plan-banner strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+.campaign-performance .campaign-plan-grid {
+  gap: 20px;
+}
+.campaign-performance .campaign-next-plan {
+  padding: 24px;
+  background: var(--marketing-green);
+  color: #fff;
+}
+.campaign-performance .campaign-next-plan > span {
+  color: #d1dfc2;
+  font-weight: 500;
+}
+.campaign-performance .campaign-next-plan > strong {
+  font-weight: 500;
+}
+.campaign-performance .campaign-input-panel__heading span {
+  color: var(--marketing-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+.campaign-performance .campaign-input-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--marketing-border);
+  border-radius: 12px;
+  background: #f6f8f2;
+}
+.campaign-performance .campaign-input-mode button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--marketing-muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+}
+.campaign-performance .campaign-input-mode button.is-active {
+  background: var(--marketing-green);
+  color: #fff;
+}
+.campaign-performance .campaign-input-form {
+  gap: 16px;
+  padding: 24px;
+}
+.campaign-performance .campaign-input-form label {
+  gap: 8px;
+}
+.campaign-performance .campaign-input-form label > span {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+}
+.campaign-performance .campaign-input-form input {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--marketing-border);
+  border-radius: var(--marketing-control-radius);
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+}
+.campaign-performance .campaign-input-form select {
+  width: 100%;
+  height: 42px;
+  font-size: 12px;
+}
+.campaign-performance .campaign-input-connection {
+  padding: 12px 24px;
+  border-color: var(--marketing-border);
+  font-size: 11px;
+  font-weight: 400;
+}
+.campaign-performance .campaign-input-connection small {
+  font-weight: 400;
+}
+.campaign-performance .campaign-alert {
+  border-radius: 10px;
+}
+.campaign-performance .campaign-alert strong {
+  font-weight: 600;
+}
+.campaign-performance .campaign-performance__footer {
+  gap: 16px;
+  padding: 0 2px 8px;
+  color: var(--marketing-muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.marketing-data-notice {
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid #e8d8b9;
+  border-radius: 12px;
+  background: #fff9eb;
+  color: #84683b;
+  font-size: 12px;
+}
+
+@media (min-width: 1800px) {
+  .marketing-chart {
+    height: 220px;
+  }
+}
+@media (max-width: 1199px) {
+  body:has(.campaign-performance) .campaign-performance {
+    padding: 24px;
+  }
+  body:has(.campaign-performance) .campaign-performance__intro {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .marketing-overview {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "revenue metrics" "booking graph" "costs channels";
+  }
+  .marketing-booking {
+    align-self: start;
+  }
+  .marketing-top-channels {
+    align-self: start;
+  }
+  .marketing-booking-split {
+    margin-top: 24px;
+  }
+  .marketing-cost-metrics {
+    display: block;
+  }
+  .marketing-cost-metrics > div {
+    padding: 18px 0;
+  }
+  .campaign-performance .campaign-input-panel__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .campaign-performance .campaign-plan-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  body:has(.campaign-performance) .dashboard-shell {
+    --dash-header-pad-x: 18px;
+    --dash-header-pad-y: 12px;
+    --dash-header-gap: 10px;
+  }
+  body:has(.campaign-performance) .dashboard-shell__header-row {
+    flex-wrap: wrap;
+    gap: 12px !important;
+  }
+  body:has(.campaign-performance) .dashboard-shell__brand {
+    flex: 1;
+  }
+  body:has(.campaign-performance) .dashboard-shell__header-actions {
+    display: contents !important;
+  }
+  body:has(.campaign-performance)
+    .dashboard-shell__header-actions
+    > div:first-child {
+    order: 4;
+    flex-basis: 100%;
+    width: 100%;
+  }
+  body:has(.campaign-performance) .dashboard-shell__header-actions > button,
+  body:has(.campaign-performance) .dashboard-shell__header-actions > details {
+    order: 2;
+  }
+  .campaign-view-tabs.marketing-header-tabs {
+    width: 100%;
+    gap: 0;
+    justify-content: space-between;
+  }
+  .campaign-view-tabs.marketing-header-tabs a {
+    padding: 8px;
+    font-size: 10.5px;
+  }
+  body:has(.campaign-performance) .campaign-performance {
+    padding: 24px 18px;
+    gap: 20px;
+  }
+  body:has(.campaign-performance) .campaign-performance__intro {
+    gap: 18px;
+  }
+  body:has(.campaign-performance) .campaign-performance__intro h2 {
+    max-width: 380px;
+    font-size: 28px;
+    line-height: 1.18;
+  }
+  body:has(.campaign-performance) .campaign-performance__intro p {
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 11px;
+  }
+  .marketing-updated {
+    flex-basis: 100%;
+  }
+  .marketing-metadata-divider {
+    display: none;
+  }
+  .campaign-performance .campaign-performance__controls {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .campaign-performance .campaign-period-select {
+    min-width: 0;
+  }
+  .campaign-performance .campaign-refresh {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .campaign-performance .campaign-refresh__button {
+    font-size: 0;
+    width: 42px;
+    padding: 0;
+  }
+  .campaign-performance .performance-report-toolbar__print {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .marketing-overview {
+    grid-template-columns: 1fr;
+    grid-template-areas: "revenue" "metrics" "booking" "graph" "costs" "channels";
+    gap: 16px;
+  }
+  .marketing-card {
+    padding: 22px;
+  }
+  .marketing-kpis {
+    gap: 12px;
+  }
+  .marketing-kpi {
+    min-height: 156px;
+    padding: 18px;
+  }
+  .marketing-kpi > div {
+    align-items: flex-start;
+  }
+  .marketing-kpi h3 {
+    font-size: 11px;
+  }
+  .marketing-kpi-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+  }
+  .marketing-kpi-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+  .marketing-kpi > strong {
+    font-size: 30px;
+  }
+  .marketing-kpi small {
+    font-size: 9px;
+  }
+  .marketing-revenue-total {
+    font-size: 42px;
+  }
+  .marketing-booking-total {
+    font-size: 56px;
+  }
+  .marketing-booking-split {
+    padding-top: 0;
+    margin-top: 24px;
+  }
+  .marketing-card-heading {
+    flex-wrap: wrap;
+  }
+  .marketing-card select {
+    min-width: 0;
+  }
+  .marketing-channel-table {
+    min-width: 560px;
+  }
+  .marketing-channel-rank {
+    display: none;
+  }
+  .marketing-chart {
+    height: 210px;
+  }
+  .marketing-sort > span {
+    display: none;
+  }
+  .campaign-performance .campaign-input-form {
+    padding: 20px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .campaign-performance .campaign-input-form__wide {
+    grid-column: 1 / -1;
+  }
+  .campaign-performance .campaign-category-strip > div,
+  .campaign-performance .campaign-plan-banner > div {
+    padding: 20px;
+  }
+  .campaign-performance .campaign-table-panel__heading,
+  .campaign-performance .campaign-input-panel__heading {
+    padding: 20px;
+  }
+  .campaign-performance .campaign-performance__footer {
+    flex-direction: column;
+    gap: 4px;
+    font-size: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .campaign-performance *,
+  .marketing-header-tabs * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+@media print {
+  body:has(.campaign-performance) .campaign-performance {
+    max-width: none;
+    padding: 0;
+    gap: 10px;
+  }
+  .marketing-overview {
+    grid-template-columns: 1fr 1.1fr 1fr;
+    grid-template-areas: "revenue metrics booking" "costs graph graph" "costs channels channels";
+    gap: 10px;
+  }
+  .marketing-card {
+    padding: 12px;
+    border-radius: 10px;
+    break-inside: avoid;
+    box-shadow: none;
+  }
+  .marketing-card h3,
+  .marketing-kpi h3 {
+    font-size: 10px;
+  }
+  .marketing-revenue-total {
+    font-size: 30px;
+  }
+  .marketing-booking-total {
+    font-size: 34px;
+  }
+  .marketing-kpis {
+    gap: 8px;
+  }
+  .marketing-kpi {
+    padding: 12px;
+    gap: 10px;
+    border-radius: 10px;
+  }
+  .marketing-kpi > strong {
+    font-size: 26px;
+  }
+  .marketing-kpi-icon {
+    display: none;
+  }
+  .marketing-chart {
+    height: 160px;
+  }
+  .marketing-channel-table {
+    font-size: 10px;
+  }
+  .marketing-channel-table :is(th, td) {
+    padding: 6px;
+  }
+  .marketing-table-wrap {
+    overflow: visible;
+  }
+  .marketing-department-details > div {
+    content-visibility: visible;
+  }
+}

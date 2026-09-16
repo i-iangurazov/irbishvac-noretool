@@ -592,6 +592,22 @@ export class CampaignPerformanceRefreshRunner {
         reportPayloads.push(result.payload);
       }
 
+      let departmentRevenue: unknown = null;
+      try {
+        const report = this.config.serviceTitan.reports.revenueMonthlyPace;
+        const definition = await this.serviceTitan.fetchReportDefinition({
+          family: "revenueMonthlyPace", category: report.category, reportId: report.reportId, correlationId,
+        });
+        const result = await this.serviceTitan.fetchPaginatedReport({
+          family: "revenueMonthlyPace", category: report.category, reportId: report.reportId, correlationId,
+          parameters: buildReportParameters(definition.payload as ReportDefinition, from, cutoff),
+        });
+        departmentRevenue = result.payload;
+      } catch (error) {
+        // The additional breakdown must not block campaign, booking or spend refreshes.
+        logger.warn("Campaign department revenue unavailable", { correlationId, error: error instanceof Error ? error.message : String(error) });
+      }
+
       const connectedCapacityRows = parseCapacityPlan(capacityPlanSheet?.values, month);
       const capacityRows = connectedCapacityRows.length > 0
         ? connectedCapacityRows
@@ -753,6 +769,7 @@ export class CampaignPerformanceRefreshRunner {
         cutoff,
         generatedAt,
         callCenterValues: callCenter.values ?? [],
+        departmentRevenue,
         campaignSummary: reportPayloads[0] ?? {},
         soldEstimates: reportPayloads[1] ?? {},
         revenueByCampaign: reportPayloads[2] ?? {},
@@ -775,6 +792,14 @@ export class CampaignPerformanceRefreshRunner {
         channelLeadGoalMethod: plan.leadMethod,
         channelBudgetGoalStatus: plan.budgetMethod,
         sourceReportIds: requestParams.reports
+      });
+
+      snapshot.sources.push({
+        name: "ServiceTitan Revenue By Department",
+        role: "Completed revenue by invoice-item business unit; reporting difference reconciled to campaign revenue",
+        status: snapshot.revenueByDepartment.length > 0 ? "connected" : "stale",
+        refreshedAt: generatedAt,
+        rowCount: snapshot.revenueByDepartment.length,
       });
 
       snapshot.sources.push({

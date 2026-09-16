@@ -1,3 +1,5 @@
+import "./marketing.css";
+import { campaignMonthIds } from "../../lib/campaign-overview";
 import augustCampaignData from "../../data/campaign-performance-august.json";
 import julyCampaignData from "../../data/campaign-performance-july.json";
 import {
@@ -31,7 +33,7 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     fallback.period.id ?? fallback.period.from.slice(0, 7),
     fallback,
   ]));
-  const monthIds = [...new Set([currentMonth, ...fallbackByMonth.keys()])].sort();
+  const monthIds = campaignMonthIds(currentMonth, requestedMonth, [...fallbackByMonth.keys()]);
   const liveDatasets = await Promise.all(monthIds.map(async (month) => {
     try {
       return await fetchApi<CampaignPerformanceData | null>(
@@ -67,7 +69,8 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
   return (
     <CampaignPerformancePage
       data={data}
-      periods={periodDatasets.map((dataset) => ({ id: dataset.period.id ?? dataset.period.from, from: dataset.period.from }))}
+      unavailableMonth={requestedMonth !== (data.period.id ?? data.period.from.slice(0, 7)) && /^\d{4}-(0[1-9]|1[0-2])$/.test(requestedMonth) ? requestedMonth : undefined}
+      periods={periodDatasets.map((dataset) => ({ id: dataset.period.id ?? dataset.period.from.slice(0, 7), from: dataset.period.from }))}
       refreshEnabled={(data.period.id ?? data.period.from.slice(0, 7)) === currentMonth}
       view={requestedView}
       history={periodDatasets}

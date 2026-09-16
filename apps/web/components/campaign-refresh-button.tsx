@@ -1,5 +1,6 @@
 "use client";
 
+import { MarketingIcon } from "./marketing-icon";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -73,7 +74,7 @@ export function CampaignRefreshButton({ month, enabled }: { month: string; enabl
         title={enabled ? "Refresh Google Sheet and ServiceTitan actuals" : "Historical months are locked"}
         type="button"
       >
-        <span aria-hidden="true" className="campaign-refresh__icon">↻</span>
+        <MarketingIcon name="refresh" className="campaign-refresh__icon" />
         {LABELS[state]}
       </button>
       {error ? <span className="campaign-refresh__error" role="alert">{error}</span> : null}

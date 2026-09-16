@@ -107,6 +107,8 @@ export type CampaignPerformanceSource = {
 };
 
 export type CampaignPerformanceSnapshot = {
+  revenueByDepartment: Array<{ department: string; completedRevenue: number }>;
+  leadDataStatus: "available" | "unavailable";
   schemaVersion: number;
   generatedAt: string;
   dataStatus: "LIVE" | "SNAPSHOT";
@@ -192,6 +194,7 @@ export type BuildCampaignPerformanceInput = {
   month: string;
   cutoff: string;
   generatedAt?: string;
+  departmentRevenue?: unknown;
   callCenterValues: unknown[][];
   campaignSummary: unknown;
   soldEstimates: unknown;
@@ -361,6 +364,11 @@ function findColumn(headers: unknown[], aliases: string[], fallback: number) {
   return index >= 0 ? index : fallback;
 }
 
+function hasCallCenterRowsForMonth(values: unknown[][], month: string) {
+  const dateIndex = findColumn(values[0] ?? [], ["Date Received", "Lead received", "Received", "Date"], 3);
+  return values.slice(1).some((row) => parseSheetDateKey(row[dateIndex])?.startsWith(month));
+}
+
 function callCenterActuals(values: unknown[][], month: string, cutoff: string) {
   const map = new Map<string, MutableActual>();
   const headers = values[0] ?? [];
@@ -488,6 +496,22 @@ function buildNextMonthDraft(
     })),
     note: "Generated from current channel lead and booking mix. It is not an approved plan."
   };
+}
+
+export function buildDepartmentRevenue(payload: unknown, campaignRevenue: number) {
+  const report = resolveTabularReport(payload);
+  if (!report.fields.some((field) => field.name === "CompletedRevenue") || !report.rows.length) return [];
+  const totals = new Map<string, number>();
+  for (const row of report.rows) {
+    const department = String(row.Name ?? "Unassigned");
+    totals.set(department, (totals.get(department) ?? 0) + toNumber(row.CompletedRevenue));
+  }
+  const rows = [...totals].map(([department, completedRevenue]) => ({ department, completedRevenue }));
+  // Invoice-item business units and campaign attribution can differ. Preserve both
+  // sources and expose the difference; never proportionally invent department revenue.
+  const difference = Math.round((campaignRevenue - rows.reduce((sum, row) => sum + row.completedRevenue, 0)) * 100) / 100;
+  if (Math.abs(difference) > 0.01) rows.push({ department: "Reporting reconciliation", completedRevenue: difference });
+  return rows;
 }
 
 export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformanceInput): CampaignPerformanceSnapshot {
@@ -664,7 +688,9 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
   const planApproval = input.planApproval ?? { approvalStatus: "required" as const, version: `${input.month}-unapproved` };
 
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
+    revenueByDepartment: buildDepartmentRevenue(input.departmentRevenue, actual.completedRevenue),
+    leadDataStatus: hasCallCenterRowsForMonth(input.callCenterValues, input.month) ? "available" : "unavailable",
     generatedAt,
     dataStatus: "LIVE",
     period: {
@@ -722,7 +748,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
     alerts,
     rows,
     sources: [
-      { name: "Google Call Center Sheet", role: "Calls, forms, qualified leads, booked jobs", status: "connected", refreshedAt: generatedAt, rowCount: Math.max(0, input.callCenterValues.length - 1) },
+      { name: "Google Call Center Sheet", role: "Calls, forms, qualified leads, booked jobs", status: hasCallCenterRowsForMonth(input.callCenterValues, input.month) ? "connected" : "blocked", refreshedAt: generatedAt, rowCount: Math.max(0, input.callCenterValues.length - 1) },
       { name: "ServiceTitan Campaign Summary", role: "Tracked spend", reportId: input.sourceReportIds.campaignSummary, status: "connected", refreshedAt: generatedAt, rowCount: campaignRows },
       { name: "ServiceTitan Sold Estimates", role: "Sold jobs and sold amount", reportId: input.sourceReportIds.soldEstimates, status: "connected", refreshedAt: generatedAt, rowCount: soldRows },
       { name: "ServiceTitan Revenue By Campaign", role: "Completed revenue", reportId: input.sourceReportIds.revenueByCampaign, status: "connected", refreshedAt: generatedAt, rowCount: revenueRows },

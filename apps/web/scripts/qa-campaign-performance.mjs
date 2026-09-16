@@ -31,8 +31,8 @@ for (const period of periods) {
 
       const metrics = await page.evaluate(() => {
         const dashboard = document.querySelector("[data-campaign-performance='true']");
-        const tables = [...document.querySelectorAll(".campaign-table")];
-        const tabs = document.querySelectorAll(".campaign-view-tabs a");
+        const tables = [...document.querySelectorAll(".campaign-table, .marketing-channel-table")];
+        const tabs = document.querySelectorAll("header .marketing-header-tabs a");
         const sources = document.querySelectorAll(".campaign-source");
         const refresh = document.querySelector(".campaign-refresh__button");
         const gauges = document.querySelectorAll(".campaign-gauge");
@@ -48,6 +48,8 @@ for (const period of periods) {
           tabCount: tabs.length,
           refreshPresent: Boolean(refresh),
           gaugeCount: gauges.length,
+          overviewCardCount: document.querySelectorAll(".marketing-kpi").length,
+          overviewChartPresent: Boolean(document.querySelector(".marketing-chart")),
           legacyMeterCount: legacyMeters.length,
           bodyWidthOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           tableWidthOverflow: Math.max(0, ...tables.map((table) => table.scrollWidth - (table.parentElement?.clientWidth ?? table.clientWidth))),
@@ -77,11 +79,11 @@ console.log(JSON.stringify(results, null, 2));
 
 const failed = results.filter((result) =>
   !result.dashboardPresent ||
-  result.visibleSources < 4 ||
+  result.visibleSources !== 0 ||
   result.tabCount !== 5 ||
   !result.refreshPresent ||
   result.bodyWidthOverflow > 1 ||
-  (result.view === "overview" && (result.gaugeCount < 5 || result.legacyMeterCount > 0)) ||
+  (result.view === "overview" && (result.overviewCardCount !== 4 || !result.overviewChartPresent)) ||
   (result.view !== "overview" && result.tableCount < 1) ||
   (result.viewport.name !== "mobile-390x844" && result.tableWidthOverflow > 1)
 );
