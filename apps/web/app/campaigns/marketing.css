@@ -1,5 +1,5 @@
-/* One visual system for the entire Marketing workspace. */
-body:has(.campaign-performance) .dashboard-shell {
+/* Marketing content only. The shared header, logo, and navigation use their existing styles. */
+.campaign-performance {
   --marketing-ink: #23392d;
   --marketing-muted: #6e7c72;
   --marketing-green: #315b44;
@@ -25,16 +25,7 @@ body:has(.campaign-performance) .dashboard-shell {
   --dash-font-md: 18px;
   --dash-font-lg: 24px;
   --dash-font-xl: 28px;
-  --dash-header-gap: 12px;
-  --dash-logo-size: 42px;
-  --dash-icon-button: 40px;
-  --dash-menu-width: 380px;
   --dash-border: 1px;
-  --dash-main-gap: 0px;
-  --dash-shell-pad-y: 0px;
-  --dash-shell-pad-x: 0px;
-  --dash-header-pad-y: 14px;
-  --dash-header-pad-x: 32px;
   background: var(--marketing-canvas);
   color: var(--marketing-ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -42,79 +33,6 @@ body:has(.campaign-performance) .dashboard-shell {
   font-weight: 400;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
-}
-body:has(.campaign-performance) .dashboard-shell__inner {
-  max-width: none !important;
-}
-body:has(.campaign-performance) .dashboard-shell__header {
-  margin-inline: 0 !important;
-  background: #fff;
-  border-bottom: 1px solid var(--marketing-border);
-  backdrop-filter: none;
-}
-body:has(.campaign-performance) .dashboard-shell__header-row {
-  max-width: 1496px;
-  margin: auto;
-}
-body:has(.campaign-performance) .dashboard-shell__brand {
-  gap: 12px !important;
-}
-body:has(.campaign-performance) .dashboard-shell__logo {
-  padding: 4px !important;
-  box-shadow: none;
-  border-color: var(--marketing-border);
-}
-body:has(.campaign-performance) .dashboard-shell__title {
-  color: var(--marketing-ink);
-  font-size: 17px !important;
-  font-weight: 650;
-  letter-spacing: -0.3px;
-}
-body:has(.campaign-performance) .dashboard-shell__section {
-  margin-bottom: 5px;
-  font-size: 9px !important;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  color: var(--marketing-muted);
-}
-body:has(.campaign-performance) .dashboard-shell__menu-button,
-body:has(.campaign-performance) .dashboard-shell__fullscreen-button {
-  border: 1px solid var(--marketing-border);
-  color: var(--marketing-ink);
-  background: #fff;
-  box-shadow: none;
-  font-weight: 400;
-}
-body:has(.campaign-performance) .dashboard-shell__menu-button:hover,
-body:has(.campaign-performance) .dashboard-shell__fullscreen-button:hover {
-  border-color: #c6d3c4;
-  background: var(--marketing-soft);
-  color: var(--marketing-green);
-}
-body:has(.campaign-performance)
-  .dashboard-shell__fullscreen-button[data-active="true"] {
-  background: var(--marketing-green) !important;
-  border-color: var(--marketing-green) !important;
-}
-body:has(.campaign-performance) .dashboard-shell__menu {
-  border-color: var(--marketing-border);
-  box-shadow: 0 12px 40px #21372614;
-}
-body:has(.campaign-performance) .dashboard-shell__menu-link {
-  border-radius: 10px;
-  background: var(--marketing-soft);
-  color: var(--marketing-ink);
-}
-body:has(.campaign-performance) .dashboard-shell__menu-link:hover {
-  background: #e8eee2;
-  color: var(--marketing-ink);
-}
-body:has(.campaign-performance) .dashboard-shell__menu-link-label,
-body:has(.campaign-performance) .dashboard-shell__menu-current {
-  font-weight: 600;
-}
-body:has(.campaign-performance) .campaign-performance__main {
-  scrollbar-gutter: auto;
 }
 body:has(.campaign-performance) .campaign-performance {
   width: 100%;
@@ -130,8 +48,8 @@ body:has(.campaign-performance) .campaign-performance {
   flex-shrink: 0;
 }
 
-/* Navigation and page toolbar */
-.campaign-view-tabs.marketing-header-tabs {
+/* Navigation and toolbar within the page content */
+.campaign-view-tabs.marketing-workspace-tabs {
   display: flex;
   gap: 4px;
   width: max-content;
@@ -144,7 +62,7 @@ body:has(.campaign-performance) .campaign-performance {
   overflow-x: auto;
   scrollbar-width: none;
 }
-.campaign-view-tabs.marketing-header-tabs a {
+.campaign-view-tabs.marketing-workspace-tabs a {
   display: block;
   flex: 0 0 auto;
   padding: 9px 20px;
@@ -159,11 +77,11 @@ body:has(.campaign-performance) .campaign-performance {
     background 140ms,
     color 140ms;
 }
-.campaign-view-tabs.marketing-header-tabs a:hover {
+.campaign-view-tabs.marketing-workspace-tabs a:hover {
   background: #e9eee4;
   color: var(--marketing-ink);
 }
-.campaign-view-tabs.marketing-header-tabs a.is-active {
+.campaign-view-tabs.marketing-workspace-tabs a.is-active {
   background: var(--marketing-ink);
   color: #fff;
   box-shadow: 0 2px 4px #20382812;
@@ -367,7 +285,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   color: var(--marketing-green);
 }
 .campaign-performance :is(button, select, input, summary, a):focus-visible,
-.marketing-header-tabs a:focus-visible {
+.marketing-workspace-tabs a:focus-visible {
   outline: 2px solid #5d8c65;
   outline-offset: 3px;
 }
@@ -1160,38 +1078,12 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   }
 }
 @media (max-width: 760px) {
-  body:has(.campaign-performance) .dashboard-shell {
-    --dash-header-pad-x: 18px;
-    --dash-header-pad-y: 12px;
-    --dash-header-gap: 10px;
-  }
-  body:has(.campaign-performance) .dashboard-shell__header-row {
-    flex-wrap: wrap;
-    gap: 12px !important;
-  }
-  body:has(.campaign-performance) .dashboard-shell__brand {
-    flex: 1;
-  }
-  body:has(.campaign-performance) .dashboard-shell__header-actions {
-    display: contents !important;
-  }
-  body:has(.campaign-performance)
-    .dashboard-shell__header-actions
-    > div:first-child {
-    order: 4;
-    flex-basis: 100%;
-    width: 100%;
-  }
-  body:has(.campaign-performance) .dashboard-shell__header-actions > button,
-  body:has(.campaign-performance) .dashboard-shell__header-actions > details {
-    order: 2;
-  }
-  .campaign-view-tabs.marketing-header-tabs {
+  .campaign-view-tabs.marketing-workspace-tabs {
     width: 100%;
     gap: 0;
     justify-content: space-between;
   }
-  .campaign-view-tabs.marketing-header-tabs a {
+  .campaign-view-tabs.marketing-workspace-tabs a {
     padding: 8px;
     font-size: 10.5px;
   }
@@ -1327,7 +1219,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 @media (prefers-reduced-motion: reduce) {
   .campaign-performance *,
-  .marketing-header-tabs * {
+  .marketing-workspace-tabs * {
     transition: none !important;
     animation: none !important;
   }

@@ -96,7 +96,7 @@ export const navItems: DashboardNavItem[] = [
   {
     id: "campaigns",
     href: "/campaigns",
-    label: "Marketing",
+    label: "Campaigns",
     shortLabel: "CM",
     section: "Demand",
   },
