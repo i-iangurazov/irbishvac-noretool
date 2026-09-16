@@ -405,7 +405,7 @@ export function MarketingOverview({
                 tickFormatter={monthLabel}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#6c7470", fontSize: 12 }}
+                tick={{ fill: "#6c7470", fontSize: 14 }}
               />
               <YAxis
                 width={64}
@@ -416,7 +416,7 @@ export function MarketingOverview({
                 }
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#6c7470", fontSize: 11 }}
+                tick={{ fill: "#6c7470", fontSize: 13 }}
               />
               <Tooltip
                 cursor={{ fill: "#f3f6f1" }}
@@ -424,7 +424,7 @@ export function MarketingOverview({
                   borderRadius: 12,
                   border: "1px solid #e4e9e2",
                   boxShadow: "0 8px 24px #263e2810",
-                  fontSize: 12,
+                  fontSize: 14,
                 }}
                 formatter={(value: number, name: string) => [
                   currencyMetric ? money(value) : formatNumber(value),

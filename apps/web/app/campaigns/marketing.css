@@ -19,9 +19,9 @@
   --dash-space-md: 18px;
   --dash-space-lg: 24px;
   --dash-space-xl: 32px;
-  --dash-font-2xs: 11px;
-  --dash-font-xs: 12px;
-  --dash-font-sm: 14px;
+  --dash-font-2xs: 13px;
+  --dash-font-xs: 14px;
+  --dash-font-sm: 16px;
   --dash-font-md: 18px;
   --dash-font-lg: 24px;
   --dash-font-xl: 28px;
@@ -29,7 +29,7 @@
   background: var(--marketing-canvas);
   color: var(--marketing-ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
@@ -69,7 +69,7 @@ body:has(.campaign-performance) .campaign-performance {
   border: 0;
   border-radius: 22px;
   color: #647467;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   line-height: 20px;
   white-space: nowrap;
@@ -101,7 +101,7 @@ body:has(.campaign-performance) .campaign-performance__intro {
   gap: 10px;
   margin-bottom: 12px;
   color: var(--marketing-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 1.3px;
 }
@@ -114,7 +114,7 @@ body:has(.campaign-performance) .campaign-performance__intro {
   border-radius: 5px;
   background: #e9eee4;
   color: #52684f;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.7px;
 }
@@ -143,7 +143,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   gap: 8px;
   margin: 12px 0 0;
   color: var(--marketing-muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .marketing-updated {
@@ -183,7 +183,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   background: #fff;
   color: var(--marketing-ink);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
@@ -203,7 +203,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .campaign-performance .campaign-period-select > button strong {
   color: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 .campaign-period-select__chevron {
@@ -255,7 +255,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border: 1px solid #ecd5c9;
   border-radius: 10px;
   background: #fff9f6;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   box-shadow: 0 8px 24px #292d2210;
 }
@@ -276,7 +276,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   padding: 10px 12px;
   border-radius: 8px;
   color: var(--marketing-muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 .campaign-performance .campaign-period-select__menu a.is-active,
@@ -311,7 +311,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 .marketing-card h3,
 .marketing-kpi h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
   letter-spacing: -0.15px;
@@ -319,13 +319,13 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 .marketing-card p {
   margin: 7px 0 0;
   color: var(--marketing-muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 .marketing-card small {
   display: block;
   color: var(--marketing-muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .marketing-card-heading {
@@ -344,7 +344,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border-radius: 6px;
   color: #647a61;
   background: #f7faf4;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
 }
 .marketing-revenue {
@@ -363,7 +363,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   gap: 8px;
   margin-top: 12px;
   color: var(--marketing-muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .marketing-roas b {
   display: inline-flex;
@@ -371,7 +371,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border-radius: 5px;
   background: #eaf3e8;
   color: #437448;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 }
 .marketing-departments {
@@ -382,7 +382,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 .marketing-departments h4 {
   margin: 0;
   color: #516650;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
 }
 .marketing-department-distribution {
@@ -404,7 +404,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   justify-content: space-between;
   gap: 10px;
   margin-top: 9px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .marketing-department > span {
   display: flex;
@@ -420,7 +420,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border-radius: 2px;
 }
 .marketing-department b {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -433,7 +433,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   gap: 3px;
   width: fit-content;
   color: #4e694b;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   list-style: none;
   cursor: pointer;
@@ -446,7 +446,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .marketing-department-details small {
   margin-top: 10px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .marketing-kpis {
   grid-area: metrics;
@@ -475,7 +475,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .marketing-kpi h3 {
   color: #475c3f;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 .marketing-kpi-icon {
@@ -499,7 +499,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .marketing-kpi small {
   color: #697b60;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .marketing-booking {
@@ -519,7 +519,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .marketing-muted {
   color: var(--marketing-muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .marketing-booking-total {
   display: block;
@@ -530,7 +530,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   letter-spacing: -2.5px;
 }
 .marketing-booking > p {
-  font-size: 11px;
+  font-size: 13px;
 }
 .marketing-booking-meter {
   height: 5px;
@@ -563,7 +563,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   align-items: center;
   gap: 6px;
   color: var(--marketing-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .marketing-booking-split strong {
   display: block;
@@ -573,7 +573,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   letter-spacing: -0.6px;
 }
 .marketing-card .marketing-booking-note {
-  font-size: 10px;
+  font-size: 12px;
 }
 .marketing-dot {
   display: inline-block;
@@ -637,13 +637,13 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   gap: 6px;
   margin: 12px 0 16px;
   color: var(--marketing-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .marketing-card p.marketing-coverage {
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid #eef1e9;
-  font-size: 11px;
+  font-size: 13px;
 }
 .marketing-cost-metrics {
   display: grid;
@@ -658,7 +658,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .marketing-cost-metrics > div > span {
   color: var(--marketing-muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 .marketing-cost-metrics strong {
   display: block;
@@ -687,7 +687,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2351644b' stroke-width='1.3' viewBox='0 0 24 24'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E")
     right 12px center / 14px no-repeat;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -703,7 +703,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   justify-content: flex-end;
   gap: 18px;
   color: var(--marketing-muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .marketing-chart-legend span {
   display: inline-flex;
@@ -718,7 +718,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .marketing-card .marketing-chart-note {
   margin-top: 8px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .marketing-top-channels {
   grid-area: channels;
@@ -728,7 +728,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   align-items: center;
   gap: 8px;
   color: var(--marketing-muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .marketing-table-wrap {
   overflow-x: auto;
@@ -737,7 +737,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   width: 100%;
   border-collapse: collapse;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 14px;
 }
 .marketing-channel-table :is(th, td) {
   padding: 12px 10px;
@@ -747,7 +747,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 .marketing-channel-table thead {
   color: #6b7b62;
   background: #f7f9f3;
-  font-size: 10px;
+  font-size: 12px;
 }
 .marketing-channel-table thead th:first-child {
   border-radius: 8px 0 0 8px;
@@ -777,7 +777,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   width: 20px;
   margin-right: 6px;
   color: #8c9982;
-  font-size: 9px;
+  font-size: 11px;
 }
 .marketing-channel-icon {
   display: inline-grid;
@@ -789,7 +789,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border-radius: 8px;
   color: #5b7350;
   background: #f3f7ed;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 }
 .marketing-channel-type {
@@ -800,7 +800,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border-radius: 6px;
   background: #edf3e6;
   color: #5e7a49;
-  font-size: 9px;
+  font-size: 11px;
 }
 .marketing-channel-type::before {
   width: 4px;
@@ -815,7 +815,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .marketing-top-channels > small {
   margin-top: 16px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .marketing-empty {
   padding: 12px 0;
@@ -844,7 +844,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 .campaign-performance
   :is(.campaign-table-panel__heading h3, .campaign-input-panel__heading h3) {
   color: var(--marketing-ink);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.2px;
 }
@@ -852,18 +852,18 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   :is(.campaign-table-panel__heading p, .campaign-input-panel__heading p) {
   margin-top: 6px;
   color: var(--marketing-muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 .campaign-performance .campaign-table-panel__plan {
   gap: 2px 8px;
 }
 .campaign-performance .campaign-table-panel__plan span {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   text-transform: none;
 }
 .campaign-performance .campaign-table-panel__plan strong {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 .campaign-performance .campaign-table {
@@ -876,7 +876,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   padding: 13px 16px;
   background: #f7f9f4;
   color: #697960;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: none;
 }
@@ -886,12 +886,12 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .campaign-performance .campaign-table td > strong {
   color: var(--marketing-ink);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 .campaign-performance .campaign-table td > span:not(.campaign-status) {
   color: var(--marketing-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 .campaign-performance .campaign-table tbody tr:hover {
   background: #fbfcf9;
@@ -908,7 +908,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   padding: 5px 8px;
   border: 0;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
 }
 .campaign-performance .campaign-category-strip > div,
@@ -919,7 +919,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 .campaign-performance .campaign-category-strip span,
 .campaign-performance .campaign-plan-banner span {
   color: var(--marketing-muted);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   text-transform: none;
 }
@@ -930,10 +930,10 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   letter-spacing: -0.8px;
 }
 .campaign-performance .campaign-category-strip small {
-  font-size: 11px;
+  font-size: 13px;
 }
 .campaign-performance .campaign-plan-banner strong {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
 }
 .campaign-performance .campaign-plan-grid {
@@ -953,7 +953,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 }
 .campaign-performance .campaign-input-panel__heading span {
   color: var(--marketing-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
 }
 .campaign-performance .campaign-input-mode {
@@ -971,7 +971,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border-radius: 8px;
   color: var(--marketing-muted);
   font-family: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
 }
 .campaign-performance .campaign-input-mode button.is-active {
@@ -986,7 +986,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   gap: 8px;
 }
 .campaign-performance .campaign-input-form label > span {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   text-transform: none;
 }
@@ -997,17 +997,17 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border-radius: var(--marketing-control-radius);
   background: #fff;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
 }
 .campaign-performance .campaign-input-form select {
   width: 100%;
   height: 42px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .campaign-performance .campaign-input-connection {
   padding: 12px 24px;
   border-color: var(--marketing-border);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
 }
 .campaign-performance .campaign-input-connection small {
@@ -1023,7 +1023,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   gap: 16px;
   padding: 0 2px 8px;
   color: var(--marketing-muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
 }
 .marketing-data-notice {
@@ -1033,7 +1033,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   border-radius: 12px;
   background: #fff9eb;
   color: #84683b;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 @media (min-width: 1800px) {
@@ -1084,8 +1084,8 @@ body:has(.campaign-performance) .campaign-performance__intro p {
     justify-content: space-between;
   }
   .campaign-view-tabs.marketing-workspace-tabs a {
-    padding: 8px;
-    font-size: 10.5px;
+    padding: 8px 6px;
+    font-size: 12px;
   }
   body:has(.campaign-performance) .campaign-performance {
     padding: 24px 18px;
@@ -1102,7 +1102,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   body:has(.campaign-performance) .campaign-performance__intro p {
     gap: 6px;
     margin-top: 10px;
-    font-size: 11px;
+    font-size: 13px;
   }
   .marketing-updated {
     flex-basis: 100%;
@@ -1151,7 +1151,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
     align-items: flex-start;
   }
   .marketing-kpi h3 {
-    font-size: 11px;
+    font-size: 13px;
   }
   .marketing-kpi-icon {
     width: 26px;
@@ -1166,7 +1166,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
     font-size: 30px;
   }
   .marketing-kpi small {
-    font-size: 9px;
+    font-size: 11px;
   }
   .marketing-revenue-total {
     font-size: 42px;
@@ -1214,7 +1214,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   .campaign-performance .campaign-performance__footer {
     flex-direction: column;
     gap: 4px;
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
