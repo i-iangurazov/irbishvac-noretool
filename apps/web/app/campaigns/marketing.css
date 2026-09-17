@@ -427,7 +427,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
 .marketing-department-details {
   margin-top: 12px;
 }
-.marketing-department-details summary {
+.marketing-department-toggle {
   display: flex;
   align-items: center;
   gap: 3px;
@@ -438,11 +438,56 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   list-style: none;
   cursor: pointer;
 }
-.marketing-department-details summary::-webkit-details-marker {
-  display: none;
+.marketing-department-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  line-height: inherit;
 }
-.marketing-department-details[open] summary svg {
-  transform: rotate(180deg);
+.marketing-department-popover {
+  position: fixed;
+  inset: 0;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 24px;
+  overflow-y: auto;
+  border: 1px solid var(--marketing-border);
+  border-radius: var(--marketing-radius);
+  background: var(--marketing-surface);
+  color: var(--marketing-ink);
+  box-shadow: 0 16px 56px #23392d26;
+}
+.marketing-department-popover-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.marketing-department-popover-heading h4 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.marketing-department-popover-heading button {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--marketing-border);
+  border-radius: var(--marketing-control-radius);
+  background: var(--marketing-soft);
+  color: var(--marketing-ink);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.marketing-department-popover .marketing-department {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--marketing-border);
 }
 .marketing-department-details small {
   margin-top: 10px;
@@ -1277,7 +1322,7 @@ body:has(.campaign-performance) .campaign-performance__intro p {
   .marketing-table-wrap {
     overflow: visible;
   }
-  .marketing-department-details > div {
-    content-visibility: visible;
+  .marketing-department-popover {
+    display: none;
   }
 }

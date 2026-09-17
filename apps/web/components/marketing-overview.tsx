@@ -153,21 +153,44 @@ export function MarketingOverview({
               </div>
               {departments.slice(0, 3).map(departmentRow)}
               {departments.length > 3 ? (
-                <details className="marketing-department-details">
-                  <summary>
+                <div className="marketing-department-details">
+                  <button
+                    aria-haspopup="dialog"
+                    className="marketing-department-toggle"
+                    popoverTarget="marketing-department-popover"
+                    type="button"
+                  >
                     View all {departments.length} entries
                     <MarketingIcon name="chevron" size={15} />
-                  </summary>
-                  <div>
-                    {departments
-                      .slice(3)
-                      .map((row, index) => departmentRow(row, index + 3))}
+                  </button>
+                  <div
+                    aria-labelledby="marketing-department-popover-title"
+                    className="marketing-department-popover"
+                    id="marketing-department-popover"
+                    popover="auto"
+                    role="dialog"
+                  >
+                    <div className="marketing-department-popover-heading">
+                      <h4 id="marketing-department-popover-title">
+                        Revenue by department
+                      </h4>
+                      <button
+                        aria-label="Close department breakdown"
+                        autoFocus
+                        popoverTarget="marketing-department-popover"
+                        popoverTargetAction="hide"
+                        type="button"
+                      >
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    </div>
+                    {departments.map(departmentRow)}
+                    <small>
+                      Department reporting differences are shown separately as
+                      reconciliation.
+                    </small>
                   </div>
-                  <small>
-                    Department reporting differences are shown separately as
-                    reconciliation.
-                  </small>
-                </details>
+                </div>
               ) : null}
             </>
           ) : (
