@@ -48,6 +48,7 @@ type DashboardShellProps = {
       }
     | undefined;
   headerContent?: ReactNode | undefined;
+  headerNavigation?: ReactNode | undefined;
   contentClassName?: string | undefined;
   children: ReactNode;
 };
@@ -222,6 +223,8 @@ export function DashboardShell(props: DashboardShellProps) {
                   </div>
                 </div>
               </div>
+
+              {props.headerNavigation}
 
               <div className="dashboard-shell__header-actions flex min-w-0 flex-1 items-center justify-end lg:justify-end">
                 <div className="flex min-w-0 flex-1 justify-end">

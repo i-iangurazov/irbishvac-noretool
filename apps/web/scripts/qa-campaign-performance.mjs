@@ -32,7 +32,7 @@ for (const period of periods) {
       const metrics = await page.evaluate(() => {
         const dashboard = document.querySelector("[data-campaign-performance='true']");
         const tables = [...document.querySelectorAll(".campaign-table, .marketing-channel-table")];
-        const tabs = document.querySelectorAll(".campaign-performance .marketing-workspace-tabs a");
+        const tabs = document.querySelectorAll("header .marketing-workspace-tabs a");
         const sources = document.querySelectorAll(".campaign-source");
         const refresh = document.querySelector(".campaign-refresh__button");
         const gauges = document.querySelectorAll(".campaign-gauge");

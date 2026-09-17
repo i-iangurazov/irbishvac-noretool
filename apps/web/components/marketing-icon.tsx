@@ -52,6 +52,8 @@ const paths = {
       <path d="M12 7v5l3 2" />
     </>
   ),
+  broadcast: <><path d="m3 9 13-5v16L3 15V9Zm13-2 4 2v6l-4 2M6 16l1 5h4l-2-4" /></>,
+  layers: <><path d="m12 3 10 6-10 6L2 9l10-6Zm-9 11 9 5 9-5M3 18l9 5 9-5" /></>,
   check: <path d="m5 12 4 4L19 6" />,
 } satisfies Record<string, ReactNode>;
 

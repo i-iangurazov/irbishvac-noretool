@@ -1,4 +1,4 @@
-import { MarketingIcon } from "./marketing-icon";
+import { MarketingIcon, type MarketingIconName } from "./marketing-icon";
 import { MarketingOverview } from "./marketing-overview";
 import { rowCategory, missingPaidSpend, rowCommissionCost, rowTotalCost, totalCommissionCost, totalAcquisitionCost, spendCoverage } from "../lib/campaign-overview";
 import { DashboardShell } from "@irbis/ui";
@@ -184,7 +184,7 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
 
 const CATEGORY_LABEL: Record<CampaignCategory, string> = {
   paid: "Paid channels",
-  "separate-spend": "Separate spend",
+  "separate-spend": "Brand / ATL Marketing",
   organic: "Organic / Online Listings",
   automation: "Automation",
   retention: "Retention",
@@ -195,7 +195,7 @@ const CATEGORY_LABEL: Record<CampaignCategory, string> = {
 const REVENUE_GROUP_LABEL: Record<CampaignRevenueGroup, string> = {
   paid: "Paid channels",
   unpaid: "Unpaid / organic",
-  "separate-spend": "Separate spend",
+  "separate-spend": "Brand / ATL Marketing",
   other: "Other / Unmapped",
 };
 
@@ -346,6 +346,29 @@ function ChannelTable({
   );
 }
 
+function MarketingSummaryCard({ label, value, suffix, detail, footnote, icon, highlight = false, badge }: {
+  label: string;
+  value: string;
+  suffix?: string;
+  detail: string;
+  footnote?: string | undefined;
+  icon: MarketingIconName;
+  highlight?: boolean;
+  badge?: string;
+}) {
+  return (
+    <article className={`marketing-summary-card${highlight ? " marketing-summary-card--highlight" : ""}`}>
+      <div className="marketing-summary-card-heading">
+        <h3>{label}</h3>
+        <span className="marketing-summary-card-icon"><MarketingIcon name={icon} size={21} /></span>
+      </div>
+      <div className="marketing-summary-card-value"><strong>{value}</strong>{suffix ? <span>{suffix}</span> : null}{badge ? <span className="marketing-summary-card-badge">{badge}</span> : null}</div>
+      <p>{detail}</p>
+      {footnote ? <small className="marketing-brand-note">{footnote}</small> : null}
+    </article>
+  );
+}
+
 function RevenueView({ data }: { data: CampaignPerformanceData }) {
   const groupOrder: CampaignRevenueGroup[] = ["paid", "unpaid", "other", "separate-spend"];
   const groups = groupOrder.map((group) => {
@@ -375,11 +398,11 @@ function RevenueView({ data }: { data: CampaignPerformanceData }) {
   const otherGroup = groups.find((group) => group.group === "other")!;
   return (
     <>
-      <section className="campaign-category-strip campaign-revenue-summary" aria-label="Paid and unpaid revenue summary">
-        <div><span>Total completed revenue</span><strong>{formatCompactCurrency(data.actual.completedRevenue)}</strong><small>{formatNumber(data.actual.soldJobs)} sold jobs · {formatCompactCurrency(data.actual.soldAmount)} sales value</small></div>
-        <div><span>Paid channel revenue</span><strong>{formatCompactCurrency(paidGroup.completedRevenue)}</strong><small>{formatMaybePercent(paidGroup.share)} of completed revenue</small></div>
-        <div><span>Unpaid / organic revenue</span><strong>{formatCompactCurrency(unpaidGroup.completedRevenue)}</strong><small>{formatMaybePercent(unpaidGroup.share)} of completed revenue</small></div>
-        <div><span>Other / unmapped revenue</span><strong>{formatCompactCurrency(otherGroup.completedRevenue)}</strong><small>{formatMaybePercent(otherGroup.share)} retained for reconciliation</small></div>
+      <section className="marketing-summary-cards" aria-label="Revenue summary">
+        <MarketingSummaryCard label="Total completed revenue" value={formatCompactCurrency(data.actual.completedRevenue)} detail={`${formatNumber(data.actual.soldJobs)} sold jobs · ${formatCompactCurrency(data.actual.soldAmount)} sales value`} icon="sales" highlight />
+        <MarketingSummaryCard label="Paid channel revenue" value={formatCompactCurrency(paidGroup.completedRevenue)} detail="Share of completed revenue" badge={formatMaybePercent(paidGroup.share)} icon="broadcast" />
+        <MarketingSummaryCard label="Unpaid / organic revenue" value={formatCompactCurrency(unpaidGroup.completedRevenue)} detail="Share of completed revenue" badge={formatMaybePercent(unpaidGroup.share)} icon="users" />
+        <MarketingSummaryCard label="Other / unmapped revenue" value={formatCompactCurrency(otherGroup.completedRevenue)} detail="Retained for reconciliation" badge={formatMaybePercent(otherGroup.share)} icon="layers" />
       </section>
 
       <section className="campaign-table-panel">
@@ -389,7 +412,7 @@ function RevenueView({ data }: { data: CampaignPerformanceData }) {
             const roas = group.group === "paid"
               ? coverage.status === "complete" ? (group.totalCost > 0 ? group.completedRevenue / group.totalCost : null) : coverage.coveredRoas
               : group.group === "other" && group.totalCost > 0 ? group.completedRevenue / group.totalCost : null;
-            return <tr key={group.group}><td><strong>{REVENUE_GROUP_LABEL[group.group]}</strong><span>{group.group === "unpaid" ? "Organic + Automation" : group.group === "paid" && coverage.status !== "complete" ? "ROAS uses covered paid channels" : ""}</span></td><td><strong>{formatNumber(group.rows.length)}</strong></td><td><strong>{formatNumber(group.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(group.soldAmount)}</strong></td><td><strong>{formatCompactCurrency(group.completedRevenue)}</strong></td><td><strong>{formatMaybePercent(group.share)}</strong></td><td><strong>{formatCompactCurrency(group.spend)}</strong><span>{formatCompactCurrency(group.commissionCost)} commission · {formatCompactCurrency(group.totalCost)} total</span></td><td><strong>{roas == null ? "-" : `${roas.toFixed(1)}x${group.group === "paid" && coverage.status !== "complete" ? " covered" : ""}`}</strong></td></tr>;
+            return <tr key={group.group}><td><strong>{REVENUE_GROUP_LABEL[group.group]}</strong><span>{group.group === "separate-spend" ? "Billboards, TV, Radio" : group.group === "unpaid" ? "Organic + Automation" : group.group === "paid" && coverage.status !== "complete" ? "ROAS uses covered paid channels" : ""}</span></td><td><strong>{formatNumber(group.rows.length)}</strong></td><td><strong>{formatNumber(group.soldJobs)}</strong></td><td><strong>{formatCompactCurrency(group.soldAmount)}</strong></td><td><strong>{formatCompactCurrency(group.completedRevenue)}</strong></td><td><strong>{formatMaybePercent(group.share)}</strong></td><td><strong>{formatCompactCurrency(group.spend)}</strong><span>{formatCompactCurrency(group.commissionCost)} commission · {formatCompactCurrency(group.totalCost)} total</span></td><td><strong>{roas == null ? "-" : `${roas.toFixed(1)}x${group.group === "paid" && coverage.status !== "complete" ? " covered" : ""}`}</strong></td></tr>;
           })}
         </tbody></table></div>
       </section>
@@ -419,12 +442,12 @@ function ChannelsView({ data }: { data: CampaignPerformanceData }) {
   }).filter((item) => item.category !== "other" || item.count > 0);
   return (
     <>
-      <section className="campaign-category-strip">
-        {categories.map((item) => <div key={item.category}><span>{CATEGORY_LABEL[item.category]}</span><strong>{formatNumber(item.booked)} booked</strong><small>{formatNumber(item.leads)} leads · {formatCompactCurrency(item.spend)} media · {formatCompactCurrency(item.commissionCost)} commission · {formatCompactCurrency(item.revenue)} revenue</small></div>)}
+      <section className="marketing-summary-cards marketing-summary-cards--channels" aria-label="Channel summary">
+        {categories.map((item) => <MarketingSummaryCard key={item.category} label={CATEGORY_LABEL[item.category]} value={formatNumber(item.booked)} suffix="booked" detail={`${formatNumber(item.leads)} leads · ${formatCompactCurrency(item.spend)} media · ${formatCompactCurrency(item.commissionCost)} commission · ${formatCompactCurrency(item.revenue)} revenue`} footnote={item.category === "separate-spend" ? "Billboards, TV, Radio" : undefined} icon={item.category === "paid" ? "sales" : item.category === "separate-spend" ? "broadcast" : item.category === "organic" ? "users" : item.category === "automation" ? "activity" : "layers"} highlight={item.category === "paid"} />)}
       </section>
       {categories.map((item) => (
         <section className="campaign-table-panel" key={item.category}>
-          <div className="campaign-table-panel__heading"><div><h3>{CATEGORY_LABEL[item.category]}</h3><p>{item.count} normalized channels from Google Sheet and ServiceTitan.</p></div><div className="campaign-table-panel__plan"><span>Booked jobs</span><strong>{formatNumber(item.booked)}</strong><small>{formatCompactCurrency(item.revenue)} revenue</small></div></div>
+          <div className="campaign-table-panel__heading"><div><h3>{CATEGORY_LABEL[item.category]}</h3><p>{item.category === "separate-spend" ? "Billboards, TV, Radio" : `${item.count} normalized channels from Google Sheet and ServiceTitan.`}</p></div><div className="campaign-table-panel__plan"><span>Booked jobs</span><strong>{formatNumber(item.booked)}</strong><small>{formatCompactCurrency(item.revenue)} revenue</small></div></div>
           <ChannelTable rows={data.rows.filter((row) => rowDisplayCategory(row) === item.category)} />
         </section>
       ))}
@@ -518,7 +541,7 @@ export function CampaignPerformancePage({ data, periods, refreshEnabled, view, h
 }) {
   const month = periodId(data);
   return (
-    <DashboardShell activePath="/campaigns" brandLogoUrl={getBrandLogoUrl()} contentClassName="campaign-performance__main" navItems={navItems} title="Marketing Performance" subtitle="Campaign command center" headerContent={<div className="campaign-performance__header-meta"><span>{data.period.label}</span><strong className={`campaign-data-status campaign-data-status--${(data.dataStatus ?? "SNAPSHOT").toLowerCase()}`}>{data.dataStatus ?? "SNAPSHOT"} DATA</strong><em>{data.plan.status}</em></div>}>
+    <DashboardShell activePath="/campaigns" brandLogoUrl={getBrandLogoUrl()} contentClassName="campaign-performance__main" navItems={navItems} title="Marketing Performance" subtitle="Campaign command center" headerNavigation={<nav className="campaign-view-tabs marketing-workspace-tabs" aria-label="Marketing views">{(["overview", "revenue", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & Capacity" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>} headerContent={<div className="campaign-performance__header-meta"><span>{data.period.label}</span><strong className={`campaign-data-status campaign-data-status--${(data.dataStatus ?? "SNAPSHOT").toLowerCase()}`}>{data.dataStatus ?? "SNAPSHOT"} DATA</strong><em>{data.plan.status}</em></div>}>
       <div className="campaign-performance" data-campaign-performance="true">
         <div className="campaign-performance__print-brand"><img alt="IRBIS HVAC" src={getBrandLogoUrl() ?? undefined} /><div><span>IRBIS Heating Air Plumbing</span><strong>Marketing Performance Dashboard</strong></div></div>
         <section className="campaign-performance__intro">
@@ -528,13 +551,11 @@ export function CampaignPerformancePage({ data, periods, refreshEnabled, view, h
             <p><span>{data.period.label} · through {new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${data.period.to}T12:00:00Z`))}</span><span className="marketing-metadata-divider" aria-hidden="true" /><span className="marketing-updated"><MarketingIcon name="clock" size={14} />Updated {sourceTimestamp(data.generatedAt)}</span></p>
           </div>
           <div className="campaign-performance__controls">
-            <CampaignPeriodSelect activeLabel={monthLabel(month, "long")} options={periods.map((period) => ({ active: period.id === month, href: viewHref(period.id, view), label: monthLabel(period.id, "long") }))} />
+            <CampaignPeriodSelect activeLabel={monthLabel(month, "long")} options={periods.map((period) => ({ id: period.id, active: period.id === month, href: viewHref(period.id, view), label: monthLabel(period.id, "long") }))} />
             <CampaignRefreshButton enabled={refreshEnabled} month={month} />
             <PrintReportButton><MarketingIcon name="download" />Export PDF</PrintReportButton>
           </div>
         </section>
-
-        <nav className="campaign-view-tabs marketing-workspace-tabs" aria-label="Marketing views">{(["overview", "revenue", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & Capacity" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>
 
         {unavailableMonth ? <p className="marketing-data-notice" role="status">{monthLabel(unavailableMonth, "long")} data is unavailable. Showing {monthLabel(month, "long")} through {data.period.to}.</p> : null}
         {data.leadDataStatus === "unavailable" ? <p className="marketing-data-notice" role="status">This month’s call-center data is unavailable. Booking and lead metrics will appear when the report is connected and refreshed.</p> : null}
