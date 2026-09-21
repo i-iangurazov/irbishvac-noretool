@@ -83,6 +83,10 @@ describe("Campaigns integration boundary", () => {
     const response = await get(); expect(response.status).toBe(503);
     expect(await response.text()).not.toContain("private connection details");
   });
+  it("recognizes the empty successful response returned by Nest for missing snapshots", async () => {
+    fetchMock.mockImplementation(async () => new Response("", { status: 200 }));
+    expect((await get("performance?month=2020-01")).status).toBe(404);
+  });
   it("marks historical fallbacks explicitly, matching the dashboard", async () => {
     fetchMock.mockRejectedValue(new Error("unavailable"));
     const response = await get("performance?month=2026-08"); const body = await response.json();

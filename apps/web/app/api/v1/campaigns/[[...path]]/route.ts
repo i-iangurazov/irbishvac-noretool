@@ -26,7 +26,9 @@ async function readSnapshot(month: string) {
       cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error("Upstream unavailable");
-    live = await response.json() as CampaignPerformanceData | null;
+    // Nest serializes a null controller result as an empty successful response.
+    const body = await response.text();
+    live = body.trim() ? JSON.parse(body) as CampaignPerformanceData | null : null;
     if (live && (live.period?.from?.slice(0, 7) !== month || !live.actual || !Array.isArray(live.rows) || !Number.isFinite(Date.parse(live.generatedAt)))) throw new Error("Invalid upstream snapshot");
   } catch {
     const fallback = resolveCampaignSnapshot(month, null);
