@@ -1,7 +1,6 @@
 import "./marketing.css";
 import { campaignMonthIds } from "../../lib/campaign-overview";
-import augustCampaignData from "../../data/campaign-performance-august.json";
-import julyCampaignData from "../../data/campaign-performance-july.json";
+import { campaignFallbacks, resolveCampaignSnapshot } from "../../lib/campaign-snapshot";
 import {
   CampaignPerformancePage,
   type CampaignPerformanceData,
@@ -13,10 +12,6 @@ type CampaignsPageProps = {
 };
 
 export default async function CampaignsPage({ searchParams }: CampaignsPageProps) {
-  const fallbackDatasets = [
-    augustCampaignData as CampaignPerformanceData,
-    julyCampaignData as CampaignPerformanceData,
-  ];
   const params: Record<string, string | string[] | undefined> = await (
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>)
   );
@@ -29,11 +24,7 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     timeZone: process.env.APP_TIMEZONE ?? "America/Los_Angeles"
   }).format(new Date());
   const requestedMonth = typeof params.month === "string" ? params.month : currentMonth;
-  const fallbackByMonth = new Map(fallbackDatasets.map((fallback) => [
-    fallback.period.id ?? fallback.period.from.slice(0, 7),
-    fallback,
-  ]));
-  const monthIds = campaignMonthIds(currentMonth, requestedMonth, [...fallbackByMonth.keys()]);
+  const monthIds = campaignMonthIds(currentMonth, requestedMonth, [...campaignFallbacks.keys()]);
   const liveDatasets = await Promise.all(monthIds.map(async (month) => {
     try {
       return await fetchApi<CampaignPerformanceData | null>(
@@ -44,24 +35,8 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     }
   }));
   const periodDatasets = monthIds.flatMap((month, index) => {
-    const fallback = fallbackByMonth.get(month);
-    const live = liveDatasets[index];
-    if (live && (!fallback || Date.parse(live.generatedAt) >= Date.parse(fallback.generatedAt))) {
-      return [live];
-    }
-    if (!fallback) return [];
-    return [{
-      ...fallback,
-      dataStatus: "SNAPSHOT" as const,
-      plan: {
-        ...fallback.plan,
-        approvalStatus: "draft" as const,
-        version: `${month}-snapshot-model`,
-        originalPlanLocked: true,
-        status: month === "2026-08" ? "DRAFT MODEL - APPROVAL REQUIRED" : fallback.plan.status
-      },
-      sources: fallback.sources.map((source) => ({ ...source, status: "stale" as const, refreshedAt: fallback.generatedAt }))
-    }];
+    const resolved = resolveCampaignSnapshot(month, liveDatasets[index] ?? null);
+    return resolved ? [resolved] : [];
   });
   const data = periodDatasets.find((dataset) => (dataset.period.id ?? dataset.period.from.slice(0, 7)) === requestedMonth)
     ?? periodDatasets.at(-1)!;

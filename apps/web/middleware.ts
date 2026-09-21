@@ -1,12 +1,13 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
 import {
+  isCampaignIntegrationPath,
   isPublicAuthPath,
   resolvePublicRequestUrl,
 } from "./lib/auth-policy";
 import { isAllowedDashboardIdentity } from "./lib/dashboard-identity";
 
-export default clerkMiddleware(async (auth, request) => {
+const authenticatedMiddleware = clerkMiddleware(async (auth, request) => {
   if (isPublicAuthPath(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
@@ -37,6 +38,11 @@ export default clerkMiddleware(async (auth, request) => {
 
   return NextResponse.next();
 });
+
+export default function middleware(request: NextRequest, event: NextFetchEvent) {
+  if (isCampaignIntegrationPath(request.nextUrl.pathname)) return NextResponse.next();
+  return authenticatedMiddleware(request, event);
+}
 
 export const config = {
   matcher: [

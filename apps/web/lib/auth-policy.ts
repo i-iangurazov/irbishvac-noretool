@@ -1,5 +1,10 @@
 export const IRBIS_EMAIL_DOMAIN = "irbishvac.com";
 
+// These routes enforce their own scoped bearer-key authentication.
+export function isCampaignIntegrationPath(pathname: string) {
+  return pathname === "/api/v1/campaigns" || pathname.startsWith("/api/v1/campaigns/");
+}
+
 export function isAllowedIrbisEmail(value: unknown): value is string {
   if (typeof value !== "string") {
     return false;
