@@ -24,7 +24,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
+  kitchenBusinessDate,
   kitchenCelebrations,
+  kitchenDateKey,
   kitchenOrgPages,
   type KitchenBoardData,
   type KitchenEmployee,
@@ -45,10 +47,12 @@ type Slide = {
   id: string;
   org?: KitchenOrgPage;
   events?: KitchenCelebration[];
+  today?: boolean;
   news?: KitchenNews;
   page: number;
   pages: number;
 };
+const SCREEN_SECONDS = 5;
 const TABS: { kind: Kind; label: string; icon: LucideIcon }[] = [
   { kind: "org", label: "Our people", icon: UsersRound },
   { kind: "birthdays", label: "Birthdays", icon: Cake },
@@ -210,18 +214,34 @@ export function buildKitchenSlides(
     now,
     data.timezone,
   );
+  const todaySlides: Slide[] = [];
   for (const kind of ["birthdays", "anniversaries"] as const) {
     const events = celebrations[kind];
     if (!events.length)
       slides.push({ kind, id: `${kind}-empty`, events: [], page: 1, pages: 1 });
-    for (let offset = 0; offset < events.length; offset += pageSize) {
-      slides.push({
-        kind,
-        id: `${kind}-${offset}`,
-        events: events.slice(offset, offset + pageSize),
-        page: offset / pageSize + 1,
-        pages: Math.ceil(events.length / pageSize),
-      });
+    const today = events.filter((event) => event.isToday);
+    const otherDays = events.filter((event) => !event.isToday);
+    const todayPages = Math.ceil(today.length / pageSize);
+    const pages = todayPages + Math.ceil(otherDays.length / pageSize);
+    for (const group of [
+      { events: today, today: true, target: todaySlides, pageOffset: 0 },
+      {
+        events: otherDays,
+        today: false,
+        target: slides,
+        pageOffset: todayPages,
+      },
+    ]) {
+      for (let offset = 0; offset < group.events.length; offset += pageSize) {
+        group.target.push({
+          kind,
+          id: `${kind}-${group.today ? "today" : "month"}-${offset}`,
+          events: group.events.slice(offset, offset + pageSize),
+          today: group.today,
+          page: group.pageOffset + offset / pageSize + 1,
+          pages,
+        });
+      }
     }
   }
   const announcements = data.news.flatMap((news) =>
@@ -242,7 +262,7 @@ export function buildKitchenSlides(
       pages: announcements.length,
     }),
   );
-  return slides;
+  return [...todaySlides, ...slides];
 }
 
 /** Empty sections remain available manually but never occupy an unattended TV screen. */
@@ -311,12 +331,10 @@ function Celebration({
 export function KitchenBoard({
   tvMode,
   autoplay,
-  intervalSeconds = 20,
   initialData,
 }: {
   tvMode: boolean;
   autoplay: boolean;
-  intervalSeconds?: number;
   initialData?: KitchenBoardData;
 }) {
   const [data, setData] = useState<KitchenBoardData | null>(
@@ -329,7 +347,6 @@ export function KitchenBoard({
   const [retry, setRetry] = useState(0);
   const [pageSize, setPageSize] = useState(3);
   const boardRef = useRef<HTMLDivElement>(null);
-  const seconds = Math.min(120, Math.max(10, intervalSeconds));
 
   useEffect(() => {
     const update = () => {
@@ -405,6 +422,24 @@ export function KitchenBoard({
   );
   const slidesRef = useRef(slides);
   slidesRef.current = slides;
+  const priorityKey = data
+    ? `${kitchenDateKey(kitchenBusinessDate(now, data.timezone))}:${slides
+        .filter((item) => item.today)
+        .flatMap((item) =>
+          item.events!.map((event) => `${item.kind}:${event.employee.id}`),
+        )
+        .join(",")}`
+    : "";
+  const previousPriorityKey = useRef(priorityKey);
+  useEffect(() => {
+    // A new company day or a newly synced celebration takes priority once.
+    // Ordinary calendar ticks and roster refreshes must not replay it.
+    if (running && priorityKey !== previousPriorityKey.current) {
+      const priority = slidesRef.current.findIndex((item) => item.today);
+      if (priority >= 0) setSlideIndex(priority);
+    }
+    previousPriorityKey.current = priorityKey;
+  }, [priorityKey, running]);
   const currentIndex = slides.length ? slideIndex % slides.length : 0;
   const slide = slides[currentIndex];
   useEffect(() => {
@@ -426,10 +461,10 @@ export function KitchenBoard({
         setSlideIndex((index) =>
           nextKitchenSlide(slidesRef.current, index % slidesRef.current.length),
         );
-    }, seconds * 1000);
+    }, SCREEN_SECONDS * 1000);
     return () => window.clearInterval(timer);
     // The content refresh must not restart the current screen's timer.
-  }, [running, slides.length, seconds]);
+  }, [running, slides.length, priorityKey]);
 
   const navigate = (delta: number) => {
     setRunning(false);
@@ -443,6 +478,19 @@ export function KitchenBoard({
         slides.findIndex((item) => item.kind === kind),
       ),
     );
+  };
+  const togglePlayback = () => {
+    if (!running) {
+      const priority = slides.findIndex((item) => item.today);
+      if (priority >= 0) setSlideIndex(priority);
+      else if (
+        !slide?.org?.employees.length &&
+        !slide?.events?.length &&
+        !slide?.news
+      )
+        setSlideIndex(nextKitchenSlide(slides, currentIndex));
+    }
+    setRunning(!running);
   };
   const dateFormat = (options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat("en-US", {
@@ -466,9 +514,13 @@ export function KitchenBoard({
         ? `${slide.org.manager.name}’s team`
         : "Meet our team"
       : slide?.kind === "birthdays"
-        ? `${month} birthdays`
+        ? slide.today
+          ? "Today’s birthdays"
+          : `${month} birthdays`
         : slide?.kind === "anniversaries"
-          ? "Work anniversaries"
+          ? slide.today
+            ? "Today’s work anniversaries"
+            : "Work anniversaries"
           : "Company news";
   const isReady = data?.status === "ready" && slide;
 
@@ -632,7 +684,7 @@ export function KitchenBoard({
                 className="kitchen-play-toggle"
                 aria-label={running ? "Pause rotation" : "Start rotation"}
                 aria-pressed={running}
-                onClick={() => setRunning(!running)}
+                onClick={togglePlayback}
               >
                 {running ? (
                   <Pause aria-hidden="true" />
@@ -676,7 +728,7 @@ export function KitchenBoard({
             </span>
             <span>
               {currentIndex + 1} of {slides.length} screens
-              {running ? ` · ${seconds}s per screen` : " · Paused"}
+              {running ? ` · ${SCREEN_SECONDS}s per screen` : " · Paused"}
             </span>
           </div>
         </>

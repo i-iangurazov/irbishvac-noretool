@@ -74,7 +74,8 @@ afterEach(() => {
 
 describe("kitchen TV", () => {
   it("skips empty sections during unattended rotation while keeping them available manually", () => {
-    const slides = buildKitchenSlides(makeData(), new Date());
+    const now = new Date("2026-09-22T12:00:00Z");
+    const slides = buildKitchenSlides(makeData(), now);
     const anniversary = slides.findIndex(
       (slide) => slide.kind === "anniversaries",
     );
@@ -90,7 +91,7 @@ describe("kitchen TV", () => {
         endsOn: null,
       },
     ];
-    const published = buildKitchenSlides(withNews, new Date());
+    const published = buildKitchenSlides(withNews, now);
     expect(published[nextKitchenSlide(published, anniversary)]?.kind).toBe(
       "news",
     );
@@ -141,30 +142,100 @@ describe("kitchen TV", () => {
     );
     expect(host.textContent).toContain("Manager Example");
   });
-  it("rotates through the complete org chart and celebration/news sections, and pauses on request", () => {
+  it("shows today's celebrations first and rotates every five seconds through the complete board", () => {
+    const data = makeData();
+    data.news = [
+      {
+        id: "one",
+        title: "Office update",
+        body: "A real update.",
+        startsOn: null,
+        endsOn: null,
+      },
+    ];
+    act(() => root.render(<KitchenBoard tvMode autoplay initialData={data} />));
+    const kind = () =>
+      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind");
+    expect(kind()).toBe("birthdays");
+    expect(host.textContent).toContain("Today’s birthdays");
+    expect(host.textContent).toContain("5s per screen");
+    expect(host.textContent).toContain("Manager Example");
+    expect(host.textContent).not.toContain("Employee Example");
+    act(() => vi.advanceTimersByTime(4_999));
+    expect(kind()).toBe("birthdays");
+    act(() => vi.advanceTimersByTime(1));
+    expect(kind()).toBe("anniversaries");
+    expect(host.textContent).toContain("Today’s work anniversaries");
+    expect(host.textContent).toContain("6");
+    for (const expected of [
+      "org",
+      "org",
+      "birthdays",
+      "anniversaries",
+      "news",
+      "birthdays",
+    ]) {
+      act(() => vi.advanceTimersByTime(5_000));
+      expect(kind()).toBe(expected);
+    }
+    act(() => button("Pause rotation").click());
+    act(() => vi.advanceTimersByTime(80_000));
+    expect(kind()).toBe("birthdays");
+    expect(host.textContent).toContain("Paused");
+    act(() => button("Next screen").click());
+    expect(kind()).toBe("anniversaries");
+  });
+
+  it("starts desktop Play with today's celebrations even after manually browsing the org chart", () => {
+    act(() =>
+      root.render(
+        <KitchenBoard
+          tvMode={false}
+          autoplay={false}
+          initialData={makeData()}
+        />,
+      ),
+    );
+    const peopleTab = Array.from(host.querySelectorAll("button")).find(
+      (item) => item.textContent === "Our people",
+    )!;
+    act(() => peopleTab.click());
+    expect(
+      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind"),
+    ).toBe("org");
+    act(() => button("Start rotation").click());
+    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
+    expect(host.textContent).toContain("5s per screen");
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(host.querySelector("h1")?.textContent).toBe(
+      "Today’s work anniversaries",
+    );
+  });
+
+  it("prioritizes a new company day's celebrations without a reload and gives them a full five seconds", () => {
+    // Still September 23 at IRBIS, although the browser's UTC date is September 24.
+    vi.setSystemTime(new Date("2026-09-24T06:59:50Z"));
     act(() =>
       root.render(<KitchenBoard tvMode autoplay initialData={makeData()} />),
     );
-    const kind = () =>
-      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind");
-    expect(kind()).toBe("org");
-    act(() => {
-      vi.advanceTimersByTime(40_000);
-    });
-    expect(kind()).toBe("birthdays");
-    expect(host.textContent).toContain("September birthdays");
-    act(() => button("Pause rotation").click());
-    act(() => {
-      vi.advanceTimersByTime(80_000);
-    });
-    expect(kind()).toBe("birthdays");
-    act(() => button("Next screen").click());
-    expect(kind()).toBe("anniversaries");
-    expect(host.textContent).toContain("6");
-    act(() => button("Next screen").click());
-    expect(kind()).toBe("news");
-    act(() => button("Next screen").click());
-    expect(kind()).toBe("org");
+    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
+    expect(host.querySelector(".kitchen-stage")?.textContent).toContain(
+      "Manager Example",
+    );
+    act(() => vi.advanceTimersByTime(30_000));
+    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
+    expect(host.querySelector(".kitchen-stage")?.textContent).toContain(
+      "Employee Example",
+    );
+    expect(host.querySelector(".kitchen-stage")?.textContent).not.toContain(
+      "Manager Example",
+    );
+    act(() => vi.advanceTimersByTime(4_999));
+    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
+    act(() => vi.advanceTimersByTime(1));
+    expect(host.querySelector("h1")?.textContent).toBe(
+      "Today’s work anniversaries",
+    );
   });
 
   it("keeps every celebration visible when a month needs multiple screens", () => {
@@ -178,6 +249,107 @@ describe("kitchen TV", () => {
     const birthdays = slides.filter((slide) => slide.kind === "birthdays");
     expect(birthdays).toHaveLength(4);
     expect(birthdays.flatMap((slide) => slide.events ?? [])).toHaveLength(19);
+  });
+
+  it("places all of today's pages ahead of the org chart without duplicating or dropping monthly events", () => {
+    const data = makeData();
+    const today = data.directory.employees.find((person) => person.id === "a")!;
+    const otherDay = data.directory.employees.find(
+      (person) => person.id === "b",
+    )!;
+    data.directory.employees = [
+      ...Array.from({ length: 7 }, (_, i) => ({
+        ...today,
+        id: `today-${i}`,
+        managerId: null,
+      })),
+      otherDay,
+    ];
+    const slides = buildKitchenSlides(data, new Date(), 3);
+    expect(slides.slice(0, 6).map((slide) => slide.kind)).toEqual([
+      "birthdays",
+      "birthdays",
+      "birthdays",
+      "anniversaries",
+      "anniversaries",
+      "anniversaries",
+    ]);
+    expect(
+      slides
+        .slice(0, 6)
+        .every((slide) => slide.events?.every((event) => event.isToday)),
+    ).toBe(true);
+    expect(slides[6]?.kind).toBe("org");
+    for (const kind of ["birthdays", "anniversaries"]) {
+      const events = slides
+        .filter((slide) => slide.kind === kind)
+        .flatMap((slide) => slide.events ?? []);
+      expect(events).toHaveLength(8);
+      expect(new Set(events.map((event) => event.employee.id)).size).toBe(8);
+      expect(events.at(-1)?.isToday).toBe(false);
+    }
+  });
+
+  it("keeps the org chart first when there are no celebrations today", () => {
+    vi.setSystemTime(new Date("2026-09-22T12:00:00Z"));
+    act(() =>
+      root.render(<KitchenBoard tvMode autoplay initialData={makeData()} />),
+    );
+    expect(
+      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind"),
+    ).toBe("org");
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(
+      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind"),
+    ).toBe("org");
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(host.querySelector("h1")?.textContent).toBe("September birthdays");
+  });
+
+  it("continues through routine refreshes and prioritizes a newly synced birthday once", async () => {
+    const data = makeData();
+    data.news = [
+      {
+        id: "one",
+        title: "Office update",
+        body: "A real update.",
+        startsOn: null,
+        endsOn: null,
+      },
+    ];
+    const updated = structuredClone(data);
+    updated.directory.employees.push({
+      ...data.directory.employees.find((person) => person.id === "a")!,
+      id: "new",
+      name: "Late Sync Example",
+      managerId: null,
+      originalHireDate: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => data })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => structuredClone(data),
+        })
+        .mockResolvedValue({ ok: true, json: async () => updated }),
+    );
+    await act(async () => root.render(<KitchenBoard tvMode autoplay />));
+    await act(async () => vi.advanceTimersByTimeAsync(60_000));
+    expect(host.querySelector("h1")?.textContent).toBe("Work anniversaries");
+    await act(async () => vi.advanceTimersByTimeAsync(5_000));
+    expect(host.querySelector("h1")?.textContent).toBe("Company news");
+    await act(async () => vi.advanceTimersByTimeAsync(55_000));
+    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
+    expect(host.querySelector(".kitchen-stage")?.textContent).toContain(
+      "Late Sync Example",
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(5_000));
+    expect(host.querySelector("h1")?.textContent).toBe(
+      "Today’s work anniversaries",
+    );
   });
 
   it("rolls over the celebration month without a page reload", () => {

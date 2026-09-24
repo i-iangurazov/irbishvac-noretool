@@ -15,7 +15,6 @@ export default async function KitchenPage({
   const params = await searchParams;
   const tv = params.tv === "1";
   const kiosk = tv && params.kiosk === "1";
-  const seconds = Math.min(120, Math.max(10, Number(params.seconds) || 20));
   return (
     <DashboardShell
       title="People & Company News"
@@ -34,11 +33,7 @@ export default async function KitchenPage({
         </a>
       }
     >
-      <KitchenBoard
-        tvMode={tv}
-        autoplay={tv && params.rotate !== "0"}
-        intervalSeconds={seconds}
-      />
+      <KitchenBoard tvMode={tv} autoplay={tv && params.rotate !== "0"} />
     </DashboardShell>
   );
 }
