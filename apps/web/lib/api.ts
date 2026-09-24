@@ -10,6 +10,13 @@ export type DashboardNavItem = {
 
 export const navItems: DashboardNavItem[] = [
   {
+    id: "kitchen",
+    href: "/kitchen",
+    label: "People & Company News",
+    shortLabel: "PN",
+    section: "Company",
+  },
+  {
     id: "company-wide",
     href: "/company-wide",
     label: "Company-wide",
@@ -94,10 +101,10 @@ export const navItems: DashboardNavItem[] = [
     section: "Demand",
   },
   {
-    id: "campaigns",
-    href: "/campaigns",
-    label: "Campaigns",
-    shortLabel: "CM",
+    id: "marketing",
+    href: "/marketing",
+    label: "Marketing",
+    shortLabel: "MK",
     section: "Demand",
   },
   {

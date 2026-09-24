@@ -178,3 +178,11 @@ model GoalTrackerEntry {
   @@unique([year, monthIndex])
   @@index([year, monthIndex])
 }
+
+// Contains only active employees and the fields used on the kitchen board.
+// Birthdays are stored as month/day, never as a full date of birth.
+model KitchenSnapshot {
+  id          String   @id @default("current")
+  payloadJson Json
+  syncedAt    DateTime
+}

@@ -99,6 +99,13 @@ export function getConfig() {
         env.NODE_ENV === "production",
       )
     },
+    rippling: {
+      token: env.RIPPLING_API_TOKEN,
+      apiVersion: env.RIPPLING_API_VERSION,
+      syncIntervalMinutes: env.RIPPLING_SYNC_INTERVAL_MINUTES,
+      maxStaleHours: env.RIPPLING_MAX_STALE_HOURS,
+      newsJson: env.KITCHEN_NEWS_JSON
+    },
     serviceTitan: {
       tenantId: env.SERVICETITAN_TENANT_ID,
       clientId: env.SERVICETITAN_CLIENT_ID,

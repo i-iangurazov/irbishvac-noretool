@@ -23,7 +23,7 @@ const boards = [
   "Call Center Summary: /call-center/summary",
   "Call Center By CSR: /call-center/by-csr",
   "Lead Generation: /leads",
-  "Campaigns: /campaigns"
+  "Marketing: /marketing"
 ];
 
 const dailyChecks = [

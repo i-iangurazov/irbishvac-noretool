@@ -18,7 +18,7 @@ describe("dashboard filter helpers", () => {
     expect(supportsDashboardRotation("/plumbing-install")).toBe(true);
     expect(supportsDashboardRotation("/electrical-install")).toBe(true);
     expect(supportsDashboardRotation("/company-wide")).toBe(false);
-    expect(supportsDashboardRotation("/campaigns")).toBe(false);
+    expect(supportsDashboardRotation("/marketing")).toBe(false);
 
     const supported = await resolveDashboardFilters(
       { preset: "mtd", tv: "1", rotate: "1" },
@@ -51,7 +51,7 @@ describe("dashboard filter helpers", () => {
 
   it("does not add rotate params for unsupported dashboard paths", () => {
     const href = buildRotationHref(
-      "/campaigns",
+      "/marketing",
       {
         preset: "mtd",
         from: "2026-03-01",
@@ -63,7 +63,7 @@ describe("dashboard filter helpers", () => {
       true,
     );
 
-    expect(href).toBe("/campaigns?preset=ytd&tv=1");
+    expect(href).toBe("/marketing?preset=ytd&tv=1");
   });
 
   it("parses and preserves selected TV rotation boards", async () => {

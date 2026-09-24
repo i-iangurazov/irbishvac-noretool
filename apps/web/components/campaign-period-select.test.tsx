@@ -14,9 +14,9 @@ beforeEach(() => {
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => root.render(<CampaignPeriodSelect activeLabel="September 2026" options={[
-    { id: "2025-12", active: false, href: "/campaigns?month=2025-12&view=revenue", label: "December 2025" },
-    { id: "2026-08", active: false, href: "/campaigns?month=2026-08&view=revenue", label: "August 2026" },
-    { id: "2026-09", active: true, href: "/campaigns?month=2026-09&view=revenue", label: "September 2026" },
+    { id: "2025-12", active: false, href: "/marketing?month=2025-12&view=revenue", label: "December 2025" },
+    { id: "2026-08", active: false, href: "/marketing?month=2026-08&view=revenue", label: "August 2026" },
+    { id: "2026-09", active: true, href: "/marketing?month=2026-09&view=revenue", label: "September 2026" },
   ]} />));
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); });
@@ -28,7 +28,7 @@ describe("reporting month calendar", () => {
     open();
     expect(container.querySelectorAll(".campaign-calendar-months > *")).toHaveLength(12);
     expect(container.querySelectorAll(".campaign-calendar-months button:disabled")).toHaveLength(10);
-    expect(container.querySelector('a[aria-label="August 2026"]')?.getAttribute("href")).toBe("/campaigns?month=2026-08&view=revenue");
+    expect(container.querySelector('a[aria-label="August 2026"]')?.getAttribute("href")).toBe("/marketing?month=2026-08&view=revenue");
     expect(document.activeElement?.getAttribute("aria-label")).toBe("September 2026");
     expect(button("Next year").disabled).toBe(true);
   });

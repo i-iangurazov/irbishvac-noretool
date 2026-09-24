@@ -240,7 +240,7 @@ function periodId(data: CampaignPerformanceData) {
 }
 
 function viewHref(month: string, view: CampaignView) {
-  return `/campaigns?month=${encodeURIComponent(month)}&view=${view}`;
+  return `/marketing?month=${encodeURIComponent(month)}&view=${view}`;
 }
 
 function CampaignGauge({
@@ -541,7 +541,7 @@ export function CampaignPerformancePage({ data, periods, refreshEnabled, view, h
 }) {
   const month = periodId(data);
   return (
-    <DashboardShell activePath="/campaigns" brandLogoUrl={getBrandLogoUrl()} contentClassName="campaign-performance__main" navItems={navItems} title="Marketing Performance" subtitle="Campaign command center" headerNavigation={<nav className="campaign-view-tabs marketing-workspace-tabs" aria-label="Marketing views">{(["overview", "revenue", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & Capacity" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>} headerContent={<div className="campaign-performance__header-meta"><span>{data.period.label}</span><strong className={`campaign-data-status campaign-data-status--${(data.dataStatus ?? "SNAPSHOT").toLowerCase()}`}>{data.dataStatus ?? "SNAPSHOT"} DATA</strong><em>{data.plan.status}</em></div>}>
+    <DashboardShell activePath="/marketing" brandLogoUrl={getBrandLogoUrl()} contentClassName="campaign-performance__main" navItems={navItems} title="Marketing" subtitle="Marketing performance" headerNavigation={<nav className="campaign-view-tabs marketing-workspace-tabs" aria-label="Marketing views">{(["overview", "revenue", "channels", "plan", "history"] as CampaignView[]).map((item) => <a aria-current={item === view ? "page" : undefined} className={item === view ? "is-active" : ""} href={viewHref(month, item)} key={item}>{item === "plan" ? "Plan & Capacity" : item[0]!.toUpperCase() + item.slice(1)}</a>)}</nav>} headerContent={<div className="campaign-performance__header-meta"><span>{data.period.label}</span><strong className={`campaign-data-status campaign-data-status--${(data.dataStatus ?? "SNAPSHOT").toLowerCase()}`}>{data.dataStatus ?? "SNAPSHOT"} DATA</strong><em>{data.plan.status}</em></div>}>
       <div className="campaign-performance" data-campaign-performance="true">
         <div className="campaign-performance__print-brand"><img alt="IRBIS HVAC" src={getBrandLogoUrl() ?? undefined} /><div><span>IRBIS Heating Air Plumbing</span><strong>Marketing Performance Dashboard</strong></div></div>
         <section className="campaign-performance__intro">

@@ -7,11 +7,13 @@ import {
 } from "../../components/campaign-performance-page";
 import { fetchApi } from "../../lib/api";
 
-type CampaignsPageProps = {
+export const metadata = { title: "Marketing | IRBIS" };
+
+type MarketingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function CampaignsPage({ searchParams }: CampaignsPageProps) {
+export default async function MarketingPage({ searchParams }: MarketingPageProps) {
   const params: Record<string, string | string[] | undefined> = await (
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>)
   );

@@ -6,6 +6,9 @@ const assetOrigin = new URL(
 );
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [{ source: "/campaigns", destination: "/marketing", permanent: true }];
+  },
   images: {
     remotePatterns: [
       {

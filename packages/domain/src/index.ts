@@ -9,3 +9,5 @@ export * from "./metrics/installers";
 export * from "./metrics/lead-generation";
 export * from "./metrics/technicians";
 export * from "./shared/report";
+
+export * from "./kitchen-board";

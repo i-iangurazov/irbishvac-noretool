@@ -33,6 +33,7 @@ describe("IRBIS authentication policy", () => {
     expect(isPublicAuthPath("/sign-up")).toBe(true);
     expect(isPublicAuthPath("/access-denied")).toBe(true);
     expect(isPublicAuthPath("/campaigns")).toBe(false);
+    expect(isPublicAuthPath("/marketing")).toBe(false);
     expect(isPublicAuthPath("/api/dashboard/campaigns")).toBe(false);
   });
 

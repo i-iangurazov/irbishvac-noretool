@@ -26,7 +26,7 @@ for (const period of periods) {
   for (const view of views) {
     for (const viewport of viewports) {
       const page = await browser.newPage({ viewport });
-      await page.goto(`${baseUrl}/campaigns?month=${period.id}&view=${view}`, { waitUntil: "networkidle" });
+      await page.goto(`${baseUrl}/marketing?month=${period.id}&view=${view}`, { waitUntil: "networkidle" });
       await page.screenshot({ path: resolve(outputDir, `${period.id}-${view}-${viewport.name}.png`), fullPage: true });
 
       const metrics = await page.evaluate(() => {
@@ -62,7 +62,7 @@ for (const period of periods) {
   }
 
   const pdfPage = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-  await pdfPage.goto(`${baseUrl}/campaigns?month=${period.id}&view=overview`, { waitUntil: "networkidle" });
+  await pdfPage.goto(`${baseUrl}/marketing?month=${period.id}&view=overview`, { waitUntil: "networkidle" });
   await pdfPage.pdf({
     path: resolve(outputDir, `../${period.pdf}`),
     format: "Letter",

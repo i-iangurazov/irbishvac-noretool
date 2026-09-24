@@ -49,7 +49,7 @@ Use the menu button in the dashboard header to move between views.
 | Call Center Summary | `/call-center/summary` | Call center KPI summary. |
 | Call Center By CSR | `/call-center/by-csr` | CSR-level call center metrics. |
 | Lead Generation | `/leads` | Lead source performance. |
-| Campaigns | `/campaigns` | Campaign performance. |
+| Marketing | `/marketing` | Campaign performance. |
 
 ## Filters And Display Modes
 

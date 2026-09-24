@@ -12,7 +12,7 @@ const routes = [
   "/call-center/summary",
   "/call-center/by-csr",
   "/leads",
-  "/campaigns"
+  "/marketing"
 ];
 
 for (const route of routes) {
