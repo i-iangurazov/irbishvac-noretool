@@ -1,74 +1,20 @@
-import { LeaderboardPage, ratio } from "../../../components/leaderboard-page";
+import type { CsrPerformanceDashboard } from "@irbis/domain";
 import { fetchApi } from "../../../lib/api";
 import { resolveDashboardFilters } from "../../../lib/dashboard-filters";
+import { CsrDashboard } from "../csr-dashboard";
 
-type CallCenterByCsrPageProps = {
+export default async function CallCenterByCsrPage({
+  searchParams,
+}: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function CallCenterByCsrPage({ searchParams }: CallCenterByCsrPageProps) {
+}) {
   const filters = await resolveDashboardFilters(
     searchParams,
     "America/Los_Angeles",
     "/call-center/by-csr",
   );
-  const data = await fetchApi<{
-    rowsRanked: Array<{
-      name: string;
-      role: string | null;
-      photoUrl?: string | null;
-      leadsReceived: number;
-      inboundCallsBooked: number;
-      manualCallsBooked: number;
-      totalJobsBooked: number;
-      callBookingRate: number;
-      cancelledBeforeDispatch: number;
-      cancellationRate: number;
-    }>;
-    summary: {
-      leadCalls: number;
-      inboundBooked: number;
-      manualBooked: number;
-      totalJobs: number;
-      bookingRate: number;
-      cancelledBeforeDispatch: number;
-      cancellationRate: number;
-    };
-    snapshotTime: string | null;
-  }>(`/dashboard/call-center/by-csr?${filters.apiQueryString}`);
-
-  return (
-    <LeaderboardPage
-      path="/call-center/by-csr"
-      title="Call Center Performance By CSR"
-      subtitle="CSR-by-CSR leaderboard preserving the current ranking and booking-rate semantics."
-      freshness={data.snapshotTime}
-      filters={filters}
-      layout="people-showcase"
-      maxVisibleItems={3}
-      useHeadshots={true}
-      kpis={[
-        { label: "Lead Calls", value: String(data.summary.leadCalls) },
-        { label: "Inbound Booked", value: String(data.summary.inboundBooked) },
-        { label: "Manual Booked", value: String(data.summary.manualBooked) },
-        { label: "Booking Rate", value: ratio(data.summary.bookingRate) },
-        { label: "Cancelled", value: String(data.summary.cancelledBeforeDispatch) }
-      ]}
-      items={data.rowsRanked.map((row) => ({
-        title: row.name,
-        subtitle: row.role ?? undefined,
-        imageUrl: row.photoUrl,
-        valueLabel: "Call Booking Rate",
-        value: ratio(row.callBookingRate),
-        stats: [
-          { label: "Lead Calls", value: String(row.leadsReceived) },
-          { label: "Inbound", value: String(row.inboundCallsBooked) },
-          { label: "Manual", value: String(row.manualCallsBooked) },
-          { label: "Total Jobs", value: String(row.totalJobsBooked) },
-          { label: "Cancelled", value: String(row.cancelledBeforeDispatch) },
-          { label: "Cancellation %", value: ratio(row.cancellationRate) }
-        ]
-      }))}
-    />
+  const data = await fetchApi<CsrPerformanceDashboard>(
+    `/dashboard/call-center/by-csr?${filters.apiQueryString}`,
   );
+  return <CsrDashboard data={data} filters={filters} view="by-csr" />;
 }

@@ -1,0 +1,131 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, ChevronDown, RefreshCw } from "lucide-react";
+
+export function CsrAvatar({ name, src }: { name: string; src: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const initials = name
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .filter((_, index, parts) => index === 0 || index === parts.length - 1)
+    .join("");
+  return (
+    <span className="csr-avatar" aria-label={name}>
+      <span aria-hidden="true">{initials}</span>
+      {src && !failed ? (
+        <img src={src} alt={name} onError={() => setFailed(true)} />
+      ) : null}
+    </span>
+  );
+}
+
+export function CsrPeriodPicker({
+  from,
+  to,
+  label,
+  query,
+}: {
+  from: string;
+  to: string;
+  label: string;
+  query: string;
+}) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  const [start, setStart] = useState(from);
+  const [end, setEnd] = useState(to);
+  useEffect(() => {
+    const close = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node))
+        ref.current.open = false;
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && ref.current) {
+        ref.current.open = false;
+        ref.current.querySelector("summary")?.focus();
+      }
+    };
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", escape);
+    };
+  }, []);
+  return (
+    <details className="csr-period" ref={ref}>
+      <summary className="csr-button">
+        <CalendarDays size={17} />
+        <span>{label}</span>
+        <ChevronDown size={15} />
+      </summary>
+      <form className="csr-period__popover" method="get">
+        {Array.from(new URLSearchParams(query))
+          .filter(([key]) => !["from", "to", "range", "page"].includes(key))
+          .map(([key, value]) => (
+            <input type="hidden" key={key} name={key} value={value} />
+          ))}
+        <input type="hidden" name="range" value="fixed" />
+        <label>
+          From
+          <input
+            aria-label="Start date"
+            name="from"
+            type="date"
+            required
+            max={end}
+            value={start}
+            onChange={(event) => setStart(event.target.value)}
+          />
+        </label>
+        <label>
+          To
+          <input
+            aria-label="End date"
+            name="to"
+            type="date"
+            required
+            min={start}
+            value={end}
+            onChange={(event) => setEnd(event.target.value)}
+          />
+        </label>
+        <button className="csr-button csr-button--primary" type="submit">
+          Apply dates
+        </button>
+      </form>
+    </details>
+  );
+}
+
+export function CsrRefresh({ pending }: { pending: boolean }) {
+  const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => {
+        if (document.visibilityState === "visible") router.refresh();
+      },
+      pending ? 15_000 : 60_000,
+    );
+    return () => window.clearInterval(timer);
+  }, [pending, router]);
+  return (
+    <button
+      type="button"
+      className="csr-button csr-refresh"
+      title="Reload dashboard"
+      aria-label="Refresh dashboard"
+      disabled={refreshing}
+      onClick={() => {
+        setRefreshing(true);
+        router.refresh();
+        window.setTimeout(() => setRefreshing(false), 1000);
+      }}
+    >
+      <RefreshCw size={17} className={refreshing ? "csr-spin" : ""} />
+    </button>
+  );
+}

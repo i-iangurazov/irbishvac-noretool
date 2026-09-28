@@ -13,6 +13,8 @@ import {
 import { createLogger } from "@irbis/utils";
 import { DASHBOARD_FAMILY_MAP, buildDashboardReadModel } from "./read-models";
 
+import { refreshCsrSources } from "./call-center-sources";
+
 const logger = createLogger("worker-runner");
 
 export class DashboardRefreshRunner {
@@ -157,6 +159,10 @@ export class DashboardRefreshRunner {
         parameters,
         correlationId
       });
+      if (family === "callCenterByCsr" || family === "callCenterSummary") {
+        const csrSupplement = await refreshCsrSources(request.range.from, request.range.to, correlationId);
+        result.payload = { ...(result.payload as Record<string, unknown>), csrSupplement };
+      }
       const fetchedAt = new Date();
 
       const rawSnapshot = await prisma.rawReportSnapshot.create({

@@ -217,6 +217,7 @@ export function getConfig() {
       technicianPhotoFolder: env.ASSET_FOLDER_TECHNICIAN_PHOTOS,
       logoFolder: env.ASSET_FOLDER_LOGOS
     },
+    csr: { reportsFolderId: env.GOOGLE_CSR_REPORTS_FOLDER_ID, jobsReportId: env.ST_REPORT_CSR_JOBS, membershipsReportId: env.ST_REPORT_CSR_MEMBERSHIPS },
     campaignPerformance: {
       companyRevenueGoal: env.CAMPAIGN_COMPANY_REVENUE_GOAL,
       marketingBudgetRate: env.CAMPAIGN_MARKETING_BUDGET_RATE,

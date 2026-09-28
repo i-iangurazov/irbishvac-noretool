@@ -3,7 +3,7 @@ import { DashboardFamily } from "@irbis/db";
 import {
   buildAdvisorDashboard,
   buildBookingRateSummary,
-  buildCallCenterDashboard,
+  buildCsrPerformanceDashboard,
   buildCampaignDashboard,
   buildCapacitySummary,
   buildFieldProJobRecordings,
@@ -90,7 +90,7 @@ export function buildDashboardReadModel(
       return buildAdvisorDashboard(payload);
     case "callCenterByCsr":
     case "callCenterSummary":
-      return buildCallCenterDashboard(payload);
+      return buildCsrPerformanceDashboard(payload);
     case "leadGeneration":
       return buildLeadGenerationDashboard(payload);
     case "campaigns":

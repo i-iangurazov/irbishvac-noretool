@@ -1,4 +1,11 @@
-import { pickFirst, resolveTabularReport, sumBy, toNumber, toRatio } from "../shared/report";
+import {
+  pickFirst,
+  resolveTabularReport,
+  sumBy,
+  toNumber,
+  toRatio,
+  weightedAverage,
+} from "../shared/report";
 
 export type CallCenterRow = {
   name: string;
@@ -33,7 +40,11 @@ const ALIASES = {
   name: ["Name", "CSR", "Employee", "Agent", "TechnicianName"],
   role: ["Role", "Position", "JobTitle", "CompanyRole"],
   leadsReceived: ["LeadsReceived", "LeadCalls", "Lead Calls"],
-  inboundCallsBooked: ["InboundCallsBooked", "BookedJobsByCall", "Inbound Booked"],
+  inboundCallsBooked: [
+    "InboundCallsBooked",
+    "BookedJobsByCall",
+    "Inbound Booked",
+  ],
   manualCallsBooked: ["ManualCallsBooked", "Manual Booked"],
   totalJobsBooked: ["TotalJobsBooked", "Total Jobs Booked"],
   callBookingRate: ["CallBookingRate", "InboundBookingRate", "BookingRate"],
@@ -41,9 +52,9 @@ const ALIASES = {
     "CancelledBeforeDispatch",
     "CanceledBeforeDispatch",
     "BookedJobsCanceled",
-    "Booked Jobs Canceled"
+    "Booked Jobs Canceled",
   ],
-  cancellationRate: ["CancellationRate", "Cancellation %", "CancellationPct"]
+  cancellationRate: ["CancellationRate", "Cancellation %", "CancellationPct"],
 };
 
 export function buildCallCenterDashboard(input: unknown): CallCenterResult {
@@ -51,16 +62,25 @@ export function buildCallCenterDashboard(input: unknown): CallCenterResult {
 
   const rows = report.rows
     .map((row) => {
-      const inboundCallsBooked = toNumber(pickFirst(row, ALIASES.inboundCallsBooked));
-      const manualCallsBooked = toNumber(pickFirst(row, ALIASES.manualCallsBooked));
-      // The exported Retool transformer derives total jobs from inbound + manual.
-      const totalJobsBooked = inboundCallsBooked + manualCallsBooked;
+      const inboundCallsBooked = toNumber(
+        pickFirst(row, ALIASES.inboundCallsBooked),
+      );
+      const manualCallsBooked = toNumber(
+        pickFirst(row, ALIASES.manualCallsBooked),
+      );
+      const explicitJobs = pickFirst(row, ALIASES.totalJobsBooked);
+      const totalJobsBooked =
+        explicitJobs == null
+          ? inboundCallsBooked + manualCallsBooked
+          : toNumber(explicitJobs);
       const callBookingRate = toRatio(pickFirst(row, ALIASES.callBookingRate));
-      const explicitLeads = toNumber(pickFirst(row, ALIASES.leadsReceived));
+      const explicitLeads = pickFirst(row, ALIASES.leadsReceived);
       const leadsReceived =
-        explicitLeads || (inboundCallsBooked > 0 && callBookingRate > 0
-          ? Math.round(inboundCallsBooked / callBookingRate)
-          : 0);
+        explicitLeads != null
+          ? toNumber(explicitLeads)
+          : inboundCallsBooked > 0 && callBookingRate > 0
+            ? Math.round(inboundCallsBooked / callBookingRate)
+            : 0;
       const cancelledBeforeDispatch = toNumber(
         pickFirst(row, ALIASES.cancelledBeforeDispatch),
       );
@@ -80,9 +100,7 @@ export function buildCallCenterDashboard(input: unknown): CallCenterResult {
             ? totalJobsBooked > 0
               ? cancelledBeforeDispatch / totalJobsBooked
               : 0
-            : totalJobsBooked > 0
-              ? cancelledBeforeDispatch / totalJobsBooked
-              : toRatio(explicitCancellationRate)
+            : toRatio(explicitCancellationRate),
       };
     })
     .filter((row) => row.name !== "");
@@ -97,15 +115,9 @@ export function buildCallCenterDashboard(input: unknown): CallCenterResult {
     )
     .map((row, index) => ({ ...row, rankByLeadCalls: index + 1 }));
 
-  const summaryRows = rows.filter((row) => row.name.trim().toLowerCase() !== "abandoned");
-  const averageNonZero = (values: number[]) => {
-    const nonZero = values.filter((value) => Number.isFinite(value) && value !== 0);
-    if (nonZero.length === 0) {
-      return 0;
-    }
-
-    return sumBy(nonZero, (value) => value) / nonZero.length;
-  };
+  const summaryRows = rows.filter(
+    (row) => row.name.trim().toLowerCase() !== "abandoned",
+  );
 
   return {
     rows,
@@ -116,10 +128,21 @@ export function buildCallCenterDashboard(input: unknown): CallCenterResult {
       inboundBooked: sumBy(summaryRows, (row) => row.inboundCallsBooked),
       manualBooked: sumBy(summaryRows, (row) => row.manualCallsBooked),
       totalJobs: sumBy(summaryRows, (row) => row.totalJobsBooked),
-      bookingRate: averageNonZero(summaryRows.map((row) => row.callBookingRate)),
-      cancelledBeforeDispatch: sumBy(summaryRows, (row) => row.cancelledBeforeDispatch),
-      cancellationRate: averageNonZero(summaryRows.map((row) => row.cancellationRate))
+      bookingRate:
+        sumBy(summaryRows, (row) => row.leadsReceived) > 0
+          ? sumBy(summaryRows, (row) => row.inboundCallsBooked) /
+            sumBy(summaryRows, (row) => row.leadsReceived)
+          : 0,
+      cancelledBeforeDispatch: sumBy(
+        summaryRows,
+        (row) => row.cancelledBeforeDispatch,
+      ),
+      cancellationRate: weightedAverage(
+        summaryRows,
+        (row) => row.cancellationRate,
+        (row) => row.totalJobsBooked,
+      ),
     },
-    snapshotTime: report.snapshotTime
+    snapshotTime: report.snapshotTime,
   };
 }

@@ -3,7 +3,7 @@ import { DashboardFamily, Prisma, prisma } from "@irbis/db";
 import {
   buildAdvisorDashboard,
   buildBookingRateSummary,
-  buildCallCenterDashboard,
+  buildCsrPerformanceDashboard,
   buildCampaignDashboard,
   buildCapacitySummary,
   buildFieldProJobRecordings,
@@ -78,7 +78,7 @@ function buildReadModel(family: DashboardFamily, payload: unknown, businessDateI
       return buildAdvisorDashboard(payload);
     case DashboardFamily.CALL_CENTER_SUMMARY:
     case DashboardFamily.CALL_CENTER_BY_CSR:
-      return buildCallCenterDashboard(payload);
+      return buildCsrPerformanceDashboard(payload);
     case DashboardFamily.LEADS:
       return buildLeadGenerationDashboard(payload);
     case DashboardFamily.CAMPAIGNS:

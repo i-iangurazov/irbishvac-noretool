@@ -160,6 +160,17 @@ async function bootstrap() {
     });
   }
 
+  if (runner.isIngestionConfigured()) {
+    for (const [preset, pattern] of [["mtd", "5,35 * * * *"], ["ytd", "20 * * * *"]] as const) {
+      await refreshQueue.upsertJobScheduler(
+        `csr-performance-${preset}`,
+        { pattern, tz: config.app.timezone },
+        { name: `scheduled-csr-${preset}`, data: { type: "refresh-family", family: "callCenterByCsr", context: { preset } } },
+      );
+    }
+    logger.info("CSR performance schedulers enabled", { mtd: "every 30 minutes", ytd: "hourly" });
+  }
+
   if (!config.worker.bootstrapOnStart) {
     logger.info("Worker bootstrap refresh is disabled for this environment");
     return;

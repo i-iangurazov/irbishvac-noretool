@@ -64,7 +64,7 @@ export class GoogleSheetsClient {
     const claims = encodeBase64Url(
       JSON.stringify({
         iss: this.config.serviceAccountEmail,
-        scope: "https://www.googleapis.com/auth/spreadsheets",
+        scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly",
         aud: "https://oauth2.googleapis.com/token",
         iat: now,
         exp: now + 3_600
@@ -115,7 +115,8 @@ export class GoogleSheetsClient {
 
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store"
+      cache: "no-store",
+      signal: AbortSignal.timeout(25_000)
     });
 
     if (!response.ok) {
@@ -124,6 +125,62 @@ export class GoogleSheetsClient {
     }
 
     return (await response.json()) as GoogleSheetValues;
+  }
+
+  async listFolderFiles(folderId: string) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(folderId))
+      throw new Error("Invalid Drive folder ID");
+    const accessToken = await this.getAccessToken();
+    type File = { id: string; name: string; mimeType: string };
+    const files: File[] = [];
+    let pageToken: string | undefined;
+    for (let page = 0; page < 20; page += 1) {
+      const url = new URL("https://www.googleapis.com/drive/v3/files");
+      url.searchParams.set("q", `'${folderId}' in parents and trashed = false`);
+      url.searchParams.set("fields", "files(id,name,mimeType),nextPageToken");
+      url.searchParams.set("pageSize", "100");
+      url.searchParams.set("supportsAllDrives", "true");
+      url.searchParams.set("includeItemsFromAllDrives", "true");
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!response.ok)
+        throw new Error(`Google Drive folder read failed (${response.status})`);
+      const data = (await response.json()) as {
+        files?: File[];
+        nextPageToken?: string;
+      };
+      files.push(...(data.files ?? []));
+      if (!data.nextPageToken) return files;
+      pageToken = data.nextPageToken;
+    }
+    throw new Error("CSR folder exceeds the discovery limit");
+  }
+
+  async getSpreadsheetMetadata(spreadsheetIdValue = this.config.spreadsheetId) {
+    const accessToken = await this.getAccessToken();
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetIdValue)}?fields=properties.title,sheets.properties`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: AbortSignal.timeout(20_000),
+      },
+    );
+    if (!response.ok)
+      throw new Error(
+        `Google Sheets metadata read failed (${response.status})`,
+      );
+    return (await response.json()) as {
+      properties?: { title?: string };
+      sheets?: Array<{
+        properties: {
+          title: string;
+          gridProperties?: { rowCount?: number; columnCount?: number };
+        };
+      }>;
+    };
   }
 
   async getOptionalValues(

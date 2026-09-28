@@ -26,6 +26,7 @@ type FetchReportDefinitionOptions = Pick<FetchReportOptions, "family" | "categor
 
 type FetchPaginatedReportOptions = FetchReportOptions & {
   pageSize?: number;
+  retryRateLimits?: boolean;
 };
 
 const ERROR_BODY_EXCERPT_LENGTH = 1_000;
@@ -308,10 +309,32 @@ export class ServiceTitanClient {
       endpoint.searchParams.set("page", String(page));
       endpoint.searchParams.set("pageSize", String(pageSize));
       endpoint.searchParams.set("includeTotal", "true");
-      const response = await this.authorizedRequest(endpoint.toString(), options, {
-        method: "POST",
-        body: JSON.stringify({ parameters: options.parameters })
-      });
+      const requestPage = () =>
+        this.authorizedRequest(endpoint.toString(), options, {
+          method: "POST",
+          body: JSON.stringify({ parameters: options.parameters }),
+          signal: AbortSignal.timeout(90_000),
+        });
+      let response: Response;
+      let attempts = 0;
+      while (true) {
+        try {
+          response = await requestPage();
+          break;
+        } catch (error) {
+          if (
+            !options.retryRateLimits ||
+            !(error instanceof ServiceTitanRateLimitError) ||
+            attempts++ >= 2
+          )
+            throw error;
+          const seconds = Math.min(
+            65,
+            Math.max(5, (error.retryAfterSeconds ?? 60) + 1),
+          );
+          await new Promise((resolve) => setTimeout(resolve, seconds * 1_000));
+        }
+      }
       const payload = (await response.json()) as {
         fields?: unknown[];
         data?: unknown[][];

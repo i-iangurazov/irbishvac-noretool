@@ -94,6 +94,25 @@ describe("DashboardService", () => {
     setDefaultMonthlyGoalEntries.mockResolvedValue([]);
   });
 
+  it("keeps CSR Summary and By CSR on the same exact date range without a latest-snapshot fallback", async () => {
+    findFirst.mockResolvedValue(null);
+    findUnique.mockResolvedValue(null);
+    const { DashboardService } = await import("./dashboard.service");
+    const service = new DashboardService();
+    const context = { preset: "mtd" as const, from: "2026-09-01", to: "2026-09-28" };
+    const summary = await service.getCallCenterSummary(context);
+    const cards = await service.getCallCenterByCsr(context);
+    expect(summary).toEqual(cards);
+    expect(summary.rows).toEqual([]);
+    expect(summary.snapshotTime).toBeNull();
+    expect(findFirst).toHaveBeenCalledTimes(2);
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { family: { in: ["CALL_CENTER_BY_CSR", "CALL_CENTER_SUMMARY"] }, businessDateFrom: new Date("2026-09-01T00:00:00Z"), businessDateTo: new Date("2026-09-28T00:00:00Z") },
+      orderBy: { fetchedAt: "desc" }
+    });
+    expect(findUnique).toHaveBeenCalledWith({ where: { family_scopeKey: { family: "CALL_CENTER_BY_CSR", scopeKey: "csr-sources:v1:2026-09-01:2026-09-28" } } });
+  });
+
   it("builds technician route payloads from raw snapshots", async () => {
     findUnique.mockResolvedValue(null);
     findFirst.mockResolvedValue({

@@ -11,3 +11,6 @@ export * from "./metrics/technicians";
 export * from "./shared/report";
 
 export * from "./kitchen-board";
+
+export * from "./metrics/csr-sources";
+export * from "./metrics/csr-performance";

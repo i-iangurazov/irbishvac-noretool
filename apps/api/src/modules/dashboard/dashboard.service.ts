@@ -8,7 +8,7 @@ import {
 import {
   buildAdvisorDashboard,
   buildBookingRateSummary,
-  buildCallCenterDashboard,
+  buildCsrPerformanceDashboard,
   buildCampaignDashboard,
   buildCapacitySummary,
   buildFieldProJobRecordings,
@@ -392,22 +392,31 @@ export class DashboardService {
     return buildFieldProPerformance(activity, recordings);
   }
 
+  private async getCsrPerformance(context?: DashboardRequestContext) {
+    // Both pages consume exactly the same period and roster. Never substitute YTD for MTD.
+    const request = this.resolveRequest("callCenterByCsr", context);
+    const dates = {
+      businessDateFrom: new Date(`${request.range.from}T00:00:00Z`),
+      businessDateTo: new Date(`${request.range.to}T00:00:00Z`)
+    };
+    const snapshot = await this.safeQuery("csr-scoped-snapshot", null, () => prisma.rawReportSnapshot.findFirst({
+      where: { family: { in: [DashboardFamily.CALL_CENTER_BY_CSR, DashboardFamily.CALL_CENTER_SUMMARY] }, ...dates },
+      orderBy: { fetchedAt: "desc" }
+    }));
+    const extra = await this.safeQuery("csr-supplement", null, () => prisma.dashboardReadModel.findUnique({
+      where: { family_scopeKey: { family: DashboardFamily.CALL_CENTER_BY_CSR, scopeKey: `csr-sources:v1:${request.range.from}:${request.range.to}` } }
+    }));
+    if (!snapshot || !extra) this.queueRefresh("callCenterByCsr", context);
+    const result = buildCsrPerformanceDashboard(snapshot?.payloadJson ?? {}, extra?.payloadJson as Parameters<typeof buildCsrPerformanceDashboard>[1]);
+    return this.attachSnapshotTime(result, snapshot?.sourceSnapshotTime ?? snapshot?.fetchedAt);
+  }
+
   async getCallCenterSummary(context?: DashboardRequestContext) {
-    return this.resolveMetricFamily(
-      DashboardFamily.CALL_CENTER_SUMMARY,
-      "callCenterSummary",
-      (payload) => buildCallCenterDashboard(payload),
-      context,
-    );
+    return this.getCsrPerformance(context);
   }
 
   async getCallCenterByCsr(context?: DashboardRequestContext) {
-    return this.resolveMetricFamily(
-      DashboardFamily.CALL_CENTER_BY_CSR,
-      "callCenterByCsr",
-      (payload) => buildCallCenterDashboard(payload),
-      context,
-    );
+    return this.getCsrPerformance(context);
   }
 
   async getLeadGeneration(context?: DashboardRequestContext) {
