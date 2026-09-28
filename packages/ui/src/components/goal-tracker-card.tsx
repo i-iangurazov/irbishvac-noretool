@@ -7,7 +7,7 @@ type GoalTrackerCardProps = {
 
 export function GoalTrackerCard(props: GoalTrackerCardProps) {
   return (
-    <div className="goal-tracker-card border border-[#ece3da] bg-white">
+    <div className="goal-tracker-card border border-[#dfe5ee] bg-white">
       <div className="goal-tracker-card__label font-semibold uppercase tracking-[0.25em] text-slate-500">
         {props.title}
       </div>
@@ -22,7 +22,7 @@ export function GoalTrackerCard(props: GoalTrackerCardProps) {
           </div>
         </div>
       </div>
-      <div className="goal-tracker-card__track overflow-hidden bg-[#edf1ef]">
+      <div className="goal-tracker-card__track overflow-hidden bg-[#edf1f7]">
         <div
           className="goal-tracker-card__fill h-full bg-[linear-gradient(90deg,_#00363e_0%,_#fa6e18_100%)]"
           style={{ width: `${Math.min(props.percent * 100, 100)}%` }}

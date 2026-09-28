@@ -38,20 +38,20 @@ const OPS_NAV = [
 ] as const;
 
 const cardBase =
-  "rounded-lg border border-[#e6ddd2] bg-white shadow-[0_10px_26px_rgba(15,23,42,0.06)]";
+  "rounded-lg border border-[#dfe5ee] bg-white shadow-[0_10px_26px_rgba(15,23,42,0.06)]";
 
 export function OpsShell(props: OpsShellProps) {
   const logoUrl = getBrandLogoUrl();
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,_#f7f3ec_0%,_#eef5f3_54%,_#f8f6f2_100%)] text-slate-950">
-      <header className="border-b border-[#e2d8cc] bg-white/88 backdrop-blur">
+    <div className="min-h-screen bg-[linear-gradient(180deg,_#f6f7fa_0%,_#f6f7fa_54%,_#f6f7fa_100%)] text-slate-950">
+      <header className="border-b border-[#dfe5ee] bg-white/88 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-5 md:px-8 lg:flex-row lg:items-center lg:justify-between">
           <a className="flex min-w-0 items-center gap-3" href="/company-wide">
             {logoUrl ? (
               <img
                 alt="IRBIS HVAC"
-                className="h-12 w-12 rounded-lg border border-[#e7dfd3] bg-white object-contain p-1.5 shadow-sm"
+                className="h-12 w-12 rounded-lg border border-[#dfe5ee] bg-white object-contain p-1.5 shadow-sm"
                 src={logoUrl}
               />
             ) : (
@@ -78,7 +78,7 @@ export function OpsShell(props: OpsShellProps) {
                   className={`rounded-lg border px-3 py-2 text-sm font-black transition ${
                     active
                       ? "border-[#083d49] bg-[#083d49] text-white"
-                      : "border-[#d8cfc4] bg-[#f9f7f2] text-[#083d49] hover:border-[#fa6e18] hover:text-[#c94f07]"
+                      : "border-[#cbd5e1] bg-[#f6f7fa] text-[#083d49] hover:border-[#fa6e18] hover:text-[#c94f07]"
                   }`}
                   href={item.href}
                   key={item.href}
@@ -92,7 +92,7 @@ export function OpsShell(props: OpsShellProps) {
       </header>
 
       <main>
-        <section className="border-b border-[#e3dad0] bg-[linear-gradient(135deg,_#083d49_0%,_#0b6f77_58%,_#f26a21_100%)] text-white">
+        <section className="border-b border-[#dfe5ee] bg-[linear-gradient(135deg,_#083d49_0%,_#0b6f77_58%,_#f26a21_100%)] text-white">
           <div className="mx-auto grid max-w-7xl gap-6 px-5 py-10 md:px-8 lg:grid-cols-[1fr_auto] lg:items-end">
             <div className="max-w-4xl">
               <p className="text-sm font-black uppercase tracking-[0.24em] text-[#b9efe8]">
@@ -239,7 +239,7 @@ export function NumberedList(props: { items: string[] }) {
 
 export function CodeBlock(props: { children: ReactNode }) {
   return (
-    <pre className="overflow-x-auto rounded-lg border border-[#d8d2c8] bg-[#14252e] p-4 text-sm font-semibold leading-6 text-[#e7fffb] shadow-inner">
+    <pre className="overflow-x-auto rounded-lg border border-[#cbd5e1] bg-[#14252e] p-4 text-sm font-semibold leading-6 text-[#e7fffb] shadow-inner">
       <code>{props.children}</code>
     </pre>
   );
@@ -263,7 +263,7 @@ export function HealthStatus({ health }: HealthStatusProps) {
 
   return (
     <div className={`${cardBase} overflow-hidden`}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ece3da] bg-[#f9f7f2] p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dfe5ee] bg-[#f6f7fa] p-5">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">
             Railway API
@@ -288,7 +288,7 @@ export function HealthStatus({ health }: HealthStatusProps) {
 
 function Metric(props: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[#ece3da] bg-white p-4">
+    <div className="rounded-lg border border-[#dfe5ee] bg-white p-4">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
         {props.label}
       </p>

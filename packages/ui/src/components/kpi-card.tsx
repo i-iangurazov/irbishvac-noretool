@@ -10,7 +10,7 @@ type KpiCardProps = {
 
 export function KpiCard(props: KpiCardProps) {
   return (
-    <article className="kpi-card border border-[#e8ddd2] bg-[linear-gradient(180deg,_#ffffff_0%,_#fbfaf8_100%)]">
+    <article className="kpi-card border border-[#dfe5ee] bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)]">
       <div className="kpi-card__label font-bold uppercase tracking-[0.28em] text-slate-500">
         {props.label}
       </div>

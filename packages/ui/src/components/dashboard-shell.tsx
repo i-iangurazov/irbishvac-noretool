@@ -77,7 +77,7 @@ export function DashboardShell(props: DashboardShellProps) {
   const menuContent = (
     <nav
       aria-label="Dashboard navigation"
-      className="dashboard-shell__menu absolute right-0 z-20 border border-[#e4ddd4] bg-white shadow-[0_18px_50px_rgba(0,54,62,0.12)]"
+      className="dashboard-shell__menu absolute right-0 z-20 border border-[#dfe5ee] bg-white shadow-[0_18px_50px_rgba(0,54,62,0.12)]"
     >
       <div className="dashboard-shell__menu-header">
         <div className="dashboard-shell__menu-current font-black tracking-tight text-[#182033]">
@@ -105,7 +105,7 @@ export function DashboardShell(props: DashboardShellProps) {
                     className={`dashboard-shell__menu-link transition ${
                       active
                         ? "bg-[#00363e] text-white"
-                        : "bg-[#f7f3ee] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
+                        : "bg-[#f1f3f7] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
                     }`}
                     href={navHrefFor(item.href)}
                     key={item.href}
@@ -180,7 +180,7 @@ export function DashboardShell(props: DashboardShellProps) {
               <TvFullscreenButton variant="icon" />
             </div>
             <details className="pointer-events-auto relative">
-              <summary className="dashboard-shell__menu-button flex cursor-pointer list-none items-center justify-center border border-[#e6ddd2] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.12)] marker:hidden">
+              <summary className="dashboard-shell__menu-button flex cursor-pointer list-none items-center justify-center border border-[#dfe5ee] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.12)] marker:hidden">
                 ☰
               </summary>
               {menuContent}
@@ -188,7 +188,7 @@ export function DashboardShell(props: DashboardShellProps) {
           </div>
         ) : (
           <header
-            className={`dashboard-shell__header sticky top-0 z-40 border-b border-[#e8ddd1]/90 bg-[#f6f7fa] backdrop-blur-md ${
+            className={`dashboard-shell__header sticky top-0 z-40 border-b border-[#dfe5ee]/90 bg-[#f6f7fa] backdrop-blur-md ${
               props.tvMode
                 ? "dashboard-shell__header--tv"
                 : "dashboard-shell__header--desktop"
@@ -203,7 +203,7 @@ export function DashboardShell(props: DashboardShellProps) {
                 {props.brandLogoUrl ? (
                   <img
                     alt="IRBIS HVAC"
-                    className="dashboard-shell__logo border border-[#e7dfd3] bg-white object-contain shadow-[0_4px_14px_rgba(8,61,73,0.08)]"
+                    className="dashboard-shell__logo border border-[#dfe5ee] bg-white object-contain shadow-[0_4px_14px_rgba(8,61,73,0.08)]"
                     src={props.brandLogoUrl}
                   />
                 ) : (
@@ -232,7 +232,7 @@ export function DashboardShell(props: DashboardShellProps) {
                 </div>
                 <TvFullscreenButton variant="icon" />
                 <details className="relative shrink-0">
-                  <summary className="dashboard-shell__menu-button flex cursor-pointer list-none items-center justify-center border border-[#e6ddd2] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.06)] marker:hidden">
+                  <summary className="dashboard-shell__menu-button flex cursor-pointer list-none items-center justify-center border border-[#dfe5ee] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.06)] marker:hidden">
                     ☰
                   </summary>
                   {menuContent}

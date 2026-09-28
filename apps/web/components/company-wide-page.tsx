@@ -113,7 +113,7 @@ function Panel(props: {
 }) {
   return (
     <section
-      className={`company-panel border border-[#ece3da] bg-[linear-gradient(180deg,_#ffffff_0%,_#fcfbf8_100%)] shadow-[0_6px_18px_rgba(15,23,42,0.05)] ${props.className ?? ""}`}
+      className={`company-panel border border-[#dfe5ee] bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] shadow-[0_6px_18px_rgba(15,23,42,0.05)] ${props.className ?? ""}`}
     >
       {props.title ? (
         <div
@@ -368,12 +368,12 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
                 <Panel className="company-board__trending-panel">
                   <div className="company-board__legend flex flex-wrap">
                     <span
-                      className="border border-[#eadfd3] bg-[#f7f3ee] font-semibold text-[#8b5b3c]"
+                      className="border border-[#dfe5ee] bg-[#f1f3f7] font-semibold text-[#8b5b3c]"
                     >
                       {data.trending.years.previous} Sales
                     </span>
                     <span
-                      className="border border-[#eadfd3] bg-[#f7f3ee] font-semibold text-[#4a90e2]"
+                      className="border border-[#dfe5ee] bg-[#f1f3f7] font-semibold text-[#4a90e2]"
                     >
                       {data.trending.years.previous} Revenue
                     </span>

@@ -21,10 +21,10 @@
   --marketing-muted: #6e7c72;
   --marketing-green: #315b44;
   --marketing-orange: #eb9b71;
-  --marketing-canvas: #f4f6f2;
+  --marketing-canvas: #f6f7fa;
   --marketing-surface: #ffffff;
-  --marketing-soft: #f3f6ef;
-  --marketing-border: #e4e9e1;
+  --marketing-soft: #f6f7fa;
+  --marketing-border: #e2e8f0;
   --marketing-radius: 18px;
   --marketing-control-radius: 10px;
   --dash-radius-sm: 10px;
@@ -72,7 +72,7 @@ body:has(.campaign-performance) .campaign-performance {
 }
 .marketing-workspace-tabs {
   --marketing-ink: #23392d;
-  --marketing-border: #e4e9e1;
+  --marketing-border: #e2e8f0;
   font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 /* Workspace navigation and content toolbar */

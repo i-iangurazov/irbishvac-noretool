@@ -112,7 +112,7 @@ export function CompanyWideGoalInsertButton({
 
       {open ? (
         <div className="company-goal-modal fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.36)]">
-          <div className="company-goal-modal__panel w-full border border-[#ece3da] bg-white">
+          <div className="company-goal-modal__panel w-full border border-[#dfe5ee] bg-white">
             <div className="company-goal-modal__header flex items-start justify-between">
               <div>
                 <div className="company-goal-modal__title font-black text-[#111827]">

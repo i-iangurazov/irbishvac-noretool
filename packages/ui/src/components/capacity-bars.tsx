@@ -11,7 +11,7 @@ type CapacityBarsProps = {
 
 export function CapacityBars({ rows }: CapacityBarsProps) {
   return (
-    <div className="capacity-bars flex h-full flex-col border border-[#ece3da] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)]">
+    <div className="capacity-bars flex h-full flex-col border border-[#dfe5ee] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.05)]">
       <div className="capacity-bars__title font-black uppercase tracking-tight text-[#111827]">
         Capacity
       </div>
@@ -30,7 +30,7 @@ export function CapacityBars({ rows }: CapacityBarsProps) {
                   {row.capacityPct}%
                 </div>
               </div>
-              <div className="capacity-bars__track overflow-hidden rounded-full bg-[#edf1ef]">
+              <div className="capacity-bars__track overflow-hidden rounded-full bg-[#edf1f7]">
                 <div
                   className="capacity-bars__fill h-full rounded-full bg-[linear-gradient(90deg,_#20b2aa_0%,_#fa6e18_100%)]"
                   style={{ width: `${Math.min(row.capacityPct, 100)}%` }}
@@ -41,7 +41,7 @@ export function CapacityBars({ rows }: CapacityBarsProps) {
         </div>
       ) : (
         <div className="capacity-bars__empty-wrap flex flex-1 items-center justify-center">
-          <div className="capacity-bars__empty flex w-full flex-col items-center justify-center border border-dashed border-[#d7dfdf] bg-[#f8fbfb] text-center">
+          <div className="capacity-bars__empty flex w-full flex-col items-center justify-center border border-dashed border-[#d7dfdf] bg-[#f8fafc] text-center">
             <div className="capacity-bars__empty-icon flex items-center justify-center rounded-full bg-[#e9f2f4] font-black text-[#0b4d5a]">
               +
             </div>

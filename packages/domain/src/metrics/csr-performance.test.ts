@@ -38,6 +38,61 @@ const textHeaders = [
 ];
 
 describe("CSR performance", () => {
+  it("excludes removed staff consistently from cards, totals, breakdowns, and unmatched leads", () => {
+    const payload = table([
+      ["Nina Naeem", "CSR", 10, 5, 0, 5, 0.5, 0, 0, 20],
+      [" ABDUL  POPAL ", "CSR", 100, 90, 0, 90, 0.9, 0, 0, 120],
+    ]);
+    const extra = emptyCsrSupplement("2026-09-01", "2026-09-28");
+    extra.text = buildCsrTextLeads(
+      [
+        {
+          month: "2026-09",
+          values: [
+            textHeaders,
+            ["Nina Naeem", "9/2/2026", "Text", "Good", "Yelp"],
+            ["Abdul Popal", "9/2/2026", "Text", "Good", "Website"],
+            ["", "9/2/2026", "Text", "Good", "Yelp"],
+          ],
+        },
+      ],
+      extra.from,
+      extra.to,
+      stamp,
+    );
+    extra.jobs = buildCsrJobs(
+      jobs([
+        ["Nina Naeem", "1", "Repair", "Completed"],
+        ["Abdul Popal", "2", "Maintenance", "Canceled"],
+      ]),
+      stamp,
+    );
+    extra.memberships = buildCsrMemberships(
+      {
+        fields: [{ name: "SoldBy" }, { name: "SoldOn" }],
+        data: [["Abdul Popal", "2026-09-03"]],
+      },
+      extra.from,
+      extra.to,
+      stamp,
+    );
+    const result = buildCsrPerformanceDashboard(payload, extra);
+    expect(result.rowsRanked.map((row) => row.name)).toEqual(["Nina Naeem"]);
+    expect(result.leader?.name).toBe("Nina Naeem");
+    expect(result.summary).toMatchObject({
+      leadCalls: 10,
+      textLeads: 1,
+      totalJobs: 1,
+      bookingRate: 0.5,
+      cancelledJobs: 0,
+      membershipsSold: 0,
+    });
+    expect(result.textSources).toEqual([{ name: "Yelp", count: 1 }]);
+    expect(result.jobsByType).toEqual([{ name: "Repair", count: 1 }]);
+    expect(result.unassignedTextLeads).toBe(1);
+    expect(buildCallCenterDashboard(payload).rows).toHaveLength(2);
+  });
+
   it("discovers monthly reports while excluding quarterly summaries and drafts", () => {
     expect(csrReportMonth("September 2026- Call Center Report")).toBe(
       "2026-09",

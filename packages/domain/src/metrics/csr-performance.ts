@@ -21,6 +21,9 @@ export type CsrPerformanceRow = CallCenterRow & {
   membershipsSold: number | null;
 };
 
+// Removed from the CSR dashboard roster at the team's request. Source reports remain intact.
+const excludedCsrNames = new Set(["abdul popal"]);
+
 export function buildCsrPerformanceDashboard(
   payload: unknown,
   supplement?: CsrSupplement,
@@ -36,6 +39,7 @@ export function buildCsrPerformanceDashboard(
   const roster = core.rows.filter(
     (row) =>
       csrIdentity(row.name) !== "abandoned" &&
+      !excludedCsrNames.has(csrIdentity(row.name)) &&
       (!row.role ||
         /\bcsr\b|customer\s+(service|care)|member.*manager/i.test(row.role) ||
         csrIdentity(row.name) === "adele aldyrakhmanova" ||
@@ -159,7 +163,7 @@ export function buildCsrPerformanceDashboard(
     },
     unassignedTextLeads: textAvailable
       ? sumBy(Object.entries(extras.text.byCsr), ([name, count]) =>
-          !names.has(name) ? count : 0,
+          !names.has(name) && !excludedCsrNames.has(name) ? count : 0,
         )
       : null,
     snapshotTime: core.snapshotTime,

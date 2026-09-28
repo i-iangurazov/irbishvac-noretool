@@ -93,7 +93,7 @@ export default function UserManualPage() {
             <div className="grid gap-3 md:grid-cols-2">
               {boards.map((board) => (
                 <div
-                  className="rounded-lg border border-[#ece3da] bg-[#fbfaf7] px-4 py-3 text-sm font-black text-[#17313a]"
+                  className="rounded-lg border border-[#dfe5ee] bg-[#f8fafc] px-4 py-3 text-sm font-black text-[#17313a]"
                   key={board}
                 >
                   {board}

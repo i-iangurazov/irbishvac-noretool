@@ -33,7 +33,7 @@ function ActionLink(props: {
       className={`tv-settings-modal__action flex items-center font-black transition ${
         props.active
           ? "bg-[#0b4d5a] text-white shadow-[0_10px_22px_rgba(11,77,90,0.16)]"
-          : "bg-[#f7f3ee] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
+          : "bg-[#f1f3f7] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
       }`}
       data-active={props.active ? "true" : "false"}
       href={props.href}
@@ -89,7 +89,7 @@ export function TvSettingsModal(props: TvSettingsModalProps) {
       onClick={() => setOpen(false)}
     >
       <div
-        className="tv-settings-modal__panel w-full border border-[#e8ddd1] bg-[linear-gradient(180deg,_#ffffff_0%,_#fbfaf8_100%)] shadow-[0_30px_70px_rgba(15,23,42,0.2)]"
+        className="tv-settings-modal__panel w-full border border-[#dfe5ee] bg-[linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] shadow-[0_30px_70px_rgba(15,23,42,0.2)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="tv-settings-modal__header flex items-start justify-between">
@@ -233,7 +233,7 @@ export function TvSettingsModal(props: TvSettingsModalProps) {
     <>
       <button
         ref={triggerRef}
-        className="dashboard-shell__menu-link tv-settings-modal__trigger bg-[#f7f3ee] text-left text-[#00363e] transition hover:bg-[#fa6e18] hover:text-white"
+        className="dashboard-shell__menu-link tv-settings-modal__trigger bg-[#f1f3f7] text-left text-[#00363e] transition hover:bg-[#fa6e18] hover:text-white"
         onClick={handleOpen}
         type="button"
       >

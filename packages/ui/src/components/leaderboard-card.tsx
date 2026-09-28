@@ -178,7 +178,7 @@ export function LeaderboardCard(props: LeaderboardCardProps) {
   if (props.presentation === "photo-card") {
     return (
       <article
-        className="leaderboard-card leaderboard-card--photo h-full overflow-hidden border border-[#ece3da] bg-white transition"
+        className="leaderboard-card leaderboard-card--photo h-full overflow-hidden border border-[#dfe5ee] bg-white transition"
         data-stat-count={props.stats.length}
       >
         <div className="leaderboard-card__photo-frame">
@@ -227,7 +227,7 @@ export function LeaderboardCard(props: LeaderboardCardProps) {
       className={`leaderboard-card h-full overflow-hidden border transition ${
         featured
           ? "leaderboard-card--featured border-[#fa6e18] bg-white shadow-[0_10px_24px_rgba(250,110,24,0.08)]"
-          : "leaderboard-card--compact border-[#ece3da] bg-white"
+          : "leaderboard-card--compact border-[#dfe5ee] bg-white"
       }`}
     >
       <div className="leaderboard-card__header flex items-start justify-between">

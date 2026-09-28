@@ -43,7 +43,7 @@ export function TvFullscreenButton({
       <button
         aria-label={label}
         aria-pressed={isFullscreen}
-        className="dashboard-shell__fullscreen-button flex shrink-0 items-center justify-center border border-[#e6ddd2] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition hover:border-[#0b4d5a] hover:bg-[#0b4d5a] hover:text-white"
+        className="dashboard-shell__fullscreen-button flex shrink-0 items-center justify-center border border-[#dfe5ee] bg-white font-black text-[#00363e] shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition hover:border-[#0b4d5a] hover:bg-[#0b4d5a] hover:text-white"
         data-active={isFullscreen ? "true" : "false"}
         onClick={handleClick}
         title={label}
@@ -62,7 +62,7 @@ export function TvFullscreenButton({
       className={`tv-settings-modal__action tv-fullscreen-button w-full text-left transition ${
         isFullscreen
           ? "bg-[#0b4d5a] text-white shadow-[0_10px_22px_rgba(11,77,90,0.16)]"
-          : "bg-[#f7f3ee] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
+          : "bg-[#f1f3f7] text-[#00363e] hover:bg-[#fa6e18] hover:text-white"
       }`}
       data-active={isFullscreen ? "true" : "false"}
       onClick={handleClick}
