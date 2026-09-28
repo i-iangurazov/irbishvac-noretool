@@ -1,12 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { MembershipPerformance } from "@irbis/domain";
-import { MEMBERSHIP_DEPARTMENTS } from "@irbis/domain";
+import { MEMBERSHIP_DEPARTMENTS, RECURRING_STATUS_LABELS } from "@irbis/domain";
 import { DashboardShell, DataFreshnessBadge, FilterBar } from "@irbis/ui";
 import {
-  CalendarCheck2,
+  Banknote,
+  BriefcaseBusiness,
+  CalendarClock,
   CircleHelp,
-  LayoutGrid,
-  List,
   RefreshCw,
   ShieldCheck,
   Target,
@@ -25,11 +25,23 @@ import {
 } from "../../../lib/dashboard-filters";
 import { CsrPeriodPicker } from "../csr-controls";
 import { MembershipRefresh, MembershipSalesTable } from "./membership-controls";
+import {
+  MembershipRecurringPanel,
+  MembershipActivityPanel,
+} from "./membership-services";
 import "../csr.css";
 import "./membership.css";
 
 const num = (value: number | null | undefined) =>
   value == null ? "—" : value.toLocaleString("en-US");
+const money = (value: number | null) =>
+  value == null
+    ? "—"
+    : new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }).format(value);
 const rate = (value: number | null) =>
   value == null ? "—" : `${(value * 100).toFixed(1)}%`;
 function Hint({ children }: { children: string }) {
@@ -46,12 +58,14 @@ function Stat({
   icon,
   hint,
   primary = false,
+  detail,
 }: {
   label: string;
   value: number | null;
   icon: ReactNode;
   hint: string;
   primary?: boolean;
+  detail?: string | undefined;
 }) {
   return (
     <article
@@ -65,6 +79,7 @@ function Stat({
         <i>{icon}</i>
       </div>
       <strong>{num(value)}</strong>
+      {detail && <small>{detail}</small>}
     </article>
   );
 }
@@ -74,17 +89,25 @@ function Health({
   detail,
   hint,
   tone = "blue",
+  threshold,
+  upperLimit = false,
 }: {
   title: string;
   value: number | null;
   detail: string;
   hint: string;
   tone?: "blue" | "amber";
+  threshold?: number | null;
+  upperLimit?: boolean;
 }) {
+  const breached =
+    value != null &&
+    threshold != null &&
+    (upperLimit ? value > threshold : value < threshold);
   const progress = Math.max(0, Math.min(1, value ?? 0));
   return (
     <section
-      className={`csr-panel membership-health membership-health--${tone}`}
+      className={`csr-panel membership-health membership-health--${tone}${breached ? " membership-health--alert" : ""}`}
     >
       <h2>
         {title}
@@ -115,6 +138,12 @@ function Health({
         </svg>
       </div>
       <p>{detail}</p>
+      {threshold != null && (
+        <small className="membership-health-target">
+          {upperLimit ? "Limit" : "Target"} {rate(threshold)}
+          {breached ? (upperLimit ? " · Above limit" : " · Below target") : ""}
+        </small>
+      )}
     </section>
   );
 }
@@ -126,15 +155,16 @@ export function MembershipDashboard({
   data: MembershipPerformance;
   filters: ResolvedDashboardFilters;
 }) {
-  const path = "/call-center/memberships",
+  const path = "/memberships",
     query = buildDashboardQueryString(filters);
   const label = filters.customRange
-    ? `${filters.fromLabel} – ${filters.toLabel}`
+    ? filters.from === filters.to
+      ? filters.toLabel
+      : `${filters.fromLabel} – ${filters.toLabel}`
     : filters.preset === "ytd"
       ? `${filters.to.slice(0, 4)} YTD`
       : `${new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${filters.to}T12:00:00Z`))} MTD`;
-  const s = data.summary,
-    recurring = data.recurring;
+  const s = data.summary;
   const ready = Boolean(data.snapshotTime);
   const stale = Boolean(
     data.snapshotTime &&
@@ -187,6 +217,7 @@ export function MembershipDashboard({
           <h1>Membership Performance</h1>
           <div className="csr-toolbar__actions">
             <CsrPeriodPicker
+              allowSingleDate
               key={query}
               from={filters.from}
               to={filters.to}
@@ -199,20 +230,6 @@ export function MembershipDashboard({
             />
           </div>
         </div>
-        <nav className="membership-view-nav" aria-label="Call center views">
-          <a href={`/call-center/summary?${query}`}>
-            <List size={16} />
-            Summary
-          </a>
-          <a href={`/call-center/by-csr?${query}`}>
-            <LayoutGrid size={16} />
-            By CSR
-          </a>
-          <a href={`${path}?${query}`} aria-current="page">
-            <ShieldCheck size={16} />
-            Memberships
-          </a>
-        </nav>
         {!ready ? (
           <section className="csr-panel csr-empty">
             <ShieldCheck size={32} />
@@ -231,6 +248,7 @@ export function MembershipDashboard({
             <section className="membership-kpis" aria-label="Membership totals">
               <Stat
                 primary
+                detail={`As of ${filters.toLabel}`}
                 label="Active members"
                 value={s.activeMembers}
                 icon={<Users size={23} />}
@@ -238,6 +256,11 @@ export function MembershipDashboard({
               />
               <Stat
                 label="New sales"
+                detail={
+                  data.salesByMarket
+                    ? `${num(data.salesByMarket.residential)} residential · ${num(data.salesByMarket.commercial)} commercial${data.salesByMarket.other ? ` · ${num(data.salesByMarket.other)} other` : ""}`
+                    : undefined
+                }
                 value={s.newSales}
                 icon={<UserRoundPlus size={23} />}
                 hint="New Sale memberships with a Sold On date in the selected period. Renewals and deleted records are excluded. These totals match the department and representative sales below."
@@ -254,10 +277,17 @@ export function MembershipDashboard({
                 icon={<XCircle size={23} />}
                 hint="Memberships whose last status change in the selected period was Canceled, as reported by ServiceTitan Membership Summary."
               />
+              <Stat
+                label="Expired"
+                value={s.expired}
+                icon={<CalendarClock size={23} />}
+                hint="Memberships whose last status change during the selected dates was Expired in ServiceTitan Membership Summary. Separate from early cancellations; renewals are tracked independently."
+              />
             </section>
             <div className="membership-health-grid">
               <Health
                 title="Renewal rate"
+                threshold={data.thresholds.renewalTarget}
                 value={s.renewalRate}
                 detail={
                   s.eligibleRenewals == null
@@ -270,6 +300,8 @@ export function MembershipDashboard({
               />
               <Health
                 title="Cancellation rate"
+                threshold={data.thresholds.cancellationLimit}
+                upperLimit
                 tone="amber"
                 value={s.cancellationRate}
                 detail={
@@ -279,90 +311,47 @@ export function MembershipDashboard({
                 }
                 hint="Cancellations in the selected period ÷ memberships active at the start of the period. A zero starting balance has no calculable rate."
               />
-              <section className="csr-panel membership-recurring">
-                <div className="membership-panel-heading">
-                  <h2>
-                    <CalendarCheck2 size={20} />
-                    Recurring services
-                  </h2>
+              <section className="csr-panel membership-revenue">
+                <h2>
+                  <Banknote size={19} />
+                  Membership sales value
                   <Hint>
-                    Service events due within the selected dates. Booked
-                    includes scheduled, in-progress, on-hold and completed jobs.
-                    Cancelled jobs return to outstanding; dismissed events are
-                    separate.
+                    Sale and renewal item prices for memberships sold during the
+                    selected dates. Includes free and discounted memberships;
+                    excludes deleted records. This is sales value, not cash
+                    collected or deferred-revenue recognition.
                   </Hint>
-                </div>
+                </h2>
+                <strong>{money(data.revenue.total)}</strong>
                 <dl>
                   <div>
-                    <dt>Total due</dt>
-                    <dd>{num(recurring?.total)}</dd>
+                    <dt>New sales</dt>
+                    <dd>{money(data.revenue.newSales)}</dd>
                   </div>
                   <div>
-                    <dt>
-                      <span className="membership-dot" />
-                      Booked
-                    </dt>
-                    <dd>{num(recurring?.booked)}</dd>
-                  </div>
-                  <div>
-                    <dt>
-                      <span className="membership-dot membership-dot--amber" />
-                      Outstanding
-                    </dt>
-                    <dd>{num(recurring?.outstanding)}</dd>
+                    <dt>Renewals</dt>
+                    <dd>{money(data.revenue.renewals)}</dd>
                   </div>
                 </dl>
-                <div className="membership-recurring__track" aria-hidden="true">
-                  {recurring && recurring.total > 0 && (
-                    <>
-                      <i
-                        style={{
-                          width: `${(recurring.booked / recurring.total) * 100}%`,
-                        }}
-                      />
-                      <i
-                        style={{
-                          width: `${(recurring.outstanding / recurring.total) * 100}%`,
-                        }}
-                      />
-                      <i
-                        style={{
-                          width: `${(recurring.dismissed / recurring.total) * 100}%`,
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
+              </section>
+              <section className="csr-panel membership-revenue">
+                <h2>
+                  <BriefcaseBusiness size={19} />
+                  Member job revenue
+                  <Hint>
+                    Revenue From Members report filtered by job completion date,
+                    including adjustment invoices. Membership sale and renewal
+                    line items are removed using each invoice’s membership type.
+                    Invoice discounts are retained. Membership status follows
+                    the source report’s member cohort.
+                  </Hint>
+                </h2>
+                <strong>{money(data.revenue.memberJobs)}</strong>
                 <p>
-                  {!recurring ? (
-                    "Service data unavailable"
-                  ) : !recurring.total ? (
-                    "No services due in this period"
-                  ) : (
-                    <>
-                      {num(recurring.completed)} completed
-                      {recurring.dismissed > 0 && (
-                        <span>{num(recurring.dismissed)} dismissed</span>
-                      )}
-                    </>
-                  )}
+                  {data.revenue.jobs == null
+                    ? "Invoice data unavailable"
+                    : `${num(data.revenue.jobs)} completed jobs`}
                 </p>
-                {recurring && recurring.byType.length > 0 && (
-                  <details className="membership-service-details">
-                    <summary>By service type</summary>
-                    <div>
-                      {recurring.byType.map((type) => (
-                        <div key={type.name}>
-                          <span>{type.name}</span>
-                          <b>
-                            {type.booked} / {type.total}
-                            <small>booked</small>
-                          </b>
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
               </section>
             </div>
             <div className="membership-detail-grid">
@@ -388,9 +377,10 @@ export function MembershipDashboard({
                 <div className="membership-panel-heading">
                   <h2>Sales by department</h2>
                   <Hint>
-                    New memberships attributed to Sold By. HVAC and Plumbing use
-                    each technician’s department. Other and unassigned sales
-                    remain visible. Renewals are shown separately.
+                    Sales attributed to Sold By. CSR, HVAC Service, HVAC
+                    Maintenance and Plumbing Service are separate. Installation,
+                    advisors and unassigned sales remain in Other. Renewals are
+                    shown separately.
                   </Hint>
                 </div>
                 <div className="membership-department-total">
@@ -407,6 +397,7 @@ export function MembershipDashboard({
                           "#326ec3",
                           "#5489d0",
                           "#8badde",
+                          "#9ab8dd",
                           "#b9c7dc",
                         ][i],
                       } as CSSProperties
@@ -431,6 +422,20 @@ export function MembershipDashboard({
                 )}
               </section>
             </div>
+            <MembershipRecurringPanel
+              key={query}
+              recurring={data.recurring}
+              seasons={data.seasons}
+              query={filters.apiQueryString}
+              defaultSeason={
+                Number(filters.to.slice(5, 7)) >= 7 ? "fall" : "spring"
+              }
+              statusLabels={RECURRING_STATUS_LABELS}
+            />
+            <MembershipActivityPanel
+              key={`activity-${query}`}
+              rows={data.activity}
+            />
           </>
         )}
       </div>

@@ -107,3 +107,26 @@ describe("Dashboard proxy shared-account access", () => {
     },
   );
 });
+
+
+describe("membership notes authorization",()=>{
+  const path=["call-center","memberships","services","123","notes"];
+  const request=(origin="https://dashboard.example.test",headers:Record<string,string>={})=>new NextRequest("https://dashboard.example.test/api/dashboard/"+path.join("/"),{method:"POST",headers:{origin,"content-type":"application/json","x-membership-note":"1",...headers},body:JSON.stringify({body:"Example",requestId:"8b905e5a-9f23-4e7e-a00c-c5f89d4acb28"})});
+  it("rejects cross-origin and simple writes before contacting the API",async()=>{
+    session(true,"user_verified","verified@irbishvac.com");
+    expect((await proxyDashboardRequest(request("https://outside.example"),path)).status).toBe(403);
+    expect((await proxyDashboardRequest(request("https://dashboard.example.test",{"x-membership-note":""}),path)).status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("replaces forged authors with authenticated server identity",async()=>{
+    session(true,"user_verified","verified@irbishvac.com");
+    const r=await proxyDashboardRequest(request("https://dashboard.example.test",{"x-dashboard-user-label":"forged@irbishvac.com","x-dashboard-user-id":"forged"}),path);
+    expect(r.status).toBe(200);const headers=fetchMock.mock.calls[0]![1].headers as Headers;
+    expect(headers.get("x-dashboard-user-label")).toBe("verified@irbishvac.com");expect(headers.get("x-dashboard-user-id")).toBe("user_verified");
+  });
+  it("preserves approved shared-account note access with an explicit author label",async()=>{
+    session(true,SHARED_DASHBOARD_USER_ID,null);
+    expect((await proxyDashboardRequest(request(),path)).status).toBe(200);
+    expect(fetchMock.mock.calls[0]![1].headers.get("x-dashboard-user-label")).toBe("Shared dashboard");
+  });
+});

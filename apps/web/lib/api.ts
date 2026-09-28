@@ -95,7 +95,7 @@ export const navItems: DashboardNavItem[] = [
   },
   {
     id: "memberships",
-    href: "/call-center/memberships",
+    href: "/memberships",
     label: "Membership Performance",
     shortLabel: "MP",
     section: "Call Center",

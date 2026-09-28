@@ -1,11 +1,26 @@
+import {
+  buildRecurringServices,
+  buildMembershipActivity,
+  memberJobRevenue,
+  membershipSalesValue,
+  membershipSeasonPeriods,
+  type MembershipRecurring,
+  type MembershipActivity,
+} from "./membership-insights";
 import { getPresetRange, type DatePreset } from "@irbis/utils";
 
 export type MembershipPeriod = { from: string; to: string };
-export type MembershipDepartment = "csr" | "hvac" | "plumbing" | "other";
+export type MembershipDepartment =
+  | "csr"
+  | "hvac"
+  | "hvac-maintenance"
+  | "plumbing"
+  | "other";
 export const MEMBERSHIP_DEPARTMENTS: Record<MembershipDepartment, string> = {
   csr: "CSR",
-  hvac: "HVAC technicians",
-  plumbing: "Plumbers",
+  hvac: "HVAC Service",
+  "hvac-maintenance": "HVAC Maintenance",
+  plumbing: "Plumbing Service",
   other: "Other / unassigned",
 };
 export type MembershipRepresentative = {
@@ -18,7 +33,7 @@ export type MembershipRepresentative = {
   goal: number | null;
 };
 export type MembershipPerformance = {
-  version: 1;
+  version: 2;
   period: MembershipPeriod;
   snapshotTime: string | null;
   state: "ready" | "partial" | "pending";
@@ -27,6 +42,10 @@ export type MembershipPerformance = {
     sales: boolean;
     renewals: boolean;
     recurring: boolean;
+    revenue: boolean;
+    activity: boolean;
+    markets: boolean;
+    recurringDetails: boolean;
   };
   summary: {
     activeMembers: number | null;
@@ -34,6 +53,7 @@ export type MembershipPerformance = {
     newSales: number | null;
     renewals: number | null;
     cancellations: number | null;
+    expired: number | null;
     renewalRate: number | null;
     eligibleRenewals: number | null;
     renewedEligible: number | null;
@@ -53,20 +73,28 @@ export type MembershipPerformance = {
     total: number;
     achieved: number;
   };
-  recurring: null | {
-    total: number;
-    booked: number;
-    completed: number;
-    outstanding: number;
-    dismissed: number;
-    byType: Array<{
-      name: string;
-      total: number;
-      booked: number;
-      outstanding: number;
-      dismissed: number;
-    }>;
+  recurring: MembershipRecurring | null;
+  seasons: {
+    spring: MembershipRecurring | null;
+    fall: MembershipRecurring | null;
   };
+  activity: MembershipActivity[] | null;
+  revenue: {
+    newSales: number | null;
+    renewals: number | null;
+    total: number | null;
+    memberJobs: number | null;
+    jobs: number | null;
+  };
+  thresholds: {
+    renewalTarget: number | null;
+    cancellationLimit: number | null;
+  };
+  salesByMarket: {
+    residential: number;
+    commercial: number;
+    other: number;
+  } | null;
   membershipTypes: Array<{ name: string; active: number }>;
 };
 
@@ -97,12 +125,12 @@ export function resolveMembershipPeriod(
 }
 
 export const membershipScopeKey = ({ from, to }: MembershipPeriod) =>
-  `membership-performance:v1:${from}:${to}`;
+  `membership-performance:v2:${from}:${to}`;
 export function emptyMembershipPerformance(
   period: MembershipPeriod,
 ): MembershipPerformance {
   return {
-    version: 1,
+    version: 2,
     period,
     snapshotTime: null,
     state: "pending",
@@ -111,6 +139,10 @@ export function emptyMembershipPerformance(
       sales: false,
       renewals: false,
       recurring: false,
+      revenue: false,
+      activity: false,
+      markets: false,
+      recurringDetails: false,
     },
     summary: {
       activeMembers: null,
@@ -118,6 +150,7 @@ export function emptyMembershipPerformance(
       newSales: null,
       renewals: null,
       cancellations: null,
+      expired: null,
       renewalRate: null,
       eligibleRenewals: null,
       renewedEligible: null,
@@ -133,6 +166,17 @@ export function emptyMembershipPerformance(
       achieved: 0,
     },
     recurring: null,
+    seasons: { spring: null, fall: null },
+    activity: null,
+    revenue: {
+      newSales: null,
+      renewals: null,
+      total: null,
+      memberJobs: null,
+      jobs: null,
+    },
+    thresholds: { renewalTarget: null, cancellationLimit: null },
+    salesByMarket: null,
     membershipTypes: [],
   };
 }
@@ -198,91 +242,7 @@ export function membershipRenewalCohort(
   return { eligible, renewed, rate: eligible ? renewed / eligible : null };
 }
 
-export function buildMembershipRecurring(
-  rows: Row[],
-  period: MembershipPeriod,
-): NonNullable<MembershipPerformance["recurring"]> {
-  const result: NonNullable<MembershipPerformance["recurring"]> = {
-    total: 0,
-    booked: 0,
-    completed: 0,
-    outstanding: 0,
-    dismissed: 0,
-    byType: [],
-  };
-  const seen = new Set<string>();
-  const types = new Map<
-    string,
-    {
-      name: string;
-      total: number;
-      booked: number;
-      outstanding: number;
-      dismissed: number;
-    }
-  >();
-  for (const row of rows) {
-    if (!inside(date(row.RecurringEventDate), period)) continue;
-    const id = String(row.RecurringServiceEventId ?? "");
-    if (!id) throw new Error("Recurring event ID missing");
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const name = text(row.RecurringServiceName) || "Other service";
-    const type = types.get(name) ?? {
-      name,
-      total: 0,
-      booked: 0,
-      outstanding: 0,
-      dismissed: 0,
-    };
-    const status = identity(row.Status);
-    const booked = [
-      "won",
-      "scheduled",
-      "in progress",
-      "hold",
-      "completed",
-      "job scheduled",
-      "job in progress",
-      "job hold",
-      "job completed",
-    ].includes(status);
-    const dismissed = status === "dismissed";
-    if (
-      !booked &&
-      !dismissed &&
-      ![
-        "not attempted",
-        "unreachable",
-        "contacted",
-        "cancelled",
-        "canceled",
-        "job cancelled",
-        "job canceled",
-      ].includes(status)
-    )
-      throw new Error("Unknown recurring event status");
-    result.total++;
-    type.total++;
-    if (booked) {
-      result.booked++;
-      type.booked++;
-    } else if (dismissed) {
-      result.dismissed++;
-      type.dismissed++;
-    } else {
-      result.outstanding++;
-      type.outstanding++;
-    }
-    if (status === "job completed" || status === "completed")
-      result.completed++;
-    types.set(name, type);
-  }
-  result.byType = [...types.values()].sort(
-    (a, b) => b.total - a.total || a.name.localeCompare(b.name),
-  );
-  return result;
-}
+export const buildMembershipRecurring = buildRecurringServices;
 
 export function buildMembershipPerformance(input: {
   period: MembershipPeriod;
@@ -298,6 +258,11 @@ export function buildMembershipPerformance(input: {
   csrNames: string[];
   goalScope?: "service" | "csr" | "all-technicians";
   monthlyGoal?: number;
+  recurringDetails?: Row[] | null;
+  history?: Row[] | null;
+  jobRevenueRows?: Row[] | null;
+  renewalTarget?: number | null;
+  cancellationLimit?: number | null;
 }): MembershipPerformance {
   const result = emptyMembershipPerformance(input.period);
   result.snapshotTime = input.now;
@@ -309,6 +274,9 @@ export function buildMembershipPerformance(input: {
       activeMembers: sum("ActiveAtEnd"),
       activeAtStart: sum("ActiveAtStart"),
       cancellations: sum("Canceled"),
+      expired: input.summaryRows.every((row) => row.Expired != null)
+        ? sum("Expired")
+        : null,
     });
     result.summary.cancellationRate = result.summary.activeAtStart
       ? result.summary.cancellations! / result.summary.activeAtStart
@@ -336,9 +304,69 @@ export function buildMembershipPerformance(input: {
     result.recurring = buildMembershipRecurring(
       input.recurringRows,
       input.period,
+      input.recurringDetails,
     );
+    const seasons = membershipSeasonPeriods(input.period);
+    result.seasons = {
+      spring: buildMembershipRecurring(
+        input.recurringRows,
+        seasons.spring,
+        input.recurringDetails,
+      ),
+      fall: buildMembershipRecurring(
+        input.recurringRows,
+        seasons.fall,
+        input.recurringDetails,
+      ),
+    };
     result.sources.recurring = true;
+    result.sources.recurringDetails = input.recurringDetails != null;
   }
+  result.thresholds = {
+    renewalTarget: input.renewalTarget ?? null,
+    cancellationLimit: input.cancellationLimit ?? null,
+  };
+  if (input.history && input.memberships && input.membershipDetails) {
+    result.activity = buildMembershipActivity(
+      input.history,
+      input.memberships,
+      input.membershipDetails,
+      input.period,
+    );
+    result.sources.activity = true;
+  }
+  const salesValue = input.salesRows
+    ? membershipSalesValue(input.salesRows, input.period)
+    : null;
+  const jobsValue = input.jobRevenueRows
+    ? memberJobRevenue(input.jobRevenueRows)
+    : null;
+  result.revenue = {
+    newSales: salesValue?.newSales ?? null,
+    renewals: salesValue?.renewals ?? null,
+    total: salesValue?.total ?? null,
+    memberJobs: jobsValue?.total ?? null,
+    jobs: jobsValue?.jobs ?? null,
+  };
+  result.sources.revenue = Boolean(salesValue && jobsValue);
+  if (input.salesRows?.every((row) => typeof row.CustomerType === "string")) {
+    result.salesByMarket = { residential: 0, commercial: 0, other: 0 };
+    for (const row of input.salesRows) {
+      if (
+        !inside(date(row.SoldOn), input.period) ||
+        identity(row.ActivationMethod) !== "new sale"
+      )
+        continue;
+      const name = text(row.CustomerType);
+      const market = /commercial/i.test(name)
+        ? "commercial"
+        : /residential/i.test(name)
+          ? "residential"
+          : "other";
+      result.salesByMarket[market]++;
+    }
+  }
+  result.sources.markets = result.salesByMarket != null;
   const months =
     (Number(input.period.to.slice(0, 4)) -
       Number(input.period.from.slice(0, 4))) *
@@ -361,11 +389,13 @@ export function buildMembershipPerformance(input: {
       const csr = !isTech && (person.role === "CSR" || csrs.has(key));
       const department: MembershipDepartment = csr
         ? "csr"
-        : isTech && /HVAC/i.test(bu)
-          ? "hvac"
-          : isTech && /Plumb/i.test(bu)
-            ? "plumbing"
-            : "other";
+        : isTech && /HVAC/i.test(bu) && /Maintenance/i.test(bu)
+          ? "hvac-maintenance"
+          : isTech && /HVAC/i.test(bu) && /Service/i.test(bu)
+            ? "hvac"
+            : isTech && /Plumb/i.test(bu) && /Service/i.test(bu)
+              ? "plumbing"
+              : "other";
       const active = person.active === true;
       const goal =
         active &&

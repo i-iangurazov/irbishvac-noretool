@@ -43,13 +43,16 @@ export function CsrPeriodPicker({
   to,
   label,
   query,
+  allowSingleDate = false,
 }: {
   from: string;
   to: string;
   label: string;
   query: string;
+  allowSingleDate?: boolean;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
+  const [single, setSingle] = useState(allowSingleDate && from === to);
   const [start, setStart] = useState(from);
   const [end, setEnd] = useState(to);
   useEffect(() => {
@@ -84,30 +87,56 @@ export function CsrPeriodPicker({
             <input type="hidden" key={key} name={key} value={value} />
           ))}
         <input type="hidden" name="range" value="fixed" />
+        {allowSingleDate && (
+          <div
+            className="membership-date-mode"
+            role="group"
+            aria-label="Date selection mode"
+          >
+            <button
+              type="button"
+              aria-pressed={!single}
+              onClick={() => setSingle(false)}
+            >
+              Date range
+            </button>
+            <button
+              type="button"
+              aria-pressed={single}
+              onClick={() => setSingle(true)}
+            >
+              Single date
+            </button>
+          </div>
+        )}
         <label>
-          From
+          {single ? "Date" : "From"}
           <input
             aria-label="Start date"
             name="from"
             type="date"
             required
-            max={end}
+            max={single ? undefined : end}
             value={start}
             onChange={(event) => setStart(event.target.value)}
           />
         </label>
-        <label>
-          To
-          <input
-            aria-label="End date"
-            name="to"
-            type="date"
-            required
-            min={start}
-            value={end}
-            onChange={(event) => setEnd(event.target.value)}
-          />
-        </label>
+        {single ? (
+          <input type="hidden" name="to" value={start} />
+        ) : (
+          <label>
+            To
+            <input
+              aria-label="End date"
+              name="to"
+              type="date"
+              required
+              min={start}
+              value={end}
+              onChange={(event) => setEnd(event.target.value)}
+            />
+          </label>
+        )}
         <button className="csr-button csr-button--primary" type="submit">
           Apply dates
         </button>

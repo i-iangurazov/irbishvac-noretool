@@ -687,3 +687,653 @@
     padding: 20px;
   }
 }
+
+/* Membership board: five lifecycle metrics, distinct revenue, seasonal follow-up. */
+.membership-kpis {
+  grid-template-columns: 1.18fr repeat(4, minmax(0, 1fr));
+}
+.membership-stat > small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 12px;
+  color: #71829b;
+}
+.membership-stat--primary > small {
+  color: #d7e7ff;
+}
+.membership-health-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+}
+.membership-health {
+  min-height: 215px;
+}
+.membership-health-target {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #68829d;
+}
+.membership-health--alert {
+  border-color: #e7bb98;
+  background: #fffaf6;
+}
+.membership-health--alert .membership-health-target {
+  color: #a4532e;
+  font-weight: 600;
+}
+.membership-revenue {
+  padding: 22px;
+}
+.membership-revenue h2 {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  line-height: 1.5;
+}
+.membership-revenue h2 > svg {
+  flex-shrink: 0;
+  color: #6083b1;
+}
+.membership-revenue > strong {
+  display: block;
+  font-size: 31px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  margin: 21px 0 16px;
+}
+.membership-revenue dl {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+.membership-revenue dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.membership-revenue dt,
+.membership-revenue > p {
+  color: #7a89a0;
+  font-size: 12px;
+}
+.membership-revenue dd {
+  font-weight: 600;
+  color: #526b8e;
+}
+.membership-detail-grid {
+  grid-template-columns: minmax(0, 2.7fr) minmax(260px, 1fr);
+}
+.membership-leaderboard-filters {
+  display: flex;
+  gap: 8px;
+}
+.membership-leaderboard-filters select {
+  max-width: 165px;
+  font-size: 11px;
+}
+.membership-rank {
+  color: #8294af !important;
+  font-size: 12px !important;
+  min-width: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.membership-total-sales {
+  font-weight: 650;
+  color: #2f496c;
+}
+.membership-person {
+  min-width: 210px;
+}
+.membership-person span:not(.csr-avatar) {
+  font-size: 11px;
+}
+.membership-table-wrap th {
+  font-size: 12px;
+}
+.membership-person-goal {
+  min-width: 105px;
+}
+.membership-date-mode,
+.membership-seasons {
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+  background: #f1f4f9;
+  border: 1px solid #e7edf5;
+  border-radius: 11px;
+}
+.membership-date-mode {
+  grid-column: 1/-1;
+}
+.membership-date-mode button,
+.membership-seasons button {
+  font: inherit;
+  cursor: pointer;
+  font-size: 12px;
+  border: 0;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #6b7e97;
+  white-space: nowrap;
+}
+.membership-date-mode button[aria-pressed="true"],
+.membership-seasons button[aria-pressed="true"] {
+  background: white;
+  box-shadow: 0 1px 4px #28426814;
+  color: #2b62ac;
+  font-weight: 600;
+}
+.membership-services,
+.membership-activity {
+  padding: 24px;
+  min-width: 0;
+}
+.membership-services-overview {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  margin: 25px 0 23px;
+}
+.membership-services-overview > div:first-child {
+  margin-right: 16px;
+}
+.membership-services-overview strong {
+  font-size: 34px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.membership-services-overview > div:first-child > span {
+  font-size: 13px;
+  margin-left: 10px;
+  color: #7789a3;
+}
+.membership-services-overview small {
+  display: block;
+  font-size: 12px;
+  margin-top: 4px;
+  color: #71819c;
+}
+.membership-services-overview b {
+  display: block;
+  font-size: 25px;
+  color: #47658d;
+  font-weight: 600;
+}
+.membership-services-overview > div:not(:first-child) span {
+  font-size: 12px;
+  color: #7789a3;
+}
+.membership-services-overview > p {
+  margin-left: auto;
+  align-self: flex-end;
+  color: #8595ac;
+  font-size: 11px;
+}
+.membership-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+.membership-status {
+  text-align: left;
+  cursor: pointer;
+  background: #f7f9fc;
+  border: 1px solid #e8edf5;
+  border-radius: 12px;
+  padding: 14px;
+  color: #5e7699;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.membership-status span {
+  display: block;
+  font-size: 12px;
+}
+.membership-status strong {
+  display: block;
+  font-size: 26px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+.membership-status:hover,
+.membership-status[aria-pressed="true"] {
+  border-color: #81a4d4;
+  background: #edf4fe;
+}
+.membership-status--completed {
+  color: #388074;
+}
+.membership-status--cancelled,
+.membership-status--dismissed {
+  color: #a17156;
+}
+.membership-status--hold {
+  color: #a98a49;
+}
+.membership-service-list-toggle {
+  margin-top: 18px;
+}
+.membership-service-list-toggle button {
+  border: 0;
+  background: none;
+  color: #346db6;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.membership-service-list {
+  margin-top: 24px;
+  border-top: 1px solid #e8eef6;
+  padding-top: 20px;
+}
+.membership-service-list h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.membership-service-list h3 span {
+  font-size: 12px;
+  color: #8093ad;
+  margin-left: 8px;
+}
+.membership-service-list .membership-table-wrap,
+.membership-activity .membership-table-wrap {
+  padding: 8px 0 0;
+  max-height: none;
+}
+.membership-service-list table td,
+.membership-activity table td {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.membership-service-list table th,
+.membership-activity table th {
+  text-align: left;
+}
+.membership-service-list td:first-child {
+  min-width: 185px;
+}
+.membership-service-list td:nth-child(2),
+.membership-activity td:nth-child(2) {
+  max-width: 290px;
+  min-width: 170px;
+  color: #72839b;
+}
+.membership-service-list td:nth-child(3),
+.membership-service-list td:nth-child(4),
+.membership-activity td:nth-child(3),
+.membership-activity td:nth-child(4) {
+  white-space: nowrap;
+}
+.membership-service-list td small {
+  display: block;
+  color: #8595ac;
+  font-size: 10px;
+}
+.membership-service-list td b {
+  font-size: 13px;
+  font-weight: 550;
+}
+.membership-service-list td .csr-button {
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.membership-event-status {
+  font-size: 11px;
+  font-weight: 600;
+  background: #f5f7fa;
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 7px;
+}
+.membership-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  color: #8391a8;
+  font-size: 12px;
+}
+.membership-pagination > div {
+  display: flex;
+  gap: 7px;
+}
+.membership-pagination button {
+  padding: 7px;
+}
+.membership-pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.membership-activity summary {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  list-style: none;
+}
+.membership-activity summary::-webkit-details-marker {
+  display: none;
+}
+.membership-activity summary > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 650;
+}
+.membership-activity summary svg {
+  color: #5b80b0;
+}
+.membership-activity summary > span:last-child {
+  font-size: 12px;
+  color: #7a8aa3;
+}
+.membership-activity details[open] > summary {
+  margin-bottom: 22px;
+}
+.membership-activity .membership-panel-heading > p,
+.membership-activity-footnote {
+  font-size: 11px;
+  color: #8190a7;
+}
+.membership-activity-footnote {
+  margin-top: 16px;
+  line-height: 1.6;
+}
+.membership-note-dialog {
+  border: 1px solid #dfe7f1;
+  border-radius: 20px;
+  padding: 26px;
+  width: min(560px, calc(100vw - 32px));
+  max-height: 85dvh;
+  overflow: auto;
+  color: #304663;
+  box-shadow: 0 20px 100px #162e5a30;
+  font-family: var(--font-montserrat), sans-serif;
+}
+.membership-note-dialog::backdrop {
+  background: #182b4966;
+  backdrop-filter: blur(3px);
+}
+.membership-note-dialog .membership-panel-heading p {
+  font-size: 13px;
+  color: #7c8da4;
+  margin-top: 6px;
+}
+.membership-note-dialog .membership-panel-heading > button {
+  padding: 8px;
+}
+.membership-note-service {
+  margin: 20px 0;
+  padding: 14px;
+  background: #f4f7fc;
+  border-radius: 10px;
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+}
+.membership-note-service b {
+  font-weight: 600;
+}
+.membership-note-service span {
+  color: #8394aa;
+}
+.membership-note {
+  border-bottom: 1px solid #edf1f7;
+  padding: 12px 0;
+}
+.membership-note small {
+  font-size: 10px;
+  color: #7d8ea6;
+  overflow-wrap: anywhere;
+}
+.membership-note p {
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-top: 7px;
+}
+.membership-note-list {
+  max-height: 260px;
+  overflow: auto;
+}
+.membership-note-list > p {
+  font-size: 12px;
+  color: #8190a7;
+}
+.membership-note-dialog form {
+  margin-top: 22px;
+}
+.membership-note-dialog label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.membership-note-dialog textarea {
+  width: 100%;
+  min-height: 105px;
+  margin: 9px 0;
+  padding: 12px;
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  resize: vertical;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.membership-note-dialog form > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.membership-note-dialog form > div > span {
+  font-size: 10px;
+  color: #8191a8;
+}
+.membership-note-error {
+  color: #b2583b;
+  font-size: 12px;
+  margin-top: 14px;
+}
+@media (min-width: 1650px) {
+  .membership-revenue > strong {
+    font-size: 36px;
+  }
+  .membership-revenue {
+    padding: 26px;
+  }
+  .membership-services {
+    padding: 28px;
+  }
+  .membership-status strong {
+    font-size: 30px;
+  }
+}
+@media (max-width: 1199px) {
+  .membership-kpis {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .membership-stat > div > i {
+    display: none;
+  }
+  .membership-health-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .membership-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .membership-departments {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .membership-departments > .membership-panel-heading {
+    grid-column: 1/-1;
+  }
+  .membership-department-total {
+    margin: 0;
+  }
+  .membership-department + .membership-department {
+    margin: 0;
+  }
+  .membership-status-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 899px) {
+  .membership-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .membership-stat:first-child {
+    grid-row: span 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .membership-kpis .membership-stat:not(:first-child) {
+    padding: 16px;
+  }
+  .membership-stat > strong {
+    font-size: 32px;
+  }
+  .membership-services-overview {
+    gap: 24px;
+  }
+  .membership-services-overview > p {
+    display: none;
+  }
+}
+@media (max-width: 599px) {
+  .membership-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .membership-stat:first-child {
+    grid-row: auto;
+    grid-column: 1/-1;
+  }
+  .membership-stat > small {
+    font-size: 10px;
+  }
+  .membership-health-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .membership-health,
+  .membership-revenue {
+    padding: 16px;
+    min-height: 180px;
+  }
+  .membership-revenue > strong {
+    font-size: 25px;
+  }
+  .membership-revenue h2 {
+    font-size: 13px;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .membership-revenue h2 > svg {
+    display: none;
+  }
+  .membership-revenue dl {
+    font-size: 11px;
+  }
+  .membership-leaderboard-filters {
+    width: 100%;
+  }
+  .membership-sales > .membership-panel-heading {
+    flex-wrap: wrap;
+  }
+  .membership-leaderboard-filters select {
+    max-width: none;
+    width: 50%;
+  }
+  .membership-goal-summary {
+    padding: 15px;
+    margin: 18px 16px 12px;
+  }
+  .membership-goal-summary > div:nth-child(2) {
+    align-self: start;
+  }
+  .membership-services,
+  .membership-activity {
+    padding: 18px;
+  }
+  .membership-services > .membership-panel-heading {
+    flex-wrap: wrap;
+  }
+  .membership-seasons {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .membership-seasons button {
+    font-size: 11px;
+    padding: 7px 11px;
+  }
+  .membership-services-overview {
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .membership-services-overview > div:first-child {
+    width: 100%;
+    margin: 0;
+  }
+  .membership-services-overview strong {
+    font-size: 30px;
+  }
+  .membership-services-overview b {
+    font-size: 23px;
+  }
+  .membership-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .membership-status {
+    padding: 13px;
+  }
+  .membership-status span {
+    font-size: 11px;
+  }
+  .membership-service-list .membership-panel-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .membership-service-list select {
+    max-width: 100%;
+    width: 100%;
+  }
+  .membership-activity summary > span:first-child {
+    font-size: 13px;
+  }
+  .membership-activity summary > span:last-child {
+    font-size: 10px;
+  }
+  .membership-activity .membership-panel-heading {
+    flex-direction: column;
+    align-items: start;
+  }
+  .membership-note-dialog {
+    padding: 20px;
+  }
+  .membership-note-dialog form > div {
+    align-items: flex-start;
+  }
+  .membership-departments {
+    display: block;
+  }
+  .membership-department-total {
+    margin: 18px 0;
+  }
+  .membership-department + .membership-department {
+    margin-top: 18px;
+  }
+}

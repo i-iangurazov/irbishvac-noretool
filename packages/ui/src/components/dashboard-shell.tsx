@@ -152,7 +152,7 @@ export function DashboardShell(props: DashboardShellProps) {
       data-tv-mode={props.tvMode ? "true" : "false"}
       data-kiosk-mode={kioskMode ? "true" : "false"}
       data-rotate-mode={props.tvMenu?.rotateMode ? "true" : "false"}
-      className="dashboard-shell h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,_#faf8f2_0%,_#f3efe7_100%)] text-slate-900"
+      className="dashboard-shell h-[100dvh] overflow-hidden bg-[#f6f7fa] text-slate-900"
     >
       <DashboardAutoRefreshRuntime enabled={Boolean(props.tvMode)} />
       <TvRotationRuntime
@@ -188,7 +188,7 @@ export function DashboardShell(props: DashboardShellProps) {
           </div>
         ) : (
           <header
-            className={`dashboard-shell__header sticky top-0 z-40 border-b border-[#e8ddd1]/90 bg-[rgba(249,246,240,0.94)] backdrop-blur-md ${
+            className={`dashboard-shell__header sticky top-0 z-40 border-b border-[#e8ddd1]/90 bg-[#f6f7fa] backdrop-blur-md ${
               props.tvMode
                 ? "dashboard-shell__header--tv"
                 : "dashboard-shell__header--desktop"

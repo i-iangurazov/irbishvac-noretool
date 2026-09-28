@@ -1,20 +1,19 @@
-import type { MembershipPerformance } from "@irbis/domain";
-import { fetchApi } from "../../../lib/api";
-import { resolveDashboardFilters } from "../../../lib/dashboard-filters";
-import { MembershipDashboard } from "./membership-dashboard";
+import { redirect } from "next/navigation";
 
-export default async function MembershipPage({
+export default async function MembershipRedirect({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const filters = await resolveDashboardFilters(
-    searchParams,
-    "America/Los_Angeles",
-    "/call-center/memberships",
-  );
-  const data = await fetchApi<MembershipPerformance>(
-    `/dashboard/call-center/memberships?${filters.apiQueryString}`,
-  );
-  return <MembershipDashboard data={data} filters={filters} />;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries((await searchParams) ?? {})) {
+    for (const item of Array.isArray(value)
+      ? value
+      : value == null
+        ? []
+        : [value])
+      params.append(key, item);
+  }
+  if (params.size) redirect(`/memberships?${params.toString()}`);
+  redirect("/memberships");
 }

@@ -15,7 +15,7 @@ body {
   min-height: 100%;
   margin: 0;
   font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
-  background: linear-gradient(180deg, #faf7f1 0%, #f2ede5 100%);
+  background: rgb(246 247 250);
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
