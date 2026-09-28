@@ -696,8 +696,9 @@ export function CsrDashboard({
               <p className="csr-data-note">
                 {num(data.unassignedTextLeads)} text leads have no matching CSR
                 <Hint>
-                  These leads are excluded from team and individual totals until
-                  a CSR is assigned in the source sheet.
+                  These leads belong to employees outside the current CSR roster
+                  or have no CSR assigned. They are excluded from the displayed
+                  team totals.
                 </Hint>
               </p>
             ) : null}

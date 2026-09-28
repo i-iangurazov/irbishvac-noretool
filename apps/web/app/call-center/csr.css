@@ -1691,3 +1691,8 @@
 .csr-avatar img {
   object-position: center 72%;
 }
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .csr-people {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
