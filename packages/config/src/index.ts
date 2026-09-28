@@ -218,6 +218,14 @@ export function getConfig() {
       logoFolder: env.ASSET_FOLDER_LOGOS
     },
     csr: { reportsFolderId: env.GOOGLE_CSR_REPORTS_FOLDER_ID, jobsReportId: env.ST_REPORT_CSR_JOBS, membershipsReportId: env.ST_REPORT_CSR_MEMBERSHIPS },
+    membership: {
+      summaryReportId: env.ST_REPORT_MEMBERSHIP_SUMMARY,
+      salesReportId: env.ST_REPORT_MEMBERSHIP_SALES,
+      detailsReportId: env.ST_REPORT_MEMBERSHIP_DETAILS,
+      recurringReportId: env.ST_REPORT_MEMBERSHIP_RECURRING,
+      monthlyGoal: env.MEMBERSHIP_MONTHLY_GOAL,
+      goalScope: env.MEMBERSHIP_GOAL_SCOPE,
+    },
     campaignPerformance: {
       companyRevenueGoal: env.CAMPAIGN_COMPANY_REVENUE_GOAL,
       marketingBudgetRate: env.CAMPAIGN_MARKETING_BUDGET_RATE,

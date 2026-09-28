@@ -10,6 +10,7 @@ import {
 } from "./runner";
 import { buildLatestSnapshotPlan } from "./snapshot-plan";
 import { CampaignPerformanceRefreshRunner } from "./campaign-performance";
+import { MembershipPerformanceRunner } from "./membership-performance";
 
 type RefreshJob =
   | {
@@ -18,6 +19,7 @@ type RefreshJob =
       context?: Pick<ReportRequestContext, "preset" | "from" | "to">;
     }
   | { type: "refresh-campaign-performance"; month?: string }
+  | { type: "refresh-membership-performance"; context?: Pick<ReportRequestContext, "preset" | "from" | "to"> }
   | { type: "refresh-pipeline"; pipeline: "people" | "company" };
 
 const logger = createLogger("worker-main");
@@ -49,6 +51,7 @@ const refreshQueue = new Queue<RefreshJob, unknown, string>(queueName, {
 });
 const runner = new DashboardRefreshRunner();
 const campaignPerformanceRunner = new CampaignPerformanceRefreshRunner();
+const membershipRunner = new MembershipPerformanceRunner();
 
 function currentBusinessMonth() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -94,6 +97,10 @@ const worker = new Worker<RefreshJob, unknown, string>(
 
     if (job.data.type === "refresh-family") {
       return runner.refreshFamily(job.data.family, correlationId, job.data.context);
+    }
+
+    if (job.data.type === "refresh-membership-performance") {
+      return membershipRunner.refresh(job.data.context, correlationId);
     }
 
     const families =
@@ -169,6 +176,12 @@ async function bootstrap() {
       );
     }
     logger.info("CSR performance schedulers enabled", { mtd: "every 30 minutes", ytd: "hourly" });
+    for (const [preset, pattern] of [["mtd", "12,27,42,57 * * * *"], ["ytd", "47 * * * *"]] as const) {
+      await refreshQueue.upsertJobScheduler(`membership-performance-${preset}`, { pattern, tz: config.app.timezone }, {
+        name: `scheduled-memberships-${preset}`, data: { type: "refresh-membership-performance", context: { preset } },
+      });
+    }
+    logger.info("Membership performance schedulers enabled", { mtd: "every 15 minutes", ytd: "hourly" });
   }
 
   if (!config.worker.bootstrapOnStart) {

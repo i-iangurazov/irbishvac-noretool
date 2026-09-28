@@ -9,6 +9,7 @@ import {
 } from "@irbis/integrations";
 import { createLogger, getRedisConnectionSettings } from "@irbis/utils";
 import type { DashboardRequestContext } from "./dashboard.service";
+import type { MembershipPeriod } from "@irbis/domain";
 
 type RefreshJob = {
   type: "refresh-family";
@@ -17,6 +18,9 @@ type RefreshJob = {
 } | {
   type: "refresh-campaign-performance";
   month: string;
+} | {
+  type: "refresh-membership-performance";
+  context: MembershipPeriod;
 };
 
 function getBullConnection(urlString: string): ConnectionOptions {
@@ -107,5 +111,25 @@ export class DashboardRefreshService {
       failedReason: job.failedReason || null,
       result: job.returnvalue ?? null
     };
+  }
+
+  async enqueueMembershipRefresh(period: MembershipPeriod) {
+    const jobId = `membership-performance-${period.from}-${period.to}`;
+    const existing = await this.queue.getJob(jobId);
+    if (existing) {
+      const state = await existing.getState();
+      if (["active", "waiting", "delayed", "prioritized", "waiting-children"].includes(state) || Date.now() - (existing.finishedOn ?? existing.timestamp) < 60_000) {
+        return { jobId, state, reused: true };
+      }
+      await existing.remove();
+    }
+    await this.queue.add("refresh-membership-performance", { type: "refresh-membership-performance", context: period }, { jobId });
+    return { jobId, state: "waiting", reused: false };
+  }
+
+  async getMembershipRefreshStatus(jobId: string) {
+    const job = await this.queue.getJob(jobId);
+    if (!job || job.data.type !== "refresh-membership-performance") return { jobId, state: "not-found" };
+    return { jobId, state: await job.getState() };
   }
 }

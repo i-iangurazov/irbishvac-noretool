@@ -14,3 +14,4 @@ export * from "./kitchen-board";
 
 export * from "./metrics/csr-sources";
 export * from "./metrics/csr-performance";
+export * from "./metrics/membership-performance";

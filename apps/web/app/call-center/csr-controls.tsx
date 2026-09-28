@@ -6,6 +6,15 @@ import { CalendarDays, ChevronDown, RefreshCw } from "lucide-react";
 
 export function CsrAvatar({ name, src }: { name: string; src: string | null }) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const image = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    // Cached images can finish before React attaches its load/error listeners.
+    if (image.current?.complete) {
+      setLoaded(image.current.naturalWidth > 0);
+      setFailed(image.current.naturalWidth === 0);
+    }
+  }, [src]);
   const initials = name
     .split(/[\s-]+/)
     .filter(Boolean)
@@ -16,7 +25,14 @@ export function CsrAvatar({ name, src }: { name: string; src: string | null }) {
     <span className="csr-avatar" aria-label={name}>
       <span aria-hidden="true">{initials}</span>
       {src && !failed ? (
-        <img src={src} alt={name} onError={() => setFailed(true)} />
+        <img
+          ref={image}
+          src={src}
+          alt={name}
+          style={{ opacity: loaded ? 1 : 0 }}
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+        />
       ) : null}
     </span>
   );

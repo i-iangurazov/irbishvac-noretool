@@ -397,6 +397,10 @@ export function CsrDashboard({
                 <LayoutGrid size={16} />
                 By CSR
               </a>
+              <a href={`/call-center/memberships?${query}`}>
+                <ShieldCheck size={16} />
+                Memberships
+              </a>
             </nav>
             <CsrPeriodPicker
               from={filters.from}

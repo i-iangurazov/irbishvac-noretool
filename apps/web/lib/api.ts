@@ -94,6 +94,13 @@ export const navItems: DashboardNavItem[] = [
     section: "Call Center",
   },
   {
+    id: "memberships",
+    href: "/call-center/memberships",
+    label: "Membership Performance",
+    shortLabel: "MP",
+    section: "Call Center",
+  },
+  {
     id: "leads",
     href: "/leads",
     label: "Lead Generation",
