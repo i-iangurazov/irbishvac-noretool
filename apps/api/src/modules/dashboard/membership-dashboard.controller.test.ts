@@ -41,7 +41,7 @@ describe("membership dashboard API", () => {
       where: {
         family_scopeKey: {
           family: "CALL_CENTER_SOURCE",
-          scopeKey: "membership-performance:v2:2026-09-01:2026-09-28",
+          scopeKey: "membership-performance:v3:2026-09-01:2026-09-28",
         },
       },
     });

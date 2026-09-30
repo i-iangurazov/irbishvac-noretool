@@ -8,6 +8,7 @@ import {
   type MembershipActivity,
 } from "./membership-insights";
 import { getPresetRange, type DatePreset } from "@irbis/utils";
+import { membershipRenewalTarget } from "./membership-goals";
 
 export type MembershipPeriod = { from: string; to: string };
 export type MembershipDepartment =
@@ -32,8 +33,30 @@ export type MembershipRepresentative = {
   renewals: number;
   goal: number | null;
 };
+export type MembershipComparisonKind = "month" | "quarter" | "year";
+/**
+ * The rate/volume metrics shown side by side when comparing reporting periods.
+ * Counts are nullable so "source unavailable" never renders as a real zero.
+ */
+export type MembershipRateSnapshot = {
+  activeMembers: number | null;
+  activeAtStart: number | null;
+  newSales: number | null;
+  renewals: number | null;
+  cancellations: number | null;
+  expired: number | null;
+  newSalesRate: number | null;
+  renewalRate: number | null;
+  cancellationRate: number | null;
+};
+export type MembershipComparison = {
+  kind: MembershipComparisonKind;
+  label: string;
+  period: MembershipPeriod;
+  snapshot: MembershipRateSnapshot | null;
+};
 export type MembershipPerformance = {
-  version: 2;
+  version: 3;
   period: MembershipPeriod;
   snapshotTime: string | null;
   state: "ready" | "partial" | "pending";
@@ -54,11 +77,13 @@ export type MembershipPerformance = {
     renewals: number | null;
     cancellations: number | null;
     expired: number | null;
+    newSalesRate: number | null;
     renewalRate: number | null;
     eligibleRenewals: number | null;
     renewedEligible: number | null;
     cancellationRate: number | null;
   };
+  comparison: MembershipComparison[];
   departments: Array<{
     id: MembershipDepartment;
     label: string;
@@ -125,12 +150,12 @@ export function resolveMembershipPeriod(
 }
 
 export const membershipScopeKey = ({ from, to }: MembershipPeriod) =>
-  `membership-performance:v2:${from}:${to}`;
+  `membership-performance:v3:${from}:${to}`;
 export function emptyMembershipPerformance(
   period: MembershipPeriod,
 ): MembershipPerformance {
   return {
-    version: 2,
+    version: 3,
     period,
     snapshotTime: null,
     state: "pending",
@@ -151,11 +176,13 @@ export function emptyMembershipPerformance(
       renewals: null,
       cancellations: null,
       expired: null,
+      newSalesRate: null,
       renewalRate: null,
       eligibleRenewals: null,
       renewedEligible: null,
       cancellationRate: null,
     },
+    comparison: [],
     departments: [],
     representatives: [],
     goals: {
@@ -244,6 +271,180 @@ export function membershipRenewalCohort(
 
 export const buildMembershipRecurring = buildRecurringServices;
 
+/**
+ * New-sale rate = new memberships sold as a share of the membership base at the
+ * start of the period. Falls back to the ending balance only when no starting
+ * balance was reported, so the value is always comparable across periods.
+ */
+export function newSalesRateValue(
+  newSales: number | null,
+  activeAtStart: number | null,
+  activeMembers: number | null,
+): number | null {
+  const base = activeAtStart ?? activeMembers;
+  if (newSales == null || base == null || base <= 0) return null;
+  return newSales / base;
+}
+
+const shiftMonth = (value: string, months: number) => {
+  const [year, month, day] = value.split("-").map(Number);
+  const target = new Date(Date.UTC(year!, month! - 1 + months, 1));
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  return `${target.getUTCFullYear()}-${String(target.getUTCMonth() + 1).padStart(2, "0")}-${String(Math.min(day!, lastDay)).padStart(2, "0")}`;
+};
+const monthBounds = (value: string) => {
+  const month = value.slice(0, 7);
+  const lastDay = new Date(
+    Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0),
+  ).getUTCDate();
+  return {
+    from: `${month}-01`,
+    to: `${month}-${String(lastDay).padStart(2, "0")}`,
+  };
+};
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+export const comparisonLabel = (
+  kind: MembershipComparisonKind,
+  period: MembershipPeriod,
+  selected: MembershipPeriod,
+) => {
+  if (kind === "month") {
+    const month = Number(period.from.slice(5, 7));
+    return `vs ${MONTH_NAMES[month - 1]} ${period.from.slice(0, 4)}`;
+  }
+  if (kind === "quarter") {
+    const month = Number(period.from.slice(5, 7));
+    return `vs Q${Math.floor((month - 1) / 3) + 1} ${period.from.slice(0, 4)}`;
+  }
+  const fullYear = selected.from.slice(0, 4) !== selected.to.slice(0, 4);
+  return fullYear
+    ? `vs same period ${period.from.slice(0, 4)}`
+    : `vs ${MONTH_NAMES[Number(period.from.slice(5, 7)) - 1]} ${period.from.slice(0, 4)}`;
+};
+
+/**
+ * The three comparison windows Natasha asked for: the previous calendar month,
+ * the previous calendar quarter and the same span one year earlier.
+ */
+export function membershipComparisonPeriods(
+  period: MembershipPeriod,
+): Array<{ kind: MembershipComparisonKind; period: MembershipPeriod }> {
+  const previousMonth = monthBounds(shiftMonth(period.to, -1));
+  const endMonth = Number(period.to.slice(5, 7));
+  const quarterStartMonth = Math.floor((endMonth - 1) / 3) * 3 + 1;
+  const previousQuarterEnd = monthBounds(
+    shiftMonth(
+      `${period.to.slice(0, 4)}-${String(quarterStartMonth).padStart(2, "0")}-01`,
+      -1,
+    ),
+  );
+  const previousQuarterStart = shiftMonth(previousQuarterEnd.from, -2);
+  return [
+    { kind: "month", period: previousMonth },
+    {
+      kind: "quarter",
+      period: { from: previousQuarterStart, to: previousQuarterEnd.to },
+    },
+    {
+      kind: "year",
+      period: {
+        from: shiftMonth(period.from, -12),
+        to: shiftMonth(period.to, -12),
+      },
+    },
+  ];
+}
+
+/**
+ * Summarizes one reporting period for the comparison table. Returns null when
+ * every source for that period is unavailable, so a missing period is never
+ * rendered as zeroes.
+ */
+export function membershipPeriodSnapshot(input: {
+  period: MembershipPeriod;
+  summaryRows: Row[] | null;
+  salesRows: Row[] | null;
+  memberships: Row[] | null;
+  membershipDetails: Row[] | null;
+}): MembershipRateSnapshot | null {
+  const snapshot: MembershipRateSnapshot = {
+    activeMembers: null,
+    activeAtStart: null,
+    newSales: null,
+    renewals: null,
+    cancellations: null,
+    expired: null,
+    newSalesRate: null,
+    renewalRate: null,
+    cancellationRate: null,
+  };
+  if (input.summaryRows) {
+    const sum = (key: string) =>
+      input.summaryRows!.reduce((total, row) => total + count(row[key]), 0);
+    snapshot.activeMembers = sum("ActiveAtEnd");
+    snapshot.activeAtStart = sum("ActiveAtStart");
+    snapshot.cancellations = sum("Canceled");
+    snapshot.expired = input.summaryRows.every((row) => row.Expired != null)
+      ? sum("Expired")
+      : null;
+    snapshot.cancellationRate = snapshot.activeAtStart
+      ? snapshot.cancellations / snapshot.activeAtStart
+      : null;
+  }
+  if (input.salesRows) {
+    let newSales = 0,
+      renewals = 0,
+      known = true;
+    for (const row of input.salesRows) {
+      if (!inside(date(row.SoldOn), input.period)) continue;
+      const method = identity(row.ActivationMethod);
+      if (method === "new sale") newSales++;
+      else if (method === "renewal") renewals++;
+      else known = false;
+    }
+    if (known) {
+      snapshot.newSales = newSales;
+      snapshot.renewals = renewals;
+    }
+  }
+  if (input.memberships && input.membershipDetails) {
+    const cohort = membershipRenewalCohort(
+      input.memberships,
+      input.membershipDetails,
+      input.period,
+    );
+    if (cohort) snapshot.renewalRate = cohort.rate;
+  }
+  snapshot.newSalesRate = newSalesRateValue(
+    snapshot.newSales,
+    snapshot.activeAtStart,
+    snapshot.activeMembers,
+  );
+  if (
+    snapshot.activeMembers == null &&
+    snapshot.newSales == null &&
+    snapshot.renewalRate == null &&
+    snapshot.cancellationRate == null
+  )
+    return null;
+  return snapshot;
+}
+
 export function buildMembershipPerformance(input: {
   period: MembershipPeriod;
   now: string;
@@ -263,6 +464,14 @@ export function buildMembershipPerformance(input: {
   jobRevenueRows?: Row[] | null;
   renewalTarget?: number | null;
   cancellationLimit?: number | null;
+  comparisonRows?:
+    | Array<{
+        kind: MembershipComparisonKind;
+        period: MembershipPeriod;
+        summaryRows: Row[] | null;
+        salesRows: Row[] | null;
+      }>
+    | null;
 }): MembershipPerformance {
   const result = emptyMembershipPerformance(input.period);
   result.snapshotTime = input.now;
@@ -323,7 +532,8 @@ export function buildMembershipPerformance(input: {
     result.sources.recurringDetails = input.recurringDetails != null;
   }
   result.thresholds = {
-    renewalTarget: input.renewalTarget ?? null,
+    renewalTarget:
+      input.renewalTarget ?? membershipRenewalTarget(input.period.to).rate,
     cancellationLimit: input.cancellationLimit ?? null,
   };
   if (input.history && input.memberships && input.membershipDetails) {
@@ -479,6 +689,25 @@ export function buildMembershipPerformance(input: {
       (sum, d) => sum + d.renewals,
       0,
     );
+  }
+  result.summary.newSalesRate = newSalesRateValue(
+    result.summary.newSales,
+    result.summary.activeAtStart,
+    result.summary.activeMembers,
+  );
+  if (input.comparisonRows) {
+    result.comparison = input.comparisonRows.map((entry) => ({
+      kind: entry.kind,
+      label: comparisonLabel(entry.kind, entry.period, input.period),
+      period: entry.period,
+      snapshot: membershipPeriodSnapshot({
+        period: entry.period,
+        summaryRows: entry.summaryRows,
+        salesRows: entry.salesRows,
+        memberships: input.memberships,
+        membershipDetails: input.membershipDetails,
+      }),
+    }));
   }
   result.state = Object.values(result.sources).every(Boolean)
     ? "ready"

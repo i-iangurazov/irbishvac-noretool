@@ -3,6 +3,7 @@ import { DashboardFamily, Prisma, prisma } from "@irbis/db";
 import {
   buildCsrPerformanceDashboard,
   buildMembershipPerformance,
+  membershipComparisonPeriods,
   membershipScopeKey,
   membershipRecurringFetchPeriod,
   resolveMembershipPeriod,
@@ -238,9 +239,50 @@ export class MembershipPerformanceRunner {
       throw new Error(
         "Membership sources unavailable; retaining previous snapshot",
       );
+    // Month-over-month, quarter-over-quarter and year-over-year context. Each
+    // comparison period is optional so one slow report cannot fail the board.
+    const comparisonRows = (
+      await Promise.all(
+        membershipComparisonPeriods(period).map(
+          async ({ kind, period: comparisonPeriod }) => {
+            const comparisonRange: ReportParameter[] = [
+              { name: "From", value: comparisonPeriod.from },
+              { name: "To", value: comparisonPeriod.to },
+            ];
+            const [summary, sales] = await Promise.all([
+              optional(`comparison-${kind}-summary`, () =>
+                report(
+                  "other",
+                  config.summaryReportId,
+                  [
+                    ...comparisonRange,
+                    { name: "IncludeInactiveMembershipTypes", value: true },
+                  ],
+                  ["Name", "ActiveAtStart", "ActiveAtEnd", "Canceled", "Expired"],
+                ),
+              ),
+              optional(`comparison-${kind}-sales`, () =>
+                report("sold-by", config.salesReportId, comparisonRange, [
+                  "SoldBy",
+                  "SoldOn",
+                  "ActivationMethod",
+                ]),
+              ),
+            ]);
+            return {
+              kind,
+              period: comparisonPeriod,
+              summaryRows: summary,
+              salesRows: sales,
+            };
+          },
+        ),
+      )
+    ).filter((entry) => entry.summaryRows || entry.salesRows);
     const dashboard = buildMembershipPerformance({
       period,
       now: new Date().toISOString(),
+      comparisonRows,
       summaryRows,
       salesRows:
         employees && technicians && businessUnits && csr

@@ -45,10 +45,30 @@ describe("membership meeting metrics", () => {
       cancellations: 2,
       expired: 3,
     });
+    // No env override: the renewal target falls back to the approved
+    // conversion plan (September drives toward the 60% Q4 milestone). The
+    // cancellation limit stays unset because the document does not define one.
     expect(data.thresholds).toEqual({
-      renewalTarget: null,
+      renewalTarget: 0.6,
       cancellationLimit: null,
     });
+    expect(
+      buildMembershipPerformance({
+        period: point,
+        now: "2026-09-28T20:00:00Z",
+        summaryRows: [],
+        salesRows: [],
+        recurringRows: [],
+        memberships: [],
+        membershipDetails: [],
+        employees: [],
+        technicians: [],
+        businessUnits: [],
+        csrNames: [],
+        renewalTarget: 0.35,
+        cancellationLimit: 0.1,
+      }).thresholds,
+    ).toEqual({ renewalTarget: 0.35, cancellationLimit: 0.1 });
   });
   it("includes October fall maintenance in a September board without changing September totals", () => {
     const row = {

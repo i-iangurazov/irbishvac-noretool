@@ -1337,3 +1337,208 @@
     margin-top: 18px;
   }
 }
+
+/* Natasha's review: renewal, cancellation and new-sales rates with
+   month/quarter/year comparison, plus the approved conversion goals plan. */
+.membership-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.membership-revenue-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.membership-comparison,
+.membership-goals {
+  padding: 22px 24px 8px;
+  min-width: 0;
+}
+.membership-comparison > .membership-panel-heading,
+.membership-goals > .membership-panel-heading {
+  padding-bottom: 6px;
+}
+.membership-comparison .membership-table-wrap,
+.membership-goals__table {
+  max-height: none;
+  padding: 4px 0 14px;
+}
+.membership-comparison__current {
+  font-weight: 650;
+  color: #2c66b3;
+}
+.membership-comparison__value {
+  display: block;
+  font-weight: 600;
+  color: #3d5578;
+}
+.membership-comparison__delta {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #eef2f8;
+  color: #6b7c96;
+}
+.membership-comparison__delta--better {
+  background: #e7f4ef;
+  color: #2f7a68;
+}
+.membership-comparison__delta--worse {
+  background: #fdeee6;
+  color: #a4532e;
+}
+.membership-company-goal {
+  margin: 20px 0 8px;
+  padding: 18px 20px;
+  background: #f5f8fd;
+  border-radius: 13px;
+}
+.membership-company-goal__headline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.membership-company-goal__headline strong {
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+.membership-company-goal__headline strong + span {
+  color: #8999b0;
+  font-size: 16px;
+}
+.membership-company-goal__headline small {
+  display: block;
+  color: #72839c;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.membership-company-goal__gap {
+  text-align: right;
+}
+.membership-company-goal__gap b {
+  display: block;
+  color: #5275a6;
+  font-size: 15px;
+  font-weight: 650;
+}
+.membership-goals__requirement {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #72839c;
+}
+.membership-goals__conversion {
+  display: block;
+  font-size: 11px;
+  color: #8492a7;
+  margin-top: 3px;
+  max-width: 420px;
+}
+.membership-goals__table td:first-child {
+  text-align: left;
+}
+.membership-goals__table td b {
+  color: #2f435f;
+  font-size: 13px;
+  font-weight: 550;
+}
+.membership-goals__total td {
+  background: #f8fafd;
+  font-weight: 600;
+}
+.membership-goal-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: #eef2f8;
+  color: #6b7c96;
+}
+.membership-goal-badge--met {
+  background: #e7f4ef;
+  color: #2f7a68;
+}
+.membership-goal-badge--on-track {
+  background: #eaf1fb;
+  color: #35608f;
+}
+.membership-goal-badge--behind {
+  background: #fdeee6;
+  color: #a4532e;
+}
+.membership-goals__footer {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  border-top: 1px solid #edf1f7;
+  margin-top: 8px;
+  padding: 18px 0 22px;
+}
+.membership-goals__footer h3 {
+  font-size: 12px;
+  font-weight: 650;
+  color: #526780;
+  margin-bottom: 10px;
+}
+.membership-goals__footer ul {
+  display: grid;
+  gap: 8px;
+}
+.membership-goals__footer li {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  font-size: 12px;
+  color: #72839c;
+}
+.membership-goals__footer li b {
+  color: #2c66b3;
+  font-weight: 650;
+  min-width: 52px;
+}
+.membership-goals__footer p {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #8a99b0;
+}
+@media (max-width: 1199px) {
+  .membership-goals__footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 899px) {
+  .membership-rate-grid,
+  .membership-revenue-grid,
+  .membership-goals__footer {
+    grid-template-columns: 1fr;
+  }
+  .membership-company-goal__headline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .membership-company-goal__gap {
+    text-align: left;
+  }
+}
+@media (max-width: 599px) {
+  .membership-comparison,
+  .membership-goals {
+    padding: 18px 16px 4px;
+  }
+  .membership-company-goal {
+    padding: 14px;
+  }
+  .membership-company-goal__headline strong {
+    font-size: 24px;
+  }
+}

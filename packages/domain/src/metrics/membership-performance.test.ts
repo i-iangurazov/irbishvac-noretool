@@ -3,8 +3,11 @@ import {
   buildMembershipPerformance,
   buildMembershipRecurring,
   emptyMembershipPerformance,
+  membershipComparisonPeriods,
+  membershipPeriodSnapshot,
   membershipRenewalCohort,
   membershipScopeKey,
+  newSalesRateValue,
   resolveMembershipPeriod,
 } from "./membership-performance";
 const period = { from: "2026-09-01", to: "2026-09-30" };
@@ -230,5 +233,127 @@ describe("membership performance", () => {
     expect(membershipScopeKey(period)).not.toBe(
       membershipScopeKey({ from: "2026-01-01", to: period.to }),
     );
+  });
+  it("builds previous month, previous quarter and prior-year comparison windows", () => {
+    expect(membershipComparisonPeriods(period)).toEqual([
+      { kind: "month", period: { from: "2026-08-01", to: "2026-08-31" } },
+      { kind: "quarter", period: { from: "2026-04-01", to: "2026-06-30" } },
+      { kind: "year", period: { from: "2025-09-01", to: "2025-09-30" } },
+    ]);
+    // A YTD range compares against the previous full month, the previous full
+    // quarter and the same YTD span one year earlier.
+    expect(
+      membershipComparisonPeriods({ from: "2026-01-01", to: "2026-09-30" }),
+    ).toEqual([
+      { kind: "month", period: { from: "2026-08-01", to: "2026-08-31" } },
+      { kind: "quarter", period: { from: "2026-04-01", to: "2026-06-30" } },
+      { kind: "year", period: { from: "2025-01-01", to: "2025-09-30" } },
+    ]);
+    // Month-end clamping keeps the quarter window aligned in February.
+    expect(
+      membershipComparisonPeriods({ from: "2026-03-01", to: "2026-03-31" }),
+    ).toEqual([
+      { kind: "month", period: { from: "2026-02-01", to: "2026-02-28" } },
+      { kind: "quarter", period: { from: "2025-10-01", to: "2025-12-31" } },
+      { kind: "year", period: { from: "2025-03-01", to: "2025-03-31" } },
+    ]);
+  });
+  it("computes a new-sales rate from the period-start balance", () => {
+    expect(newSalesRateValue(20, 100, 120)).toBeCloseTo(0.2);
+    expect(newSalesRateValue(20, null, 100)).toBeCloseTo(0.2);
+    expect(newSalesRateValue(20, 0, 0)).toBeNull();
+    expect(newSalesRateValue(null, 100, 100)).toBeNull();
+  });
+  it("summarizes a comparison period without inventing missing values", () => {
+    const snapshot = membershipPeriodSnapshot({
+      period: { from: "2026-08-01", to: "2026-08-31" },
+      summaryRows: [
+        {
+          Name: "Annual",
+          ActiveAtStart: 100,
+          ActiveAtEnd: 105,
+          Canceled: 4,
+          Expired: 3,
+        },
+      ],
+      salesRows: [
+        { SoldOn: "2026-08-03", SoldBy: "A", ActivationMethod: "New Sale" },
+        { SoldOn: "2026-08-10", SoldBy: "A", ActivationMethod: "Renewal" },
+        { SoldOn: "2026-09-01", SoldBy: "A", ActivationMethod: "New Sale" },
+      ],
+      memberships: [],
+      membershipDetails: [],
+    });
+    expect(snapshot).toMatchObject({
+      activeMembers: 105,
+      activeAtStart: 100,
+      newSales: 1,
+      renewals: 1,
+      cancellations: 4,
+      expired: 3,
+      newSalesRate: 0.01,
+      cancellationRate: 0.04,
+    });
+    expect(
+      membershipPeriodSnapshot({
+        period,
+        summaryRows: null,
+        salesRows: null,
+        memberships: null,
+        membershipDetails: null,
+      }),
+    ).toBeNull();
+  });
+  it("attaches the requested comparisons to the dashboard payload", () => {
+    const data = buildMembershipPerformance({
+      ...base(),
+      comparisonRows: [
+        {
+          kind: "month",
+          period: { from: "2026-08-01", to: "2026-08-31" },
+          summaryRows: [
+            {
+              Name: "Annual",
+              ActiveAtStart: 100,
+              ActiveAtEnd: 105,
+              Canceled: 4,
+              Expired: 3,
+            },
+          ],
+          salesRows: [
+            {
+              SoldOn: "2026-08-03",
+              SoldBy: "CSR One",
+              ActivationMethod: "New Sale",
+            },
+          ],
+        },
+        {
+          kind: "quarter",
+          period: { from: "2026-04-01", to: "2026-06-30" },
+          summaryRows: null,
+          salesRows: null,
+        },
+      ],
+    });
+    expect(data.summary.newSalesRate).toBe(0);
+    expect(data.comparison.map((entry) => entry.kind)).toEqual([
+      "month",
+      "quarter",
+    ]);
+    expect(data.comparison[0]).toMatchObject({
+      label: "vs Aug 2026",
+      snapshot: { newSales: 1, cancellationRate: 0.04 },
+    });
+    expect(data.comparison[1]?.snapshot).toBeNull();
+    // The approved conversion plan sets the renewal target when env is unset:
+    // September is driving toward the 60% Q4 milestone.
+    expect(data.thresholds.renewalTarget).toBe(0.6);
+    expect(
+      buildMembershipPerformance({
+        ...base(),
+        period: { from: "2026-08-01", to: "2026-08-31" },
+      }).thresholds.renewalTarget,
+    ).toBe(0.4);
   });
 });
