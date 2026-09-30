@@ -6,6 +6,7 @@ import type {
 } from "@irbis/domain";
 import {
   MEMBERSHIP_CHANNEL_PLAN,
+  MEMBERSHIP_COLD_OUTREACH_GOAL,
   MEMBERSHIP_COMPANY_GOAL,
   MEMBERSHIP_DEPARTMENT_GOALS,
   MEMBERSHIP_DEPARTMENT_TOTAL_GOAL,
@@ -541,6 +542,13 @@ function MembershipConversionGoals({
               </li>
             ))}
           </ul>
+          <p>
+            Cold outreach: {MEMBERSHIP_COLD_OUTREACH_GOAL.cadence},{" "}
+            {MEMBERSHIP_COLD_OUTREACH_GOAL.segmentSize},{" "}
+            {MEMBERSHIP_COLD_OUTREACH_GOAL.conversion} conversion →{" "}
+            {MEMBERSHIP_COLD_OUTREACH_GOAL.monthly[0]}–
+            {MEMBERSHIP_COLD_OUTREACH_GOAL.monthly[1]} memberships.
+          </p>
         </div>
       </div>
     </section>
