@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { CsrPerformanceDashboard, CsrPerformanceRow } from "@irbis/domain";
 import { DashboardShell, DataFreshnessBadge, FilterBar } from "@irbis/ui";
 import {
@@ -40,6 +40,7 @@ const hints = {
     "Inbound jobs booked ÷ lead calls. Text leads and manually created jobs are excluded from this call conversion rate.",
   text: "Qualified text and form leads (Good or Mid) in the Call Center Master Sheet, attributed to the receiving CSR. Phone calls are excluded.",
   jobs: "Unique jobs created in the selected period, attributed to Booked By in ServiceTitan’s Job Detail By CSR report. Includes all booking channels.",
+  sold: "Jobs booked by this CSR in the selected period with at least one currently sold estimate of positive value ÷ all jobs booked by this CSR. Each job counts once. Includes sales made after the selected period, through the latest data refresh.",
   cancelled:
     "Jobs booked in the selected period whose current status is Canceled. Cancellation rate = canceled jobs ÷ all jobs booked.",
   missed:
@@ -82,6 +83,18 @@ function sourceHint(data: CsrPerformanceDashboard) {
     : data.sources.text.status === "unavailable"
       ? "Text lead data is not available for this period."
       : hints.text;
+}
+function soldHint(
+  data: CsrPerformanceDashboard,
+  soldJobs: number | null,
+  bookedJobs: number,
+) {
+  if (
+    data.sources.sales?.status !== "available" ||
+    data.sources.jobs.status !== "available"
+  )
+    return "Sold rate is unavailable until complete booking and sold-estimate data is loaded.";
+  return `${num(soldJobs)} sold / ${num(bookedJobs)} booked. ${hints.sold}`;
 }
 function Stat({
   label,
@@ -212,15 +225,11 @@ function PersonCard({
           <MetricLabel hint={hints.booking}>Booking rate</MetricLabel>
           <strong>{hasCalls ? rate(row.callBookingRate) : "—"}</strong>
         </div>
-        <div
-          className="csr-rate-ring"
-          style={
-            {
-              "--rate": `${Math.min(1, Math.max(0, row.callBookingRate)) * 100}%`,
-            } as CSSProperties
-          }
-        >
-          <Phone size={23} />
+        <div className="csr-person__sold-rate">
+          <MetricLabel hint={soldHint(data, row.soldJobs, row.totalJobsBooked)}>
+            Sold rate
+          </MetricLabel>
+          <strong>{rate(row.soldRate)}</strong>
         </div>
       </div>
       <div className="csr-person__leads">
@@ -533,7 +542,12 @@ export function CsrDashboard({
                             <th>Booked</th>
                             <th>
                               <MetricLabel hint={hints.booking}>
-                                Rate
+                                Booking rate
+                              </MetricLabel>
+                            </th>
+                            <th>
+                              <MetricLabel hint={hints.sold}>
+                                Sold rate
                               </MetricLabel>
                             </th>
                             <th>
@@ -579,6 +593,19 @@ export function CsrDashboard({
                                     : "—"}
                                 </span>
                               </td>
+                              <td>
+                                <span className="csr-sold-rate-cell">
+                                  <MetricLabel
+                                    hint={soldHint(
+                                      data,
+                                      row.soldJobs,
+                                      row.totalJobsBooked,
+                                    )}
+                                  >
+                                    {rate(row.soldRate)}
+                                  </MetricLabel>
+                                </span>
+                              </td>
                               <td>{num(row.membershipsSold)}</td>
                             </tr>
                           ))}
@@ -596,6 +623,13 @@ export function CsrDashboard({
                               )}
                             </td>
                             <td>{s.leadCalls ? rate(s.bookingRate) : "—"}</td>
+                            <td className="csr-sold-rate-cell">
+                              <MetricLabel
+                                hint={soldHint(data, s.soldJobs, s.totalJobs)}
+                              >
+                                {rate(s.soldRate)}
+                              </MetricLabel>
+                            </td>
                             <td>{num(s.membershipsSold)}</td>
                           </tr>
                         </tfoot>

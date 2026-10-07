@@ -24,6 +24,11 @@ export type CsrSupplement = {
     >;
   };
   memberships: { source: CsrSourceState; byCsr: Record<string, number> };
+  sales?: {
+    source: CsrSourceState;
+    byCsr: Record<string, number>;
+    asOf: string | null;
+  };
 };
 
 // Explicit alias verified against the September CSR report; never match on first name alone.
@@ -87,6 +92,7 @@ export function emptyCsrSupplement(from: string, to: string): CsrSupplement {
     },
     jobs: { source: source(), byCsr: {} },
     memberships: { source: source(), byCsr: {} },
+    sales: { source: source(), byCsr: {}, asOf: null },
   };
 }
 
@@ -185,6 +191,60 @@ export function buildCsrJobs(
     byCsr[name]!.byType[type] = (byCsr[name]!.byType[type] ?? 0) + 1;
   }
   return { source: { status: "available", updatedAt }, byCsr };
+}
+
+/** Count booked jobs with a sold estimate, not estimates or sales credited to the seller. */
+export function buildCsrSales(
+  jobsPayload: unknown,
+  estimatesPayload: unknown,
+  from: string,
+  asOf: string,
+  updatedAt: string,
+): NonNullable<CsrSupplement["sales"]> {
+  // Validate the same complete booking cohort used by Booked jobs.
+  buildCsrJobs(jobsPayload, updatedAt);
+  const bookings = new Map<string, string>();
+  for (const row of resolveTabularReport(jobsPayload).rows) {
+    const number = String(row.JobNumber).trim();
+    const csr = csrIdentity(row.BookedBy);
+    if (bookings.has(number) && bookings.get(number) !== csr)
+      throw new Error("Conflicting CSR attribution for a booked job");
+    bookings.set(number, csr);
+  }
+  const estimates = resolveTabularReport(estimatesPayload);
+  for (const field of [
+    "ParentJobNumber",
+    "EstimateStatus",
+    "Subtotal",
+    "SoldOn",
+  ])
+    if (!estimates.fields.some((item) => item.name === field))
+      throw new Error(`CSR sales report is missing ${field}`);
+  if ((estimatesPayload as { hasMore?: boolean })?.hasMore)
+    throw new Error("CSR sales report is incomplete");
+  const soldJobs = new Set<string>();
+  for (const row of estimates.rows) {
+    const number = String(row.ParentJobNumber ?? "").trim();
+    if (!bookings.has(number) || csrIdentity(row.EstimateStatus) !== "sold")
+      continue;
+    const soldOn = csrDateKey(row.SoldOn);
+    const subtotal = row.Subtotal;
+    if (
+      !soldOn ||
+      subtotal == null ||
+      String(subtotal).trim() === "" ||
+      !Number.isFinite(Number(subtotal))
+    )
+      throw new Error("Sold estimate date or subtotal is missing");
+    if (soldOn < from || soldOn > asOf || Number(subtotal) <= 0) continue;
+    soldJobs.add(number);
+  }
+  const byCsr: Record<string, number> = {};
+  for (const number of soldJobs) {
+    const csr = bookings.get(number)!;
+    byCsr[csr] = (byCsr[csr] ?? 0) + 1;
+  }
+  return { source: { status: "available", updatedAt }, byCsr, asOf };
 }
 
 export function buildCsrMemberships(

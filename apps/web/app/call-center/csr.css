@@ -661,7 +661,8 @@
 .csr-person__rate {
   margin-top: 22px;
   padding: 22px 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -676,25 +677,21 @@
   font-weight: 650;
   color: #2b5e9f;
 }
-.csr-rate-ring {
-  --rate: 0%;
-  width: 65px;
-  height: 65px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: conic-gradient(#568acd var(--rate), #edf2f8 0);
-  color: #6994c8;
-  position: relative;
-  isolation: isolate;
+.csr-person__sold-rate {
+  padding-left: 12px;
+  border-left: 1px solid #e5ebf3;
 }
-.csr-rate-ring:before {
-  content: "";
-  position: absolute;
-  inset: 5px;
-  background: white;
-  border-radius: 50%;
-  z-index: -1;
+.csr-person__sold-rate strong,
+.csr-sold-rate-cell {
+  color: #315b66;
+}
+.csr-sold-rate-cell .csr-metric-label {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 600;
+}
+.csr-person__rate .csr-metric-label {
+  white-space: nowrap;
 }
 .csr-person__leads {
   padding: 15px 14px 12px;
@@ -960,10 +957,6 @@
   }
   .csr-person__rate strong {
     font-size: 34px;
-  }
-  .csr-rate-ring {
-    width: 54px;
-    height: 54px;
   }
   .csr-person__leads {
     padding: 12px 10px;
@@ -1482,7 +1475,12 @@
   .csr-person__leads-title > strong {
     font-size: 20px;
   }
-  .csr-person__rate .csr-metric-label {
+  .csr-sold-rate-cell .csr-metric-label {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 600;
+}
+.csr-person__rate .csr-metric-label {
     font-size: 12px;
   }
 }

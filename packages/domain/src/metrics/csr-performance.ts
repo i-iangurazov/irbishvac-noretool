@@ -19,6 +19,8 @@ export type CsrPerformanceRow = CallCenterRow & {
   cancelledJobs: number | null;
   missedCalls: number | null;
   membershipsSold: number | null;
+  soldJobs: number | null;
+  soldRate: number | null;
 };
 
 // Removed from the CSR dashboard roster at the team's request. Source reports remain intact.
@@ -36,6 +38,8 @@ export function buildCsrPerformanceDashboard(
   const textAvailable = extras.text.source.status === "available";
   const jobsAvailable = extras.jobs.source.status === "available";
   const membershipsAvailable = extras.memberships.source.status === "available";
+  const salesAvailable =
+    jobsAvailable && extras.sales?.source.status === "available";
   const roster = core.rows.filter(
     (row) =>
       csrIdentity(row.name) !== "abandoned" &&
@@ -54,9 +58,15 @@ export function buildCsrPerformanceDashboard(
       : row.totalJobsBooked;
     const cancelledJobs = jobsAvailable ? (jobs?.cancelled ?? 0) : null;
     const textLeads = textAvailable ? (extras.text.byCsr[name] ?? 0) : null;
+    const soldJobs = salesAvailable ? (extras.sales!.byCsr[name] ?? 0) : null;
     return {
       ...row,
       totalJobsBooked,
+      soldJobs,
+      soldRate:
+        soldJobs !== null && totalJobsBooked > 0
+          ? soldJobs / totalJobsBooked
+          : null,
       cancelledJobs,
       cancellationRate:
         cancelledJobs !== null
@@ -87,6 +97,9 @@ export function buildCsrPerformanceDashboard(
   const leadCalls = sumBy(rows, (row) => row.leadsReceived);
   const inboundBooked = sumBy(rows, (row) => row.inboundCallsBooked);
   const totalJobs = sumBy(rows, (row) => row.totalJobsBooked);
+  const soldJobs = salesAvailable
+    ? sumBy(rows, (row) => row.soldJobs ?? 0)
+    : null;
   const textLeads = textAvailable
     ? sumBy(rows, (row) => row.textLeads ?? 0)
     : null;
@@ -124,6 +137,9 @@ export function buildCsrPerformanceDashboard(
       inboundBooked,
       manualBooked: sumBy(rows, (row) => row.manualCallsBooked),
       totalJobs,
+      soldJobs,
+      soldRate:
+        soldJobs !== null && totalJobs > 0 ? soldJobs / totalJobs : null,
       bookingRate: leadCalls ? inboundBooked / leadCalls : 0,
       cancelledBeforeDispatch: sumBy(
         rows,
@@ -160,7 +176,12 @@ export function buildCsrPerformanceDashboard(
       text: extras.text.source,
       jobs: extras.jobs.source,
       memberships: extras.memberships.source,
+      sales: extras.sales?.source ?? {
+        status: "unavailable" as const,
+        updatedAt: null,
+      },
     },
+    salesAsOf: extras.sales?.asOf ?? null,
     unassignedTextLeads: textAvailable
       ? sumBy(Object.entries(extras.text.byCsr), ([name, count]) =>
           !names.has(name) && !excludedCsrNames.has(name) ? count : 0,

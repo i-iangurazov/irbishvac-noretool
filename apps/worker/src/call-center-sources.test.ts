@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GoogleSheetsClient } from "@irbis/integrations";
 const mapping: Record<string,string> = {};
-vi.mock("@irbis/config", () => ({ getConfig: () => ({ campaignPerformance: { google: { spreadsheetId: "legacy", spreadsheetIdsByMonth: mapping } }, csr: { reportsFolderId: "folder" } }) }));
+vi.mock("@irbis/config", () => ({ getConfig: () => ({ app: { timezone: "America/Los_Angeles" }, serviceTitan: { reports: { campaignSoldEstimates: { category: "operations", reportId: "sold" } } }, campaignPerformance: { google: { spreadsheetId: "legacy", spreadsheetIdsByMonth: mapping } }, csr: { reportsFolderId: "folder" } }) }));
 vi.mock("@irbis/db", () => ({ DashboardFamily: { CALL_CENTER_BY_CSR: "CALL_CENTER_BY_CSR" }, Prisma: {}, prisma: {} }));
 const headers=["CSR","Lead received","Lead Contacted","Call Made","Call/Text","Opportunity","Stage","Booked By","Request","Notes","Response Time","Channel"];
 const file=(id:string,name:string,mimeType="application/vnd.google-apps.spreadsheet")=>({id,name,mimeType});
@@ -13,6 +13,14 @@ const client = () => ({
 });
 
 describe("CSR monthly sources",()=>{
+ it("reads later sales for a historical booking cohort using the business timezone", async()=>{
+  const fetchPaginatedReport = vi.fn().mockResolvedValue({payload:{fields:["ParentJobNumber","EstimateStatus","Subtotal","SoldOn"].map(name=>({name})),data:[["1","Sold",500,"2026-10-06"]]}});
+  const booking = {payload:{fields:["BookedBy","JobNumber","JobType","JobStatus"].map(name=>({name})),data:[["A","1","Estimate","Completed"]]}};
+  const {readCsrSales}=await import("./call-center-sources");
+  const result=await readCsrSales({fetchPaginatedReport} as never,Promise.resolve(booking),"2026-09-01","2026-09-30","2026-10-07T01:00:00Z");
+  expect(result.byCsr).toEqual({a:1});expect(result.asOf).toBe("2026-10-06");
+  expect(fetchPaginatedReport).toHaveBeenCalledWith(expect.objectContaining({reportId:"sold",parameters:[{name:"DateType",value:0},{name:"From",value:"2026-09-01"},{name:"To",value:"2026-10-06"}]}));
+ });
  beforeEach(()=>{for(const key of Object.keys(mapping))delete mapping[key]});
  it("discovers quarter reports, retains explicit month precedence, and ignores quarterly totals",async()=>{
   mapping["2026-09"]="explicit-september";

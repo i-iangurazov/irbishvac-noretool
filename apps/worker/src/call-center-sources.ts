@@ -3,6 +3,7 @@ import { DashboardFamily, Prisma, prisma } from "@irbis/db";
 import {
   buildCsrJobs,
   buildCsrMemberships,
+  buildCsrSales,
   buildCsrTextLeads,
   csrDateKey,
   csrMonths,
@@ -11,7 +12,7 @@ import {
   type CsrSupplement,
 } from "@irbis/domain";
 import { GoogleSheetsClient, ServiceTitanClient } from "@irbis/integrations";
-import { createLogger } from "@irbis/utils";
+import { createLogger, toBusinessDateString } from "@irbis/utils";
 
 const logger = createLogger("worker-csr-sources");
 const TTL = 10 * 60_000;
@@ -47,7 +48,11 @@ async function refresh(
       },
     },
   });
-  if (cached?.snapshotTime && Date.now() - cached.snapshotTime.getTime() < TTL)
+  if (
+    cached?.snapshotTime &&
+    (cached.payloadJson as unknown as CsrSupplement)?.sales &&
+    Date.now() - cached.snapshotTime.getTime() < TTL
+  )
     return cached.payloadJson as unknown as CsrSupplement;
   const config = getConfig();
   const sheets = new GoogleSheetsClient();
@@ -73,25 +78,26 @@ async function refresh(
           : []),
       ],
     });
+  const jobsReport = report(config.csr.jobsReportId, true);
   const reads = await Promise.allSettled([
     readCsrTextSources(sheets, from, to),
-    report(config.csr.jobsReportId, true).then((response) =>
-      buildCsrJobs(response.payload, now),
-    ),
+    jobsReport.then((response) => buildCsrJobs(response.payload, now)),
     report(config.csr.membershipsReportId).then((response) =>
       buildCsrMemberships(response.payload, from, to, now),
     ),
+    readCsrSales(st, jobsReport, from, to, now),
   ]);
-  const [text, jobs, memberships] = reads;
+  const [text, jobs, memberships, sales] = reads;
   if (text.status === "fulfilled") result.text = text.value;
   if (jobs.status === "fulfilled") result.jobs = jobs.value;
   if (memberships.status === "fulfilled")
     result.memberships = memberships.value;
+  if (sales.status === "fulfilled") result.sales = sales.value;
   reads.forEach((read, index) => {
     // Do not put report rows or customer details into logs.
     if (read.status === "rejected")
       logger.warn("CSR supplementary source unavailable", {
-        source: ["text", "jobs", "memberships"][index],
+        source: ["text", "jobs", "memberships", "sales"][index],
         from,
         to,
         errorType: read.reason instanceof Error ? read.reason.name : "Error",
@@ -119,6 +125,36 @@ async function refresh(
     update: values,
   });
   return result;
+}
+
+export async function readCsrSales(
+  client: ServiceTitanClient,
+  jobsReport: Promise<{ payload: unknown }>,
+  from: string,
+  to: string,
+  updatedAt: string,
+) {
+  const config = getConfig();
+  const source = config.serviceTitan.reports.campaignSoldEstimates;
+  const asOf = toBusinessDateString(new Date(updatedAt), config.app.timezone);
+  const [jobs, estimates] = await Promise.all([
+    jobsReport,
+    client.fetchPaginatedReport({
+      family: "callCenterByCsr",
+      category: source.category,
+      reportId: source.reportId,
+      correlationId: `csr-sales:${from}:${to}`,
+      pageSize: 5000,
+      retryRateLimits: true,
+      parameters: [
+        { name: "DateType", value: 0 },
+        { name: "From", value: from },
+        // Historical booking cohorts can close after the selected period ends.
+        { name: "To", value: to > asOf ? to : asOf },
+      ],
+    }),
+  ]);
+  return buildCsrSales(jobs.payload, estimates.payload, from, asOf, updatedAt);
 }
 
 export async function readCsrTextSources(
