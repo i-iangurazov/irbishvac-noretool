@@ -223,6 +223,26 @@ describe("DashboardService", () => {
     });
   });
 
+  it("refreshes stale historical CSR outcomes while serving cached results, but reuses a fresh supplement", async () => {
+    const { emptyCsrSupplement } = await import("@irbis/domain");
+    const extra = emptyCsrSupplement("2026-09-01", "2026-09-30");
+    findFirst.mockResolvedValue({ payloadJson: {}, fetchedAt: new Date() });
+    const enqueue = vi.fn();
+    const { DashboardService } = await import("./dashboard.service");
+    const service = new DashboardService({ ensureRefreshEnqueued: enqueue } as never);
+    const context = { from: "2026-09-01", to: "2026-09-30" };
+    findUnique.mockResolvedValue({ payloadJson: extra, snapshotTime: new Date(Date.now() - 11 * 60_000) });
+    await service.getCallCenterByCsr(context);
+    expect(enqueue).toHaveBeenCalledWith("callCenterByCsr", context);
+    enqueue.mockClear();
+    findUnique.mockResolvedValue({ payloadJson: extra, snapshotTime: new Date() });
+    await service.getCallCenterSummary(context);
+    expect(enqueue).not.toHaveBeenCalled();
+    delete extra.sales;
+    await service.getCallCenterSummary(context);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
   it("uses the latest cached read model while an MTD refresh is queued", async () => {
     findUnique
       .mockResolvedValueOnce(null)

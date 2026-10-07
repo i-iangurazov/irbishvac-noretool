@@ -60,7 +60,11 @@ export class DashboardRefreshService {
       const existing = await this.queue.getJob(jobId);
 
       if (existing) {
-        return false;
+        // CSR historical cohorts need new outcomes after the original refresh.
+        // Preserve in-flight jobs and avoid retry loops on a failing source.
+        const isCsr = family === "callCenterByCsr" || family === "callCenterSummary";
+        if (!isCsr || !["completed", "failed"].includes(await existing.getState()) || Date.now() - (existing.finishedOn ?? existing.timestamp) < 60_000) return false;
+        await existing.remove();
       }
 
       await this.queue.add(

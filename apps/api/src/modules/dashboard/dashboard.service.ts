@@ -406,7 +406,9 @@ export class DashboardService {
     const extra = await this.safeQuery("csr-supplement", null, () => prisma.dashboardReadModel.findUnique({
       where: { family_scopeKey: { family: DashboardFamily.CALL_CENTER_BY_CSR, scopeKey: `csr-sources:v1:${request.range.from}:${request.range.to}` } }
     }));
-    if (!snapshot || !extra || !(extra.payloadJson as { sales?: unknown } | null)?.sales) this.queueRefresh("callCenterByCsr", context);
+    const supplementFresh = extra?.snapshotTime && Date.now() - extra.snapshotTime.getTime() < 10 * 60_000;
+    // Past booking cohorts can gain sales later; refresh them on demand as well.
+    if (!snapshot || !supplementFresh || !(extra?.payloadJson as { sales?: unknown } | null)?.sales) this.queueRefresh("callCenterByCsr", context);
     const result = buildCsrPerformanceDashboard(snapshot?.payloadJson ?? {}, extra?.payloadJson as Parameters<typeof buildCsrPerformanceDashboard>[1]);
     return this.attachSnapshotTime(result, snapshot?.sourceSnapshotTime ?? snapshot?.fetchedAt);
   }
