@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 import type {
   MembershipComparison,
+  MembershipCustomerMetric,
+  MembershipPeriod,
   MembershipPerformance,
   MembershipRateSnapshot,
 } from "@irbis/domain";
@@ -46,6 +48,7 @@ import {
   MembershipRecurringPanel,
   MembershipActivityPanel,
 } from "./membership-services";
+import { MembershipCustomerCard } from "./membership-customers";
 import "../csr.css";
 import "./membership.css";
 
@@ -76,6 +79,9 @@ function Stat({
   hint,
   primary = false,
   detail,
+  metric,
+  period,
+  snapshotTime,
 }: {
   label: string;
   value: number | null;
@@ -83,10 +89,18 @@ function Stat({
   hint: string;
   primary?: boolean;
   detail?: string | undefined;
+  metric: MembershipCustomerMetric;
+  period: MembershipPeriod;
+  snapshotTime: string | null;
 }) {
   return (
-    <article
-      className={`membership-stat${primary ? " membership-stat--primary" : ""}`}
+    <MembershipCustomerCard
+      metric={metric}
+      label={label}
+      value={value}
+      primary={primary}
+      period={period}
+      snapshotTime={snapshotTime}
     >
       <div>
         <span>
@@ -97,7 +111,7 @@ function Stat({
       </div>
       <strong>{num(value)}</strong>
       {detail && <small>{detail}</small>}
-    </article>
+    </MembershipCustomerCard>
   );
 }
 function Health({
@@ -544,10 +558,8 @@ function MembershipConversionGoals({
           </ul>
           <p>
             Cold outreach: {MEMBERSHIP_COLD_OUTREACH_GOAL.cadence},{" "}
-            {MEMBERSHIP_COLD_OUTREACH_GOAL.segmentSize},{" "}
-            {MEMBERSHIP_COLD_OUTREACH_GOAL.conversion} conversion →{" "}
-            {MEMBERSHIP_COLD_OUTREACH_GOAL.monthly[0]}–
-            {MEMBERSHIP_COLD_OUTREACH_GOAL.monthly[1]} memberships.
+            {MEMBERSHIP_COLD_OUTREACH_GOAL.segmentSize}. Target:{" "}
+            {MEMBERSHIP_COLD_OUTREACH_GOAL.monthly[0]} memberships/month.
           </p>
         </div>
       </div>
@@ -659,12 +671,18 @@ export function MembershipDashboard({
                 primary
                 detail={`As of ${filters.toLabel}`}
                 label="Active members"
+                metric="activeMembers"
+                period={data.period}
+                snapshotTime={data.snapshotTime}
                 value={s.activeMembers}
                 icon={<Users size={23} />}
                 hint="Active memberships at the end of the selected period, including memberships on inactive plan types. Counts memberships, not unique customers."
               />
               <Stat
                 label="New sales"
+                metric="newSales"
+                period={data.period}
+                snapshotTime={data.snapshotTime}
                 detail={
                   data.salesByMarket
                     ? `${num(data.salesByMarket.residential)} residential · ${num(data.salesByMarket.commercial)} commercial${data.salesByMarket.other ? ` · ${num(data.salesByMarket.other)} other` : ""}`
@@ -676,18 +694,27 @@ export function MembershipDashboard({
               />
               <Stat
                 label="Renewals"
+                metric="renewals"
+                period={data.period}
+                snapshotTime={data.snapshotTime}
                 value={s.renewals}
                 icon={<RefreshCw size={23} />}
                 hint="Renewal memberships sold in the selected period, based on Sold On. Deleted records are excluded. Early renewals may belong to a different expiration cohort."
               />
               <Stat
                 label="Cancellations"
+                metric="cancellations"
+                period={data.period}
+                snapshotTime={data.snapshotTime}
                 value={s.cancellations}
                 icon={<XCircle size={23} />}
                 hint="Memberships whose last status change in the selected period was Canceled, as reported by ServiceTitan Membership Summary."
               />
               <Stat
                 label="Expired"
+                metric="expired"
+                period={data.period}
+                snapshotTime={data.snapshotTime}
                 value={s.expired}
                 icon={<CalendarClock size={23} />}
                 hint="Memberships whose last status change during the selected dates was Expired in ServiceTitan Membership Summary. Separate from early cancellations; renewals are tracked independently."

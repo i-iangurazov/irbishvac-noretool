@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  ConflictException,
+  Header,
   Body,
   Headers,
   UnauthorizedException,
@@ -15,6 +17,11 @@ import {
 import { DashboardFamily, prisma } from "@irbis/db";
 import {
   emptyMembershipPerformance,
+  MEMBERSHIP_CUSTOMER_METRICS,
+  membershipCustomerScopeKey,
+  type MembershipCustomerMetric,
+  type MembershipCustomerPage,
+  type MembershipCustomerSnapshot,
   membershipScopeKey,
   resolveMembershipPeriod,
   type MembershipPerformance,
@@ -74,6 +81,89 @@ export class MembershipDashboardController {
       (record?.payloadJson as unknown as MembershipPerformance) ??
       emptyMembershipPerformance(period)
     );
+  }
+
+  @Get("customers/:metric")
+  @Header("Cache-Control", "private, no-store")
+  async customers(
+    @Param("metric") metric: string,
+    @Query()
+    query: Query & { snapshotTime?: string; page?: string; q?: string },
+  ): Promise<MembershipCustomerPage> {
+    const period = membershipQueryPeriod(query);
+    if (
+      !MEMBERSHIP_CUSTOMER_METRICS.includes(metric as MembershipCustomerMetric)
+    )
+      throw new BadRequestException("Invalid membership metric");
+    if (
+      typeof query.snapshotTime !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}T/.test(query.snapshotTime) ||
+      !Number.isFinite(Date.parse(query.snapshotTime))
+    )
+      throw new BadRequestException("A dashboard snapshot is required");
+    if (
+      query.page !== undefined &&
+      (typeof query.page !== "string" || !/^[1-9]\d{0,5}$/.test(query.page))
+    )
+      throw new BadRequestException("Invalid page");
+    if (
+      query.q !== undefined &&
+      (typeof query.q !== "string" || query.q.length > 100)
+    )
+      throw new BadRequestException("Search must be 100 characters or fewer");
+    const page = Number(query.page ?? 1),
+      pageSize = 25;
+    const record = await prisma.dashboardReadModel.findUnique({
+      where: {
+        family_scopeKey: {
+          family: DashboardFamily.CALL_CENTER_SOURCE,
+          scopeKey: membershipCustomerScopeKey(period),
+        },
+      },
+    });
+    const snapshot = record?.payloadJson as unknown as
+      | MembershipCustomerSnapshot
+      | undefined;
+    if (!snapshot) {
+      await this.refresh
+        .enqueueMembershipRefresh(period)
+        .catch(() =>
+          this.logger.warn("Could not enqueue membership customer refresh"),
+        );
+      return {
+        state: "pending",
+        count: null,
+        total: 0,
+        page,
+        pageSize,
+        rows: [],
+      };
+    }
+    if (snapshot.snapshotTime !== query.snapshotTime)
+      throw new ConflictException(
+        "The dashboard has updated. Refresh to view these customers.",
+      );
+    const cohort = snapshot.cohorts[metric as MembershipCustomerMetric];
+    const search = (query.q ?? "").trim().toLocaleLowerCase("en-US");
+    const rows = cohort.rows.filter(
+      (row) =>
+        !search ||
+        [
+          row.customerName,
+          row.customerId,
+          row.membershipId,
+          row.membershipType,
+          row.soldBy,
+        ].some((value) => value?.toLocaleLowerCase("en-US").includes(search)),
+    );
+    return {
+      state: cohort.state,
+      count: cohort.count,
+      total: rows.length,
+      page,
+      pageSize,
+      rows: rows.slice((page - 1) * pageSize, page * pageSize),
+    };
   }
 
   private async requireServiceEvent(eventId: string, query: Query) {

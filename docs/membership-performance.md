@@ -13,6 +13,14 @@ Authenticated board: `/memberships`, listed independently under Call Center. The
 - **Activity:** read-only membership status-change export, filtered to the reporting dates in America/Los_Angeles and joined by membership ID. All changes are shown, so event counts can differ from the summary's final-status counts. Source notes are preserved. Removed records may be corrections; deletion alone does not prove an estimate withdrawal. The available data cannot reliably reconstruct removed estimate items or supply a cancellation reason that was never recorded.
 - **Residential / commercial:** the customer's explicit CRM Type, joined from membership ID to customer ID. Plan names are not used to guess classification. CRM lookups are limited to 50 IDs and returned identities are validated. Missing classification is unavailable, not a zero.
 
+## Customer lists from KPI cards
+
+Active members, New sales, Renewals, Cancellations and Expired open a searchable, paginated customer dialog for the selected period. Each row represents a membership or sale event, not a distinct customer. The view includes customer and membership IDs, name, plan, term dates, and seller for sales/renewals. It does not expose contacts, payment details or source memos.
+
+The worker writes the aggregate and `membership-customers:v1:{from}:{to}` detail snapshot in one database transaction. `GET /dashboard/call-center/memberships/customers/:metric` uses the existing dashboard guard, serves 25 rows per page, searches the entire cohort, and requires the displayed snapshot timestamp. A newer snapshot returns 409 and prompts a dashboard refresh; missing details queue an exact-period refresh. Lists remain separate from the initial dashboard payload and from the Campaigns integration API.
+
+Sales lists use the same reconciled detailed sale rows as the dashboard. Historical active lists replay membership status changes through the selected end date and exclude future-start or ended terms. Cancellation/expiry lists take the final departure from the active balance within the period; a cancellation of an already-suspended plan is not another departure. Event timestamps use America/Los_Angeles; membership terms remain date-only. Every lifecycle list must match both the headline count and the summary's membership-type breakdown. Incomplete sources, missing names/IDs, or reconciliation failures show unavailable rather than a misleading partial list. July, August, September, October MTD and September 14, 2026 were reconciled against live ServiceTitan totals during implementation.
+
 ## Revenue
 
 **Membership sales value** sums MembershipPrice for the same new-sale and renewal cohort. It includes free/discounted sales and is explicitly not labelled cash collected or recognized revenue. New and renewal values are shown separately, with cent-accurate API amounts.
@@ -24,6 +32,8 @@ Authenticated board: `/memberships`, listed independently under Call Center. The
 CSR, HVAC Service, HVAC Maintenance and Plumbing Service are separate. Attribution uses SoldBy and current employee/technician business unit, including inactive identities for historical sales. Installation, advisors and unmapped sellers remain visible in Other / unassigned.
 
 The IRBIS Membership Conversion Goals plan (July–December 2026) was received from Natasha on September 30 and is now the source for the conversion-goal panel. It contributes: the 1,000-member company target by 2026-12-31 with the required net gain per month; the per-channel monthly ranges (CSR 30–40, HVAC Service 40–48, HVAC Maintenance 20–24, Plumbing Service 50–60, install/sales/commercial 45–60, total 200–252); the field tiers (minimum 6–8, target 10–12, stretch 14–18 per tech/month); the renewal milestones (40% by Aug 31, 60% by Q4); and the cold-outreach plan. Department ranges are planning goals, not observed performance.
+
+Natasha's October amendment sets **10/month** for each of the three Channel plan rows: CSR inbound, CSR outbound and Cold outreach. The cold-outreach explanatory target also uses 10/month. Other department ranges and company targets remain those of the original plan.
 
 The board preserves the approved **10 new sales/month** per current active CSR and HVAC/Plumbing service representative, including HVAC Maintenance. Renewals remain separate from target attainment. Partial months retain full monthly targets; historical periods use the current roster. Leaderboards can rank total, new sales or renewals. Filtering a department also recalculates its goal, attainment and remaining count.
 

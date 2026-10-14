@@ -183,3 +183,95 @@ describe("membership service notes", () => {
     );
   });
 });
+
+describe("membership customer drilldowns", () => {
+  const snapshotTime = "2026-10-14T12:00:00.000Z";
+  const query = { ...period, snapshotTime };
+  const snapshot = () => ({
+    payloadJson: {
+      version: 1,
+      period,
+      snapshotTime,
+      cohorts: {
+        activeMembers: {
+          state: "ready",
+          count: 30,
+          rows: Array.from({ length: 30 }, (_, i) => ({
+            key: String(i),
+            membershipId: String(i),
+            customerId: String(i + 100),
+            customerName: `Customer ${i}`,
+            membershipType: "Annual",
+            soldBy: null,
+          })),
+        },
+      },
+    },
+  });
+  it("serves a bounded page scoped to the selected period and searches the complete cohort", async () => {
+    findUnique.mockResolvedValue(snapshot());
+    const first = await controller().customers("activeMembers", query);
+    expect(first).toMatchObject({
+      state: "ready",
+      count: 30,
+      total: 30,
+      page: 1,
+      pageSize: 25,
+    });
+    expect(first.rows).toHaveLength(25);
+    expect(
+      (await controller().customers("activeMembers", { ...query, page: "2" }))
+        .rows,
+    ).toHaveLength(5);
+    expect(
+      (
+        await controller().customers("activeMembers", {
+          ...query,
+          q: "Customer 29",
+        })
+      ).rows[0]!.membershipId,
+    ).toBe("29");
+    expect(findUnique).toHaveBeenCalledWith({
+      where: {
+        family_scopeKey: {
+          family: "CALL_CENTER_SOURCE",
+          scopeKey: `membership-customers:v1:${period.from}:${period.to}`,
+        },
+      },
+    });
+  });
+  it("rejects mismatched snapshots rather than showing a different list under an old KPI", async () => {
+    findUnique.mockResolvedValue(snapshot());
+    await expect(
+      controller().customers("activeMembers", {
+        ...query,
+        snapshotTime: "2026-10-13T12:00:00.000Z",
+      }),
+    ).rejects.toThrow("dashboard has updated");
+  });
+  it("validates all inputs before reading customer data", async () => {
+    await expect(controller().customers("unknown", query)).rejects.toThrow(
+      "Invalid membership metric",
+    );
+    for (const extra of [
+      { page: "0" },
+      { page: "1.1" },
+      { page: "1000000" },
+      { q: "x".repeat(101) },
+      { snapshotTime: "invalid" },
+    ])
+      await expect(
+        controller().customers("activeMembers", { ...query, ...extra }),
+      ).rejects.toThrow();
+    expect(findUnique).not.toHaveBeenCalled();
+  });
+  it("queues a missing detail snapshot and returns no customer records", async () => {
+    findUnique.mockResolvedValue(null);
+    expect(await controller().customers("activeMembers", query)).toMatchObject({
+      state: "pending",
+      rows: [],
+      count: null,
+    });
+    expect(enqueueMembershipRefresh).toHaveBeenCalledWith(period);
+  });
+});

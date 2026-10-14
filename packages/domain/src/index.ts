@@ -18,3 +18,5 @@ export * from "./metrics/membership-performance";
 export * from "./metrics/membership-goals";
 
 export * from "./metrics/membership-insights";
+
+export * from "./metrics/membership-customers";

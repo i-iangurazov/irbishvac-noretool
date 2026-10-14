@@ -5,7 +5,7 @@ import type { MembershipDepartment } from "./membership-performance";
  * (July–December 2026) document shared by membership leadership.
  *
  * These are planning inputs, not observed facts: they define the targets the
- * dashboards measure against. Every number below is copied from that document
+ * dashboards measure against. Targets below follow that document and explicit subsequent amendments
  * so the goal math is reviewable against the source.
  */
 
@@ -159,7 +159,7 @@ export type MembershipChannelPlan = {
   proposed: string;
 };
 
-/** Section: Channel overview table. */
+/** Channel overview; CSR inbound, outbound and cold outreach amended to 10/month by Natasha (October 2026). */
 export const MEMBERSHIP_CHANNEL_PLAN: MembershipChannelPlan[] = [
   {
     channel: "Departments / techs (all field)",
@@ -169,17 +169,17 @@ export const MEMBERSHIP_CHANNEL_PLAN: MembershipChannelPlan[] = [
   {
     channel: "CSRs — inbound (calls/text/email)",
     current: "0–2%",
-    proposed: "~15–20 / mo",
+    proposed: "10/month",
   },
   {
     channel: "CSRs — outbound (renewals + list)",
     current: "None",
-    proposed: "~15–20 sales + renewal saves",
+    proposed: "10/month",
   },
   {
     channel: "Cold outreach campaigns",
     current: "One-off (0.8%)",
-    proposed: "~15–20 / mo",
+    proposed: "10/month",
   },
   {
     channel: "Renewal rate",
@@ -193,7 +193,7 @@ export const MEMBERSHIP_COLD_OUTREACH_GOAL = {
   cadence: "1 campaign per month, every month",
   segmentSize: "~2,500 customers per campaign, rotating through the 10,000 list",
   conversion: "0.6–0.8% of contacted segment",
-  monthly: [15, 20] as [number, number],
+  monthly: [10, 10] as [number, number],
 };
 
 /**

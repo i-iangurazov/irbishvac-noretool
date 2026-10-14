@@ -3,6 +3,9 @@ import { DashboardFamily, Prisma, prisma } from "@irbis/db";
 import {
   buildCsrPerformanceDashboard,
   buildMembershipPerformance,
+  buildMembershipCustomers,
+  membershipCustomerScopeKey,
+  type MembershipCustomerSnapshot,
   membershipComparisonPeriods,
   membershipScopeKey,
   membershipRecurringFetchPeriod,
@@ -258,7 +261,13 @@ export class MembershipPerformanceRunner {
                     ...comparisonRange,
                     { name: "IncludeInactiveMembershipTypes", value: true },
                   ],
-                  ["Name", "ActiveAtStart", "ActiveAtEnd", "Canceled", "Expired"],
+                  [
+                    "Name",
+                    "ActiveAtStart",
+                    "ActiveAtEnd",
+                    "Canceled",
+                    "Expired",
+                  ],
                 ),
               ),
               optional(`comparison-${kind}-sales`, () =>
@@ -305,7 +314,15 @@ export class MembershipPerformanceRunner {
       monthlyGoal: config.monthlyGoal,
       goalScope: config.goalScope,
     });
-    await this.save(period, dashboard);
+    const customers = buildMembershipCustomers({
+      dashboard,
+      summaryRows,
+      salesRows: matching ? salesRows : null,
+      membershipRecords: memberships,
+      membershipDetails,
+      statusHistory: history,
+    });
+    await this.save(period, dashboard, customers);
     logger.info("Membership dashboard refreshed", {
       ...period,
       state: dashboard.state,
@@ -321,6 +338,7 @@ export class MembershipPerformanceRunner {
   private async save(
     period: MembershipPeriod,
     dashboard: ReturnType<typeof buildMembershipPerformance>,
+    customers: MembershipCustomerSnapshot,
   ) {
     const values = {
       businessDateFrom: new Date(`${period.from}T00:00:00Z`),
@@ -328,20 +346,41 @@ export class MembershipPerformanceRunner {
       payloadJson: dashboard as unknown as Prisma.InputJsonValue,
       snapshotTime: new Date(dashboard.snapshotTime!),
     };
-    await prisma.dashboardReadModel.upsert({
-      where: {
-        family_scopeKey: {
+    await prisma.$transaction([
+      prisma.dashboardReadModel.upsert({
+        where: {
+          family_scopeKey: {
+            family: DashboardFamily.CALL_CENTER_SOURCE,
+            scopeKey: membershipScopeKey(period),
+          },
+        },
+        create: {
           family: DashboardFamily.CALL_CENTER_SOURCE,
           scopeKey: membershipScopeKey(period),
+          sourceSnapshotIds: [],
+          ...values,
         },
-      },
-      create: {
-        family: DashboardFamily.CALL_CENTER_SOURCE,
-        scopeKey: membershipScopeKey(period),
-        sourceSnapshotIds: [],
-        ...values,
-      },
-      update: values,
-    });
+        update: values,
+      }),
+      prisma.dashboardReadModel.upsert({
+        where: {
+          family_scopeKey: {
+            family: DashboardFamily.CALL_CENTER_SOURCE,
+            scopeKey: membershipCustomerScopeKey(period),
+          },
+        },
+        create: {
+          family: DashboardFamily.CALL_CENTER_SOURCE,
+          scopeKey: membershipCustomerScopeKey(period),
+          sourceSnapshotIds: [],
+          ...values,
+          payloadJson: customers as unknown as Prisma.InputJsonValue,
+        },
+        update: {
+          ...values,
+          payloadJson: customers as unknown as Prisma.InputJsonValue,
+        },
+      }),
+    ]);
   }
 }
