@@ -82,7 +82,7 @@ describe("CSR missed calls", () => {
       ),
     ).toThrow();
   });
-  it("exposes numbers on cards, requires full team mapping, and never falls back to ST Abandoned", () => {
+  it("exposes numbers on cards, discloses partial team mapping, and never falls back to ST Abandoned", () => {
     const extra = emptyCsrSupplement("2026-10-10", "2026-10-10");
     const payload = {
       fields: ["Name", "CompanyRole", "CallsTaken"].map((name) => ({ name })),
@@ -102,6 +102,7 @@ describe("CSR missed calls", () => {
     payload.data.push(["Unmapped Person", "CSR", 3]);
     const incomplete = buildCsrPerformanceDashboard(payload, extra);
     expect(incomplete.rows.at(-1)?.missedCalls).toBeNull();
-    expect(incomplete.summary.missedCalls).toBeNull();
+    expect(incomplete.summary.missedCalls).toBe(1);
+    expect(incomplete.missedCoverage).toEqual({ mapped: 2, total: 3 });
   });
 });

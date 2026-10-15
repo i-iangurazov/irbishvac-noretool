@@ -44,7 +44,7 @@ const hints = {
   cancelled:
     "Jobs booked in the selected period whose current status is Canceled. Cancellation rate = canceled jobs ÷ all jobs booked.",
   missed:
-    "External inbound call attempts marked Missed by Dialpad for this CSR. Internal calls, spam, and shared-line records are excluded. A callback or later answer by another operator does not erase a miss. This is Dialpad’s recorded outcome, not a determination of the CSR’s availability.",
+    "External inbound call attempts marked Missed by Dialpad and attributed to a CSR. Internal calls, spam, and shared-line records are excluded. A callback or later answer by another operator does not erase a miss. This is Dialpad’s recorded outcome, not a determination of the CSR’s availability.",
   memberships:
     "Memberships sold in the selected period, attributed to Sold By in ServiceTitan’s Membership Sales Detail report.",
 };
@@ -694,13 +694,18 @@ export function CsrDashboard({
                     </span>
                     <div>
                       <MetricLabel
-                        hint={`${missedHint(data, s.missedCalls)} Team total sums CSR attempts; the same caller may ring more than one CSR.`}
+                        hint={`${missedHint(data, s.missedCalls)} Includes ${data.missedCoverage?.mapped ?? 0} of ${data.missedCoverage?.total ?? data.rows.length} CSRs with matched Dialpad accounts. The total sums CSR attempts; the same caller may ring more than one CSR.`}
                       >
                         Missed calls
                       </MetricLabel>
                       <strong>{num(s.missedCalls)}</strong>
                     </div>
-                    <span className="csr-outcomes__note">Dialpad</span>
+                    <span className="csr-outcomes__note">
+                      {data.missedCoverage &&
+                      data.missedCoverage.mapped < data.missedCoverage.total
+                        ? `${data.missedCoverage.mapped}/${data.missedCoverage.total} CSRs`
+                        : "Dialpad"}
+                    </span>
                   </div>
                   <div>
                     <span className="csr-outcomes__icon">

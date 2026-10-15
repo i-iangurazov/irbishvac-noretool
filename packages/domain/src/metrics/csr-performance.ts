@@ -103,6 +103,10 @@ export function buildCsrPerformanceDashboard(
   const cancelledJobs = jobsAvailable
     ? sumBy(rows, (row) => row.cancelledJobs ?? 0)
     : null;
+  const missedCoverage = {
+    mapped: rows.filter((row) => row.missedCalls !== null).length,
+    total: rows.length,
+  };
   const types: Record<string, number> = {};
   if (jobsAvailable)
     for (const name of names)
@@ -150,9 +154,7 @@ export function buildCsrPerformanceDashboard(
         ? sumBy(rows, (row) => row.membershipsSold ?? 0)
         : null,
       missedCalls:
-        missedAvailable &&
-        rows.length > 0 &&
-        rows.every((row) => row.missedCalls !== null)
+        missedAvailable && missedCoverage.mapped > 0
           ? sumBy(rows, (row) => row.missedCalls ?? 0)
           : null,
     },
@@ -181,6 +183,7 @@ export function buildCsrPerformanceDashboard(
       },
     },
     salesAsOf: extras.sales?.asOf ?? null,
+    missedCoverage,
     unassignedTextLeads: textAvailable
       ? sumBy(Object.entries(extras.text.byCsr), ([name, count]) =>
           !names.has(name) && !excludedCsrNames.has(name) ? count : 0,
