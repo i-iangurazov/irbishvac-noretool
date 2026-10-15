@@ -5,3 +5,4 @@ export * from "./retool-db/client";
 export * from "./google/sheets";
 
 export * from "./rippling/client";
+export * from "./dialpad/client";

@@ -3,6 +3,7 @@ import { DashboardFamily, Prisma, prisma } from "@irbis/db";
 import {
   buildCsrJobs,
   buildCsrMemberships,
+  buildCsrMissedCalls,
   buildCsrSales,
   buildCsrTextLeads,
   csrDateKey,
@@ -11,7 +12,11 @@ import {
   emptyCsrSupplement,
   type CsrSupplement,
 } from "@irbis/domain";
-import { GoogleSheetsClient, ServiceTitanClient } from "@irbis/integrations";
+import {
+  DialpadClient,
+  GoogleSheetsClient,
+  ServiceTitanClient,
+} from "@irbis/integrations";
 import { createLogger, toBusinessDateString } from "@irbis/utils";
 
 const logger = createLogger("worker-csr-sources");
@@ -51,6 +56,7 @@ async function refresh(
   if (
     cached?.snapshotTime &&
     (cached.payloadJson as unknown as CsrSupplement)?.sales &&
+    (cached.payloadJson as unknown as CsrSupplement)?.missed &&
     Date.now() - cached.snapshotTime.getTime() < TTL
   )
     return cached.payloadJson as unknown as CsrSupplement;
@@ -86,18 +92,20 @@ async function refresh(
       buildCsrMemberships(response.payload, from, to, now),
     ),
     readCsrSales(st, jobsReport, from, to, now),
+    readCsrMissedCalls(new DialpadClient(), from, to, now),
   ]);
-  const [text, jobs, memberships, sales] = reads;
+  const [text, jobs, memberships, sales, missed] = reads;
   if (text.status === "fulfilled") result.text = text.value;
   if (jobs.status === "fulfilled") result.jobs = jobs.value;
   if (memberships.status === "fulfilled")
     result.memberships = memberships.value;
   if (sales.status === "fulfilled") result.sales = sales.value;
+  if (missed.status === "fulfilled") result.missed = missed.value;
   reads.forEach((read, index) => {
     // Do not put report rows or customer details into logs.
     if (read.status === "rejected")
       logger.warn("CSR supplementary source unavailable", {
-        source: ["text", "jobs", "memberships", "sales"][index],
+        source: ["text", "jobs", "memberships", "sales", "dialpad"][index],
         from,
         to,
         errorType: read.reason instanceof Error ? read.reason.name : "Error",
@@ -125,6 +133,31 @@ async function refresh(
     update: values,
   });
   return result;
+}
+
+export async function readCsrMissedCalls(
+  client: DialpadClient,
+  from: string,
+  to: string,
+  updatedAt: string,
+) {
+  if (!client.isConfigured()) return emptyCsrSupplement(from, to).missed!;
+  const [users, records] = await Promise.all([
+    client.listUsers(),
+    client.readCallLogs(
+      from,
+      to,
+      new Date(updatedAt),
+      getConfig().app.timezone,
+    ),
+  ]);
+  return buildCsrMissedCalls(
+    records,
+    users,
+    from,
+    to,
+    new Date().toISOString(),
+  );
 }
 
 export async function readCsrSales(

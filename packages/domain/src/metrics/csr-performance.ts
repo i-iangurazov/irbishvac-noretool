@@ -5,13 +5,7 @@ import {
   sumCsrValues,
   type CsrSupplement,
 } from "./csr-sources";
-import {
-  pickFirst,
-  resolveTabularReport,
-  sumBy,
-  toNumber,
-  weightedAverage,
-} from "../shared/report";
+import { sumBy, weightedAverage } from "../shared/report";
 
 export type CsrPerformanceRow = CallCenterRow & {
   textLeads: number | null;
@@ -40,6 +34,7 @@ export function buildCsrPerformanceDashboard(
   const membershipsAvailable = extras.memberships.source.status === "available";
   const salesAvailable =
     jobsAvailable && extras.sales?.source.status === "available";
+  const missedAvailable = extras.missed?.source.status === "available";
   const roster = core.rows.filter(
     (row) =>
       csrIdentity(row.name) !== "abandoned" &&
@@ -79,7 +74,9 @@ export function buildCsrPerformanceDashboard(
         : 0,
       textLeads,
       totalLeads: textLeads === null ? null : row.leadsReceived + textLeads,
-      missedCalls: null,
+      missedCalls: missedAvailable
+        ? (extras.missed!.byCsr[name] ?? null)
+        : null,
       membershipsSold: membershipsAvailable
         ? (extras.memberships.byCsr[name] ?? 0)
         : null,
@@ -105,13 +102,6 @@ export function buildCsrPerformanceDashboard(
     : null;
   const cancelledJobs = jobsAvailable
     ? sumBy(rows, (row) => row.cancelledJobs ?? 0)
-    : null;
-  const missed = resolveTabularReport(payload).rows.find(
-    (row) =>
-      csrIdentity(pickFirst(row, ["Name", "CSR", "Employee"])) === "abandoned",
-  );
-  const missedValue = missed
-    ? pickFirst(missed, ["CallsTaken", "TotalCalls", "InboundCalls"])
     : null;
   const types: Record<string, number> = {};
   if (jobsAvailable)
@@ -159,7 +149,12 @@ export function buildCsrPerformanceDashboard(
       membershipsSold: membershipsAvailable
         ? sumBy(rows, (row) => row.membershipsSold ?? 0)
         : null,
-      missedCalls: missedValue === null ? null : toNumber(missedValue),
+      missedCalls:
+        missedAvailable &&
+        rows.length > 0 &&
+        rows.every((row) => row.missedCalls !== null)
+          ? sumBy(rows, (row) => row.missedCalls ?? 0)
+          : null,
     },
     textSources: textAvailable
       ? sortedCounts(
@@ -177,6 +172,10 @@ export function buildCsrPerformanceDashboard(
       jobs: extras.jobs.source,
       memberships: extras.memberships.source,
       sales: extras.sales?.source ?? {
+        status: "unavailable" as const,
+        updatedAt: null,
+      },
+      missed: extras.missed?.source ?? {
         status: "unavailable" as const,
         updatedAt: null,
       },

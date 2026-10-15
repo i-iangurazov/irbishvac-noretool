@@ -174,7 +174,7 @@ describe("CSR performance", () => {
       cancelledJobs: 1,
       cancellationRate: 0.5,
       membershipsSold: 1,
-      missedCalls: 9,
+      missedCalls: null,
     });
     expect(result.rows[0]?.missedCalls).toBeNull();
     expect(result.textSources).toEqual([{ name: "Yelp", count: 1 }]);

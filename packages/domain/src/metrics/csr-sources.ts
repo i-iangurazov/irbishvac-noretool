@@ -29,6 +29,7 @@ export type CsrSupplement = {
     byCsr: Record<string, number>;
     asOf: string | null;
   };
+  missed?: { source: CsrSourceState; byCsr: Record<string, number> };
 };
 
 // Explicit alias verified against the September CSR report; never match on first name alone.
@@ -93,6 +94,7 @@ export function emptyCsrSupplement(from: string, to: string): CsrSupplement {
     jobs: { source: source(), byCsr: {} },
     memberships: { source: source(), byCsr: {} },
     sales: { source: source(), byCsr: {}, asOf: null },
+    missed: { source: source(), byCsr: {} },
   };
 }
 

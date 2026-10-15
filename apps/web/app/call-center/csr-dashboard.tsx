@@ -44,7 +44,7 @@ const hints = {
   cancelled:
     "Jobs booked in the selected period whose current status is Canceled. Cancellation rate = canceled jobs ÷ all jobs booked.",
   missed:
-    "ServiceTitan reports these calls as Abandoned without an assigned employee. A per-CSR count is not available from this source.",
+    "External inbound call attempts marked Missed by Dialpad for this CSR. Internal calls, spam, and shared-line records are excluded. A callback or later answer by another operator does not erase a miss. This is Dialpad’s recorded outcome, not a determination of the CSR’s availability.",
   memberships:
     "Memberships sold in the selected period, attributed to Sold By in ServiceTitan’s Membership Sales Detail report.",
 };
@@ -95,6 +95,14 @@ function soldHint(
   )
     return "Sold rate is unavailable until complete booking and sold-estimate data is loaded.";
   return `${num(soldJobs)} sold / ${num(bookedJobs)} booked. ${hints.sold}`;
+}
+function missedHint(data: CsrPerformanceDashboard, value: number | null) {
+  if (data.sources.missed?.status !== "available")
+    return "Dialpad missed-call data is not available for this period.";
+  if (value === null)
+    return "A matching Dialpad user is required for every included CSR.";
+  const updated = data.sources.missed.updatedAt;
+  return `${hints.missed}${updated ? ` Retrieved ${new Date(updated).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })}.` : ""} Dialpad analytics may lag recent calls.`;
 }
 function Stat({
   label,
@@ -269,9 +277,15 @@ function PersonCard({
         <div>
           <dt>
             <PhoneMissed size={16} />
-            <MetricLabel hint={hints.missed}>Missed calls</MetricLabel>
+            <MetricLabel hint={missedHint(data, row.missedCalls)}>
+              Missed calls
+            </MetricLabel>
           </dt>
-          <dd className="csr-unavailable">{num(row.missedCalls)}</dd>
+          <dd
+            className={row.missedCalls === null ? "csr-unavailable" : undefined}
+          >
+            {num(row.missedCalls)}
+          </dd>
         </div>
         <div>
           <dt>
@@ -679,12 +693,14 @@ export function CsrDashboard({
                       <PhoneMissed size={20} />
                     </span>
                     <div>
-                      <MetricLabel hint={hints.missed}>
+                      <MetricLabel
+                        hint={`${missedHint(data, s.missedCalls)} Team total sums CSR attempts; the same caller may ring more than one CSR.`}
+                      >
                         Missed calls
                       </MetricLabel>
                       <strong>{num(s.missedCalls)}</strong>
                     </div>
-                    <span className="csr-outcomes__note">Unassigned</span>
+                    <span className="csr-outcomes__note">Dialpad</span>
                   </div>
                   <div>
                     <span className="csr-outcomes__icon">

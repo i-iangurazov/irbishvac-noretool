@@ -13,6 +13,16 @@ const client = () => ({
 });
 
 describe("CSR monthly sources",()=>{
+ it("reads Dialpad for the exact period, keeps an unconfigured source unavailable, and propagates incomplete reads", async()=>{
+  const {readCsrMissedCalls}=await import("./call-center-sources");
+  const dialpad={isConfigured:()=>true,listUsers:vi.fn().mockResolvedValue([{id:"1",name:"Dana Pirmatova"}]),readCallLogs:vi.fn().mockResolvedValue([])};
+  const result=await readCsrMissedCalls(dialpad as never,"2026-10-10","2026-10-10","2026-10-15T08:00:00Z");
+  expect(result.byCsr).toEqual({"dana pirmatova":0});
+  expect(dialpad.readCallLogs).toHaveBeenCalledWith("2026-10-10","2026-10-10",new Date("2026-10-15T08:00:00Z"),"America/Los_Angeles");
+  dialpad.readCallLogs.mockRejectedValue(new Error("Incomplete export"));
+  await expect(readCsrMissedCalls(dialpad as never,"2026-10-10","2026-10-10","2026-10-15T08:00:00Z")).rejects.toThrow("Incomplete export");
+  expect((await readCsrMissedCalls({isConfigured:()=>false} as never,"2026-10-10","2026-10-10","2026-10-15T08:00:00Z")).source.status).toBe("unavailable");
+ });
  it("reads later sales for a historical booking cohort using the business timezone", async()=>{
   const fetchPaginatedReport = vi.fn().mockResolvedValue({payload:{fields:["ParentJobNumber","EstimateStatus","Subtotal","SoldOn"].map(name=>({name})),data:[["1","Sold",500,"2026-10-06"]]}});
   const booking = {payload:{fields:["BookedBy","JobNumber","JobType","JobStatus"].map(name=>({name})),data:[["A","1","Estimate","Completed"]]}};

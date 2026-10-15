@@ -101,6 +101,7 @@ const envSchema = z.object({
   GOOGLE_CSR_REPORTS_FOLDER_ID: z.string().default("1ScOLtnTtcaT0gMCs-OwhjX6w9nke8BGe"),
   ST_REPORT_CSR_JOBS: z.string().default("177"),
   ST_REPORT_CSR_MEMBERSHIPS: z.string().default("921"),
+  DIALPAD_API_KEY: z.string().default(""),
   ST_REPORT_MEMBERSHIP_SUMMARY: z.string().default("80173089"),
   ST_REPORT_MEMBERSHIP_SALES: z.string().default("899"),
   ST_REPORT_MEMBERSHIP_DETAILS: z.string().default("972"),

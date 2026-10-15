@@ -408,7 +408,7 @@ export class DashboardService {
     }));
     const supplementFresh = extra?.snapshotTime && Date.now() - extra.snapshotTime.getTime() < 10 * 60_000;
     // Past booking cohorts can gain sales later; refresh them on demand as well.
-    if (!snapshot || !supplementFresh || !(extra?.payloadJson as { sales?: unknown } | null)?.sales) this.queueRefresh("callCenterByCsr", context);
+    if (!snapshot || !supplementFresh || !(extra?.payloadJson as { sales?: unknown } | null)?.sales || !(extra?.payloadJson as { missed?: unknown } | null)?.missed) this.queueRefresh("callCenterByCsr", context);
     const result = buildCsrPerformanceDashboard(snapshot?.payloadJson ?? {}, extra?.payloadJson as Parameters<typeof buildCsrPerformanceDashboard>[1]);
     return this.attachSnapshotTime(result, snapshot?.sourceSnapshotTime ?? snapshot?.fetchedAt);
   }

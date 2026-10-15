@@ -217,6 +217,7 @@ export function getConfig() {
       technicianPhotoFolder: env.ASSET_FOLDER_TECHNICIAN_PHOTOS,
       logoFolder: env.ASSET_FOLDER_LOGOS
     },
+    dialpad: { apiKey: env.DIALPAD_API_KEY },
     csr: { reportsFolderId: env.GOOGLE_CSR_REPORTS_FOLDER_ID, jobsReportId: env.ST_REPORT_CSR_JOBS, membershipsReportId: env.ST_REPORT_CSR_MEMBERSHIPS },
     membership: {
       summaryReportId: env.ST_REPORT_MEMBERSHIP_SUMMARY,
