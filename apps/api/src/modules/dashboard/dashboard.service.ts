@@ -407,8 +407,13 @@ export class DashboardService {
       where: { family_scopeKey: { family: DashboardFamily.CALL_CENTER_BY_CSR, scopeKey: `csr-sources:v1:${request.range.from}:${request.range.to}` } }
     }));
     const supplementFresh = extra?.snapshotTime && Date.now() - extra.snapshotTime.getTime() < 10 * 60_000;
+    const cachedSupplement = extra?.payloadJson as {
+      sales?: unknown;
+      missed?: unknown;
+    } | null;
     // Past booking cohorts can gain sales later; refresh them on demand as well.
-    if (!snapshot || !supplementFresh || !(extra?.payloadJson as { sales?: unknown } | null)?.sales || !(extra?.payloadJson as { missed?: unknown } | null)?.missed) this.queueRefresh("callCenterByCsr", context);
+    if (!snapshot || !supplementFresh || !cachedSupplement?.sales || !cachedSupplement?.missed)
+      this.queueRefresh("callCenterByCsr", context);
     const result = buildCsrPerformanceDashboard(snapshot?.payloadJson ?? {}, extra?.payloadJson as Parameters<typeof buildCsrPerformanceDashboard>[1]);
     return this.attachSnapshotTime(result, snapshot?.sourceSnapshotTime ?? snapshot?.fetchedAt);
   }
