@@ -586,6 +586,13 @@
 .csr-outcomes__icon {
   color: #839bb7;
 }
+.csr-missed-coverage {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: #647d9e;
+}
 .csr-outcomes__note {
   font-size: 10px;
   color: #8997a7;

@@ -698,14 +698,19 @@ export function CsrDashboard({
                       >
                         Missed calls
                       </MetricLabel>
-                      <strong>{num(s.missedCalls)}</strong>
+                      <strong>
+                        {num(s.missedCalls)}
+                        {data.missedCoverage &&
+                        data.missedCoverage.mapped <
+                          data.missedCoverage.total ? (
+                          <span className="csr-missed-coverage">
+                            {data.missedCoverage.mapped}/
+                            {data.missedCoverage.total} CSRs
+                          </span>
+                        ) : null}
+                      </strong>
                     </div>
-                    <span className="csr-outcomes__note">
-                      {data.missedCoverage &&
-                      data.missedCoverage.mapped < data.missedCoverage.total
-                        ? `${data.missedCoverage.mapped}/${data.missedCoverage.total} CSRs`
-                        : "Dialpad"}
-                    </span>
+                    <span className="csr-outcomes__note">Dialpad</span>
                   </div>
                   <div>
                     <span className="csr-outcomes__icon">
