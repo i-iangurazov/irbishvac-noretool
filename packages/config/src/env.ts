@@ -88,6 +88,7 @@ const envSchema = z.object({
   RIPPLING_API_VERSION: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().default("2024-08-01"),
   RIPPLING_SYNC_INTERVAL_MINUTES: z.coerce.number().int().min(15).max(720).optional().default(60),
   RIPPLING_MAX_STALE_HOURS: z.coerce.number().int().min(12).max(72).optional().default(24),
+  RIPPLING_BIRTHDAY_EXCLUDED_WORKER_IDS: z.string().optional().default(""),
   KITCHEN_NEWS_JSON: z.string().optional().default("[]"),
   SERVICETITAN_CLIENT_ID: z.string().min(1),
   SERVICETITAN_CLIENT_SECRET: z.string().min(1),

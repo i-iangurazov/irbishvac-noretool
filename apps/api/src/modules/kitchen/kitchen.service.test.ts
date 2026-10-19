@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
       apiVersion: "2024-08-01",
       syncIntervalMinutes: 60,
       maxStaleHours: 24,
+      birthdayExcludedWorkerIds: [] as string[],
       newsJson: "[]",
     },
   },
@@ -34,6 +35,7 @@ describe("kitchen synchronization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.config.rippling.token = "test-token";
+    mocks.config.rippling.birthdayExcludedWorkerIds = [];
     mocks.findUnique.mockResolvedValue(null);
     mocks.upsert.mockResolvedValue({});
   });
@@ -65,6 +67,51 @@ describe("kitchen synchronization", () => {
     expect(args.update.payloadJson.employees).toHaveLength(1);
     expect(JSON.stringify(args)).not.toContain("1985");
     expect(JSON.stringify(args)).not.toContain("secret@example.com");
+  });
+
+  it("removes excluded birthdays from an existing cache without dropping the employee", async () => {
+    mocks.config.rippling.birthdayExcludedWorkerIds = ["excluded"];
+    const employee = {
+      id: "excluded",
+      name: "Person",
+      birthday: { month: 10, day: 21 },
+      originalHireDate: "2020-10-20",
+    };
+    mocks.findUnique.mockResolvedValue({
+      payloadJson: { employees: [employee], quality: {} },
+      syncedAt: new Date(),
+    });
+    const result = await new KitchenService().board();
+    expect(result.directory.employees).toEqual([
+      { ...employee, birthday: null },
+    ]);
+    expect(employee.birthday).toEqual({ month: 10, day: 21 });
+    expect(mocks.directory).not.toHaveBeenCalled();
+  });
+
+  it("keeps birthday exclusions after a complete Rippling refresh", async () => {
+    mocks.config.rippling.birthdayExcludedWorkerIds = ["excluded"];
+    mocks.directory.mockResolvedValue({
+      workers: [
+        {
+          id: "excluded",
+          user_id: "u",
+          status: "ACTIVE",
+          date_of_birth: "1990-10-21",
+          original_start_date: "2020-10-20",
+        },
+      ],
+      users: [{ id: "u", display_name: "Person" }],
+      departments: [],
+    });
+    await new KitchenService().refresh();
+    const saved = mocks.upsert.mock.calls[0]![0].update.payloadJson.employees;
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      id: "excluded",
+      birthday: null,
+      originalHireDate: "2020-10-20",
+    });
   });
 
   it("keeps the existing snapshot when the upstream request fails", async () => {

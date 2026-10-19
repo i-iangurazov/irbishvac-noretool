@@ -104,6 +104,10 @@ export function getConfig() {
       apiVersion: env.RIPPLING_API_VERSION,
       syncIntervalMinutes: env.RIPPLING_SYNC_INTERVAL_MINUTES,
       maxStaleHours: env.RIPPLING_MAX_STALE_HOURS,
+      birthdayExcludedWorkerIds: env.RIPPLING_BIRTHDAY_EXCLUDED_WORKER_IDS
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean),
       newsJson: env.KITCHEN_NEWS_JSON
     },
     serviceTitan: {

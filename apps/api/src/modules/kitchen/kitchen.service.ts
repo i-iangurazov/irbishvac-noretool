@@ -8,6 +8,7 @@ import { getConfig } from "@irbis/config";
 import { prisma, type Prisma } from "@irbis/db";
 import {
   normalizeKitchenDirectory,
+  applyKitchenBirthdayExclusions,
   kitchenPublishedNews,
   type KitchenBoardData,
   type KitchenDirectory,
@@ -85,9 +86,12 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
         raw.users,
         raw.departments,
       );
-      const directory = await preferKitchenCloudflarePhotos(
-        ripplingDirectory,
-        this.config.assets,
+      const directory = applyKitchenBirthdayExclusions(
+        await preferKitchenCloudflarePhotos(
+          ripplingDirectory,
+          this.config.assets,
+        ),
+        this.config.rippling.birthdayExcludedWorkerIds,
       );
       const payloadJson = directory as unknown as Prisma.InputJsonValue;
       const syncedAt = new Date();
@@ -161,7 +165,10 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
       }
       return {
         ...common,
-        directory: saved.payloadJson as unknown as KitchenDirectory,
+        directory: applyKitchenBirthdayExclusions(
+          saved.payloadJson as unknown as KitchenDirectory,
+          this.config.rippling.birthdayExcludedWorkerIds,
+        ),
         syncedAt: saved.syncedAt.toISOString(),
         stale:
           this.failed ||

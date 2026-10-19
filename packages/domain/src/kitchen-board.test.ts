@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeKitchenDirectory,
+  applyKitchenBirthdayExclusions,
   kitchenCelebrations,
   kitchenOrgPages,
   kitchenPublishedNews,
@@ -141,6 +142,36 @@ describe("kitchen employee snapshot", () => {
 });
 
 describe("calendar celebrations", () => {
+  it("suppresses opted-out birthdays while preserving the roster and work anniversaries", () => {
+    const original = normalizeKitchenDirectory(
+      [worker("excluded"), worker("visible")],
+      [user("excluded"), user("visible")],
+      departments,
+    );
+    const filtered = applyKitchenBirthdayExclusions(original, ["excluded"]);
+    expect(filtered.employees).toHaveLength(2);
+    expect(
+      filtered.employees.find((person) => person.id === "excluded"),
+    ).toMatchObject({
+      name: "Person excluded",
+      birthday: null,
+      originalHireDate: "2020-02-29",
+    });
+    expect(
+      original.employees.find((person) => person.id === "excluded")?.birthday,
+    ).not.toBeNull();
+    const events = kitchenCelebrations(
+      filtered.employees,
+      new Date("2027-02-28T12:00:00Z"),
+      "America/Los_Angeles",
+    );
+    expect(events.birthdays.map((event) => event.employee.id)).toEqual([
+      "visible",
+    ]);
+    expect(
+      events.anniversaries.map((event) => event.employee.id).sort(),
+    ).toEqual(["excluded", "visible"]);
+  });
   it("uses Los Angeles month boundaries and observes February 29 on February 28 in non-leap years", () => {
     const directory = normalizeKitchenDirectory(
       [worker("a")],

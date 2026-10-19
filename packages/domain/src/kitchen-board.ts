@@ -43,6 +43,24 @@ export type KitchenBoardData = {
   news: KitchenNews[];
 };
 
+/** Apply birthday-display preferences without removing people from other screens.
+ * Also used when reading an existing snapshot so new exclusions take effect
+ * before the next upstream refresh. No reason for an exclusion is stored.
+ */
+export function applyKitchenBirthdayExclusions(
+  directory: KitchenDirectory,
+  excludedWorkerIds: readonly string[],
+): KitchenDirectory {
+  if (!excludedWorkerIds.length) return directory;
+  const excluded = new Set(excludedWorkerIds);
+  return {
+    ...directory,
+    employees: directory.employees.map((employee) =>
+      excluded.has(employee.id) ? { ...employee, birthday: null } : employee,
+    ),
+  };
+}
+
 type Row = Record<string, unknown>;
 const record = (value: unknown): Row =>
   value && typeof value === "object" && !Array.isArray(value)
