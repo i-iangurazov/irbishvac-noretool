@@ -192,7 +192,13 @@ function Leadership({
             (groups, group) => {
               const label = /^(Plumbing|Electrical)$/.test(group.label)
                 ? "Plumbing, electrical"
-                : group.label.replace("HVAC ", "");
+                : group.label === "HVAC lead installers"
+                  ? "Lead installers"
+                  : group.label === "HVAC helpers"
+                    ? "Helpers"
+                    : group.label === "Permits, inspections, warranty"
+                      ? "Permits, warranty"
+                      : group.label;
               const existing = groups.find((item) => item.label === label);
               if (existing) existing.count += group.people.length;
               else groups.push({ label, count: group.people.length });

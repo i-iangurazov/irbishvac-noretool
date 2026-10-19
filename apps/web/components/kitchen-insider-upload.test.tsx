@@ -16,19 +16,15 @@ const saved = {
 };
 beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  fetcher = vi
-    .fn()
-    .mockResolvedValue({
-      ok: true,
-      json: async () => ({ issue: saved, canUpload: true }),
-    });
+  fetcher = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ issue: saved, canUpload: true }),
+  });
   vi.stubGlobal("fetch", fetcher);
-  prepare
-    .mockReset()
-    .mockResolvedValue({
-      pages: ["data:image/webp;base64,YQ==", "data:image/webp;base64,Yg=="],
-      sourceName: "new.pdf",
-    });
+  prepare.mockReset().mockResolvedValue({
+    pages: ["data:image/webp;base64,YQ==", "data:image/webp;base64,Yg=="],
+    sourceName: "new.pdf",
+  });
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -63,6 +59,7 @@ describe("Insider publishing workflow", () => {
     await render();
     expect(host.querySelector("img")?.getAttribute("src")).toBe("/saved/1");
     await select();
+    expect(host.textContent).toContain("Selected: new.pdf");
     await click("Swap page order");
     await click("Publish replacement");
     const payload = JSON.parse(

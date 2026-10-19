@@ -162,6 +162,13 @@
   height: 80px;
   border: 4px solid white;
 }
+.kitchen-executive:not(.kitchen-executive--ceo) .kitchen-avatar {
+  width: 72px;
+  height: 72px;
+}
+.kitchen-executive:not(.kitchen-executive--ceo) h2 {
+  font-size: 24px;
+}
 .kitchen-executive span {
   font-size: 13px;
   letter-spacing: 2px;
@@ -232,7 +239,7 @@
 }
 .kitchen-leader h3,
 .kitchen-service-leader h3 {
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 900;
   line-height: 1.12;
   letter-spacing: -0.45px;

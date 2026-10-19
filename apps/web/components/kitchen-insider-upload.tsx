@@ -148,6 +148,9 @@ export function KitchenInsiderUpload({
             <small>
               One two-page PDF or two portrait images. Maximum 12 MB per file.
             </small>
+            {pages.length === 2 && sourceName && (
+              <small className="insider-selected">Selected: {sourceName}</small>
+            )}
           </label>
         ) : (
           <p>
