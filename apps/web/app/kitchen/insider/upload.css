@@ -1,9 +1,15 @@
+@font-face {
+  font-family: "Kitchen Montserrat";
+  src: url("/fonts/montserrat/montserrat-latin-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
 .insider-editor {
   min-height: 100dvh;
   background: #f3f8fb;
   color: #003644;
   padding: 40px max(24px, calc((100vw - 1280px) / 2));
-  font-family: Arial, sans-serif;
+  font-family: "Kitchen Montserrat", Montserrat, Arial, sans-serif;
 }
 .insider-editor header > a {
   display: block;
@@ -133,5 +139,30 @@
   }
   .insider-actions {
     width: 100%;
+  }
+}
+
+.insider-editor button,
+.insider-editor input {
+  font: inherit;
+}
+.insider-editor :focus-visible {
+  outline: 3px solid #f37021;
+  outline-offset: 4px;
+}
+@media (max-width: 420px) {
+  .insider-form {
+    padding: 16px;
+  }
+  .insider-file {
+    min-width: 0;
+    width: 100%;
+  }
+  .insider-file input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .insider-actions {
+    flex-wrap: wrap;
   }
 }

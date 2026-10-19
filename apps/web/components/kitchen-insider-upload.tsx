@@ -1,14 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { NewsletterInfo } from "../lib/kitchen-newsletter";
-const readImage = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () =>
-      reject(new Error("Could not read the selected image."));
-    reader.readAsDataURL(file);
-  });
+import {
+  prepareNewsletterFiles,
+  MAX_NEWSLETTER_BODY_BYTES,
+} from "../lib/kitchen-upload";
 export function KitchenInsiderUpload({
   initialMonth,
 }: {
@@ -18,16 +14,24 @@ export function KitchenInsiderUpload({
     [pages, setPages] = useState<string[]>([]),
     [sourceName, setSourceName] = useState("");
   const [existing, setExisting] = useState<NewsletterInfo | null>(null),
-    [busy, setBusy] = useState(false),
+    [phase, setPhase] = useState<"preparing" | "publishing" | null>(null),
+    [loading, setLoading] = useState(true),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
   const [canUpload, setCanUpload] = useState(false);
+  const busy = phase !== null;
+  const validMonth = /^20\d{2}-(0[1-9]|1[0-2])$/.test(month);
   useEffect(() => {
     const controller = new AbortController();
+    setLoading(true);
     setExisting(null);
     setPages([]);
     setMessage("");
     setError("");
+    if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month)) {
+      setLoading(false);
+      return () => controller.abort();
+    }
     fetch(`/api/kitchen/insider?month=${month}`, {
       signal: controller.signal,
       cache: "no-store",
@@ -37,84 +41,43 @@ export function KitchenInsiderUpload({
         return response.json();
       })
       .then((body) => {
+        if (controller.signal.aborted) return;
         setExisting(body.issue);
         setCanUpload(body.canUpload);
       })
       .catch((err) => {
         if (!controller.signal.aborted) setError(err.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
   }, [month]);
-  async function choose(files: FileList | null) {
+  async function choose(files: File[]) {
     if (!files?.length) return;
-    setBusy(true);
+    setPhase("preparing");
     setError("");
     setMessage("");
     setPages([]);
     try {
-      const selected = Array.from(files);
-      if (selected.some((file) => file.size > 12 * 1024 * 1024))
-        throw new Error("Each file must be 12 MB or smaller.");
-      if (
-        selected.length === 1 &&
-        (/\.pdf$/i.test(selected[0]!.name) ||
-          selected[0]!.type === "application/pdf")
-      ) {
-        const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = "/kitchen/pdf.worker.min.mjs";
-        const document = await pdfjs.getDocument({
-          data: new Uint8Array(await selected[0]!.arrayBuffer()),
-        }).promise;
-        try {
-          if (document.numPages !== 2)
-            throw new Error("The Insider PDF must contain exactly two pages.");
-          const images: string[] = [];
-          for (let number = 1; number <= 2; number++) {
-            const page = await document.getPage(number),
-              natural = page.getViewport({ scale: 1 });
-            if (natural.width > natural.height)
-              throw new Error("Use a PDF with two portrait pages.");
-            const viewport = page.getViewport({
-              scale: Math.min(1600 / natural.width, 2200 / natural.height),
-            });
-            const canvas = window.document.createElement("canvas");
-            canvas.width = Math.ceil(viewport.width);
-            canvas.height = Math.ceil(viewport.height);
-            await page.render({
-              canvas,
-              canvasContext: canvas.getContext("2d")!,
-              viewport,
-              background: "#ffffff",
-            }).promise;
-            images.push(canvas.toDataURL("image/png"));
-            canvas.width = 0;
-            canvas.height = 0;
-          }
-          setPages(images);
-        } finally {
-          await document.destroy();
-        }
-      } else {
-        if (
-          selected.length !== 2 ||
-          selected.some((file) => !/^image\/(png|jpeg|webp)$/.test(file.type))
-        )
-          throw new Error(
-            "Choose one two-page PDF, or exactly two PNG, JPEG or WebP images.",
-          );
-        setPages(await Promise.all(selected.map(readImage)));
-      }
-      setSourceName(selected.map((file) => file.name).join(", "));
+      const prepared = await prepareNewsletterFiles(files);
+      const body = JSON.stringify({ month, ...prepared });
+      if (new Blob([body]).size > MAX_NEWSLETTER_BODY_BYTES)
+        throw new Error(
+          "These pages are too large to publish. Choose smaller page images.",
+        );
+      setPages(prepared.pages);
+      setSourceName(prepared.sourceName);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not prepare these files.",
       );
     } finally {
-      setBusy(false);
+      setPhase(null);
     }
   }
   async function publish() {
-    setBusy(true);
+    setPhase("publishing");
     setError("");
     setMessage("");
     try {
@@ -139,7 +102,7 @@ export function KitchenInsiderUpload({
         err instanceof Error ? err.message : "Could not publish this issue.",
       );
     } finally {
-      setBusy(false);
+      setPhase(null);
     }
   }
   const preview = pages.length ? pages : (existing?.pages ?? []);
@@ -166,15 +129,21 @@ export function KitchenInsiderUpload({
             disabled={busy}
           />
         </label>
-        {canUpload ? (
+        {loading ? (
+          <p role="status">Loading the selected issue…</p>
+        ) : canUpload ? (
           <label className="insider-file">
             Newsletter file
             <input
               type="file"
               accept="application/pdf,image/png,image/jpeg,image/webp"
               multiple
-              disabled={busy}
-              onChange={(event) => void choose(event.target.files)}
+              disabled={busy || !validMonth}
+              onChange={(event) => {
+                const files = Array.from(event.target.files ?? []);
+                event.target.value = "";
+                void choose(files);
+              }}
             />
             <small>
               One two-page PDF or two portrait images. Maximum 12 MB per file.
@@ -197,17 +166,27 @@ export function KitchenInsiderUpload({
           )}
           <button
             className="insider-publish"
-            disabled={busy || pages.length !== 2 || !canUpload}
+            disabled={
+              busy || loading || !validMonth || pages.length !== 2 || !canUpload
+            }
             onClick={() => void publish()}
           >
-            {busy
-              ? "Preparing…"
+            {phase
+              ? phase === "publishing"
+                ? "Publishing…"
+                : "Preparing…"
               : existing
                 ? "Publish replacement"
                 : "Publish issue"}
           </button>
         </div>
-        {busy && <p role="status">Preparing the two newsletter pages…</p>}
+        {busy && (
+          <p role="status">
+            {phase === "publishing"
+              ? "Publishing this issue…"
+              : "Preparing the two newsletter pages…"}
+          </p>
+        )}
         {message && (
           <p className="insider-success" role="status">
             {message}

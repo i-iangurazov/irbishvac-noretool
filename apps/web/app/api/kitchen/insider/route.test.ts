@@ -8,12 +8,14 @@ const mocks = vi.hoisted(() => ({
   identity: vi.fn(),
   save: vi.fn(),
   info: vi.fn(),
+  page: vi.fn(),
 }));
 vi.mock("../../../../lib/kitchen-newsletter", () => ({
   kitchenIdentity: mocks.identity,
   kitchenCanUpload: (id: string) => id !== "shared",
   validIssueMonth: (month: string) => /^20\d{2}-(0[1-9]|1[0-2])$/.test(month),
   newsletterInfo: mocks.info,
+  newsletterPage: mocks.page,
   saveNewsletter: mocks.save,
 }));
 import { GET, POST } from "./route";
@@ -110,5 +112,48 @@ describe("monthly newsletter access and validation", () => {
     expect(
       (await sharp(Buffer.from(pages[0].data, "base64")).metadata()).width,
     ).toBe(600);
+  });
+});
+
+describe("protected newsletter page retrieval", () => {
+  const imageRequest = (month = "2026-10") =>
+    new NextRequest(
+      `https://dashboard.irbishvac.com/api/kitchen/insider/page/1?month=${month}`,
+    );
+  const context = (page = "1") => ({ params: Promise.resolve({ page }) });
+  it("requires authentication for the image bytes", async () => {
+    const { GET: readPage } = await import("./page/[page]/route");
+    mocks.identity.mockResolvedValue(null);
+    expect((await readPage(imageRequest(), context())).status).toBe(401);
+  });
+  it("rejects invalid months and page numbers", async () => {
+    const { GET: readPage } = await import("./page/[page]/route");
+    expect((await readPage(imageRequest("2026-13"), context())).status).toBe(
+      404,
+    );
+    expect((await readPage(imageRequest(), context("3"))).status).toBe(404);
+  });
+  it("returns the stored image bytes with private caching and no content sniffing", async () => {
+    const { GET: readPage } = await import("./page/[page]/route");
+    const bytes = await sharp({
+      create: { width: 600, height: 800, channels: 3, background: "white" },
+    })
+      .webp()
+      .toBuffer();
+    mocks.page.mockResolvedValue({ bytes, mime: "image/webp" });
+    const response = await readPage(imageRequest(), context());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, max-age=3600");
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+  });
+  it("handles an absent issue and database failure without leaking details", async () => {
+    const { GET: readPage } = await import("./page/[page]/route");
+    mocks.page.mockResolvedValueOnce(null);
+    expect((await readPage(imageRequest(), context())).status).toBe(404);
+    mocks.page.mockRejectedValueOnce(new Error("database secret"));
+    const response = await readPage(imageRequest(), context());
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain("secret");
   });
 });

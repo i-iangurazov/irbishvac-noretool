@@ -119,7 +119,18 @@ export function kitchenLeadership(employees: KitchenEmployee[]) {
       roots.indexOf(a.executive) - roots.indexOf(b.executive) ||
       branchRank(a) - branchRank(b),
   );
-  return { roots, branches, installationManager, reports };
+  const totalReports = (id: string) => {
+    const visited = new Set([id]);
+    const queue = [...reports(id)];
+    for (let index = 0; index < queue.length; index++) {
+      const person = queue[index]!;
+      if (visited.has(person.id)) continue;
+      visited.add(person.id);
+      queue.push(...reports(person.id));
+    }
+    return visited.size - 1;
+  };
+  return { roots, branches, installationManager, reports, totalReports };
 }
 
 export function kitchenCrewGroups(people: KitchenEmployee[]): CrewGroup[] {

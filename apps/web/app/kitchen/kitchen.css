@@ -142,7 +142,7 @@
 }
 .kitchen-executive {
   height: 120px;
-  width: 360px;
+  width: 400px;
   padding: 20px 22px;
   border-radius: 18px;
   border-top: 6px solid #003644;
@@ -577,7 +577,9 @@
   display: none;
 }
 .kitchen-stage--news {
-  height: 100%;
+  position: absolute;
+  inset: 0;
+  height: 1080px;
   display: flex;
   align-items: center;
   justify-content: center;

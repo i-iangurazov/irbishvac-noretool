@@ -135,7 +135,9 @@ function Leadership({
   slide: KitchenSlide;
   data: KitchenBoardData;
 }) {
-  const { roots, reports } = kitchenLeadership(data.directory.employees);
+  const { roots, reports, totalReports } = kitchenLeadership(
+    data.directory.employees,
+  );
   const branches = slide.branches ?? [];
   return (
     <div
@@ -162,8 +164,17 @@ function Leadership({
                 <div>
                   <span>Executive</span>
                   <h2>{root.name}</h2>
-                  <p>
-                    {root.title} · {reports(root.id).length} direct
+                  <p title={root.title}>
+                    {/\bCEO\b|chief executive/i.test(root.title)
+                      ? "CEO"
+                      : /\bCOO\b|chief operating/i.test(root.title)
+                        ? "COO"
+                        : /\bCFO\b|chief financial/i.test(root.title)
+                          ? "CFO"
+                          : root.title}
+                    {" · "}
+                    {reports(root.id).length} direct · {totalReports(root.id)}{" "}
+                    total
                   </p>
                 </div>
               </article>
@@ -177,6 +188,18 @@ function Leadership({
           const crew = branch.installation
             ? kitchenCrewGroups(reports(branch.leader!.id))
             : [];
+          const summary = crew.reduce<{ label: string; count: number }[]>(
+            (groups, group) => {
+              const label = /^(Plumbing|Electrical)$/.test(group.label)
+                ? "Plumbing, electrical"
+                : group.label.replace("HVAC ", "");
+              const existing = groups.find((item) => item.label === label);
+              if (existing) existing.count += group.people.length;
+              else groups.push({ label, count: group.people.length });
+              return groups;
+            },
+            [],
+          );
           const sameBefore =
             branches[index - 1]?.executive.id === branch.executive.id;
           const sameAfter =
@@ -207,10 +230,10 @@ function Leadership({
                 <>
                   <div className="kitchen-crew-summary">
                     <h4>Crew breakdown</h4>
-                    {crew.map((group) => (
+                    {summary.map((group) => (
                       <div key={group.label}>
-                        <span>{group.label.replace("HVAC ", "")}</span>
-                        <strong>{group.people.length}</strong>
+                        <span>{group.label}</span>
+                        <strong>{group.count}</strong>
                       </div>
                     ))}
                   </div>
@@ -492,6 +515,22 @@ export function KitchenBoard({
     [data, now],
   );
   const current = slides[index % Math.max(1, slides.length)];
+  useEffect(() => {
+    const sources = [
+      ...(data?.directory.employees ?? []).map((person) =>
+        person.photoSource === "cloudflare" && person.photoUrl
+          ? `/_next/image?url=${encodeURIComponent(person.photoUrl)}&w=640&q=90`
+          : person.photoUrl,
+      ),
+      ...(issue?.pages ?? []),
+    ];
+    for (const src of new Set(sources)) {
+      if (!src) continue;
+      const image = new Image();
+      image.referrerPolicy = "no-referrer";
+      image.src = src;
+    }
+  }, [data?.directory.employees, issue]);
   const duration =
     current?.kind === "news" ? KITCHEN_INSIDER_MS : KITCHEN_SCREEN_MS;
   useEffect(() => {

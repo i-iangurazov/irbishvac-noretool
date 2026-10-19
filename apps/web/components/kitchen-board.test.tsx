@@ -104,6 +104,9 @@ describe("October kitchen TV requirements", () => {
       name: `Renamed ${person.id}`,
     }));
     const tree = kitchenLeadership(people);
+    expect(tree.totalReports("ceo")).toBe(5);
+    expect(tree.totalReports("hr")).toBe(1);
+    expect(tree.totalReports("installation")).toBe(1);
     expect(tree.roots.map((person) => person.id)).toEqual([
       "ceo",
       "coo",
