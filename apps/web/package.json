@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "next build",
-    "dev": "next dev --port 3000",
+    "build": "node ../../scripts/prepare-kitchen-assets.mjs && next build",
+    "dev": "node ../../scripts/prepare-kitchen-assets.mjs && next dev --port 3000",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -15,13 +15,16 @@
   "dependencies": {
     "@clerk/nextjs": "^7.8.3",
     "@irbis/config": "workspace:*",
+    "@irbis/db": "workspace:^",
     "@irbis/ui": "workspace:*",
     "@irbis/utils": "workspace:*",
     "lucide-react": "^1.48.0",
     "next": "^15.5.25",
+    "pdfjs-dist": "^5.4.296",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^2.15.1"
+    "recharts": "^2.15.1",
+    "sharp": "0.35.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.51.0",

@@ -186,3 +186,12 @@ model KitchenSnapshot {
   payloadJson Json
   syncedAt    DateTime
 }
+
+// Two validated newsletter page images per monthly issue. Kept behind dashboard auth.
+model KitchenNewsletter {
+  issueMonth String @id
+  pagesJson Json
+  sourceName String
+  uploadedBy String
+  uploadedAt DateTime @default(now())
+}

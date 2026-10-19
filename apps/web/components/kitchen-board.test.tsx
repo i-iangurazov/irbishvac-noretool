@@ -1,66 +1,77 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { KitchenBoard } from "./kitchen-board";
 import {
-  KitchenBoard,
   buildKitchenSlides,
-  nextKitchenSlide,
-} from "./kitchen-board";
-import {
-  normalizeKitchenDirectory,
-  type KitchenBoardData,
+  kitchenLeadership,
+  kitchenCrewGroups,
+  kitchenCrewColumns,
+} from "../lib/kitchen-layout";
+import type {
+  KitchenBoardData,
+  KitchenEmployee,
 } from "../../../packages/domain/src/kitchen-board";
-
-const makeData = (): KitchenBoardData => ({
-  directory: normalizeKitchenDirectory(
-    [
+const employee = (
+  id: string,
+  title: string,
+  managerId: string | null = null,
+): KitchenEmployee => ({
+  id,
+  name: `Person ${id}`,
+  title,
+  managerId,
+  department: "IRBIS",
+  photoUrl: null,
+  birthday: null,
+  originalHireDate: null,
+});
+const data = (): KitchenBoardData => ({
+  directory: {
+    employees: [
+      employee("ceo", "CEO"),
+      employee("coo", "Chief Operating Officer"),
+      employee("cfo", "Chief Financial Officer"),
+      employee("installation", "Installation Manager", "ceo"),
+      employee("hr", "Human Resources Manager", "ceo"),
+      employee("service", "HVAC Service Technician", "ceo"),
+      employee("installer", "HVAC Lead Installer", "installation"),
       {
-        id: "a",
-        user_id: "a",
-        status: "ACTIVE",
-        date_of_birth: "1980-09-23",
-        original_start_date: "2020-09-23",
-      },
-      {
-        id: "b",
-        user_id: "b",
-        status: "ACTIVE",
-        manager_id: "a",
-        date_of_birth: "1990-09-24",
-        original_start_date: "2021-09-24",
+        ...employee("birthday", "Office Assistant", "hr"),
+        birthday: { month: 10, day: 10 },
+        originalHireDate: "2024-10-09",
       },
     ],
-    [
-      { id: "a", display_name: "Manager Example" },
-      { id: "b", display_name: "Employee Example" },
-    ],
-    [],
-  ),
-  syncedAt: "2026-09-23T12:00:00Z",
+    quality: {
+      missingNames: 0,
+      missingPhotos: 0,
+      missingBirthdays: 0,
+      missingHireDates: 0,
+      restrictedBirthdays: 0,
+      restrictedHireDates: 0,
+      missingDepartments: 0,
+      unresolvedManagers: 0,
+    },
+  },
+  syncedAt: "2026-10-19T00:00:00Z",
   lastAttemptAt: null,
   stale: false,
   status: "ready",
   timezone: "America/Los_Angeles",
   news: [],
 });
-let host: HTMLDivElement;
-let root: Root;
-const button = (label: string) =>
-  host.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
-
+let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.setSystemTime(new Date("2026-09-23T12:00:00Z"));
+  vi.setSystemTime(new Date("2026-10-19T12:00:00Z"));
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-  vi.stubGlobal("matchMedia", () => ({
-    matches: false,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  }));
-  Object.defineProperty(document, "hidden", {
-    configurable: true,
-    value: false,
-  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ issue: null, canUpload: false }),
+    }),
+  );
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);
@@ -71,330 +82,141 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
-
-describe("kitchen TV", () => {
-  it("skips empty sections during unattended rotation while keeping them available manually", () => {
-    const now = new Date("2026-09-22T12:00:00Z");
-    const slides = buildKitchenSlides(makeData(), now);
-    const anniversary = slides.findIndex(
-      (slide) => slide.kind === "anniversaries",
-    );
-    expect(slides[nextKitchenSlide(slides, anniversary)]?.kind).toBe("org");
-    expect(slides.some((slide) => slide.kind === "news")).toBe(true);
-    const withNews = makeData();
-    withNews.news = [
-      {
-        id: "one",
-        title: "Office update",
-        body: "A real update.",
-        startsOn: null,
-        endsOn: null,
-      },
-    ];
-    const published = buildKitchenSlides(withNews, now);
-    expect(published[nextKitchenSlide(published, anniversary)]?.kind).toBe(
-      "news",
-    );
-  });
-
-  it("falls back from Cloudflare to Rippling before displaying initials", () => {
-    const data = makeData();
-    const employee = data.directory.employees.find(
-      (person) => person.id === "a",
-    )!;
-    employee.photoUrl = "https://assets.example.com/headshot.png";
-    employee.photoSource = "cloudflare";
-    employee.photoFallbackUrl = "https://rippling.example.com/photo.jpg";
-    act(() =>
-      root.render(<KitchenBoard tvMode autoplay={false} initialData={data} />),
-    );
-    const photo = () =>
-      host.querySelector<HTMLImageElement>(".kitchen-portrait img");
-    expect(photo()?.getAttribute("src")).toBe(
-      `/_next/image?url=${encodeURIComponent(employee.photoUrl)}&w=1200&q=82`,
-    );
-    act(() => photo()!.dispatchEvent(new Event("error")));
-    expect(photo()?.src).toBe(employee.photoUrl);
-    act(() => photo()!.dispatchEvent(new Event("error")));
-    expect(photo()?.src).toBe(employee.photoFallbackUrl);
-    act(() => photo()!.dispatchEvent(new Event("error")));
-    expect(photo()).toBeNull();
-    expect(host.querySelector(".kitchen-portrait-fallback")?.textContent).toBe(
-      "ME",
-    );
-  });
-
-  it("retains the employee name and initials when a photo fails to load", () => {
-    const data = makeData();
-    data.directory.employees.find((person) => person.id === "a")!.photoUrl =
-      "https://example.com/photo.jpg";
-    act(() =>
-      root.render(<KitchenBoard tvMode autoplay={false} initialData={data} />),
-    );
-    act(() =>
-      host
-        .querySelector(".kitchen-portrait img")!
-        .dispatchEvent(new Event("error")),
-    );
-    expect(host.querySelector(".kitchen-portrait img")).toBeNull();
-    expect(host.querySelector(".kitchen-portrait-fallback")?.textContent).toBe(
-      "ME",
-    );
-    expect(host.textContent).toContain("Manager Example");
-  });
-  it("shows today's celebrations first and rotates every five seconds through the complete board", () => {
-    const data = makeData();
-    data.news = [
-      {
-        id: "one",
-        title: "Office update",
-        body: "A real update.",
-        startsOn: null,
-        endsOn: null,
-      },
-    ];
-    act(() => root.render(<KitchenBoard tvMode autoplay initialData={data} />));
-    const kind = () =>
-      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind");
-    expect(kind()).toBe("birthdays");
-    expect(host.textContent).toContain("Today’s birthdays");
-    expect(host.textContent).toContain("5s per screen");
-    expect(host.textContent).toContain("Manager Example");
-    expect(host.textContent).not.toContain("Employee Example");
-    act(() => vi.advanceTimersByTime(4_999));
-    expect(kind()).toBe("birthdays");
-    act(() => vi.advanceTimersByTime(1));
-    expect(kind()).toBe("anniversaries");
-    expect(host.textContent).toContain("Today’s work anniversaries");
-    expect(host.textContent).toContain("6");
-    for (const expected of [
+describe("October kitchen TV requirements", () => {
+  it("builds the required five screens in order, keeping the installation team separate", () => {
+    const slides = buildKitchenSlides(data(), new Date());
+    expect(slides.map((slide) => slide.kind)).toEqual([
       "org",
-      "org",
+      "crew",
       "birthdays",
       "anniversaries",
       "news",
-      "birthdays",
-    ]) {
-      act(() => vi.advanceTimersByTime(5_000));
-      expect(kind()).toBe(expected);
-    }
-    act(() => button("Pause rotation").click());
-    act(() => vi.advanceTimersByTime(80_000));
-    expect(kind()).toBe("birthdays");
-    expect(host.textContent).toContain("Paused");
-    act(() => button("Next screen").click());
-    expect(kind()).toBe("anniversaries");
-  });
-
-  it("starts desktop Play with today's celebrations even after manually browsing the org chart", () => {
-    act(() =>
-      root.render(
-        <KitchenBoard
-          tvMode={false}
-          autoplay={false}
-          initialData={makeData()}
-        />,
-      ),
-    );
-    const peopleTab = Array.from(host.querySelectorAll("button")).find(
-      (item) => item.textContent === "Our people",
-    )!;
-    act(() => peopleTab.click());
-    expect(
-      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind"),
-    ).toBe("org");
-    act(() => button("Start rotation").click());
-    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
-    expect(host.textContent).toContain("5s per screen");
-    act(() => vi.advanceTimersByTime(5_000));
-    expect(host.querySelector("h1")?.textContent).toBe(
-      "Today’s work anniversaries",
-    );
-  });
-
-  it("prioritizes a new company day's celebrations without a reload and gives them a full five seconds", () => {
-    // Still September 23 at IRBIS, although the browser's UTC date is September 24.
-    vi.setSystemTime(new Date("2026-09-24T06:59:50Z"));
-    act(() =>
-      root.render(<KitchenBoard tvMode autoplay initialData={makeData()} />),
-    );
-    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
-    expect(host.querySelector(".kitchen-stage")?.textContent).toContain(
-      "Manager Example",
-    );
-    act(() => vi.advanceTimersByTime(30_000));
-    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
-    expect(host.querySelector(".kitchen-stage")?.textContent).toContain(
-      "Employee Example",
-    );
-    expect(host.querySelector(".kitchen-stage")?.textContent).not.toContain(
-      "Manager Example",
-    );
-    act(() => vi.advanceTimersByTime(4_999));
-    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
-    act(() => vi.advanceTimersByTime(1));
-    expect(host.querySelector("h1")?.textContent).toBe(
-      "Today’s work anniversaries",
-    );
-  });
-
-  it("keeps every celebration visible when a month needs multiple screens", () => {
-    const data = makeData();
-    data.directory.employees = Array.from({ length: 19 }, (_, i) => ({
-      ...data.directory.employees[0]!,
-      id: String(i),
-      managerId: null,
-    }));
-    const slides = buildKitchenSlides(data, new Date(), 6);
-    const birthdays = slides.filter((slide) => slide.kind === "birthdays");
-    expect(birthdays).toHaveLength(4);
-    expect(birthdays.flatMap((slide) => slide.events ?? [])).toHaveLength(19);
-  });
-
-  it("places all of today's pages ahead of the org chart without duplicating or dropping monthly events", () => {
-    const data = makeData();
-    const today = data.directory.employees.find((person) => person.id === "a")!;
-    const otherDay = data.directory.employees.find(
-      (person) => person.id === "b",
-    )!;
-    data.directory.employees = [
-      ...Array.from({ length: 7 }, (_, i) => ({
-        ...today,
-        id: `today-${i}`,
-        managerId: null,
-      })),
-      otherDay,
-    ];
-    const slides = buildKitchenSlides(data, new Date(), 3);
-    expect(slides.slice(0, 6).map((slide) => slide.kind)).toEqual([
-      "birthdays",
-      "birthdays",
-      "birthdays",
-      "anniversaries",
-      "anniversaries",
-      "anniversaries",
     ]);
     expect(
-      slides
-        .slice(0, 6)
-        .every((slide) => slide.events?.every((event) => event.isToday)),
-    ).toBe(true);
-    expect(slides[6]?.kind).toBe("org");
-    for (const kind of ["birthdays", "anniversaries"]) {
-      const events = slides
-        .filter((slide) => slide.kind === kind)
-        .flatMap((slide) => slide.events ?? []);
-      expect(events).toHaveLength(8);
-      expect(new Set(events.map((event) => event.employee.id)).size).toBe(8);
-      expect(events.at(-1)?.isToday).toBe(false);
-    }
+      slides[0]!
+        .branches!.find((branch) => branch.installation)
+        ?.people.map((person) => person.id),
+    ).toEqual(["installer"]);
   });
-
-  it("keeps the org chart first when there are no celebrations today", () => {
-    vi.setSystemTime(new Date("2026-09-22T12:00:00Z"));
-    act(() =>
-      root.render(<KitchenBoard tvMode autoplay initialData={makeData()} />),
-    );
+  it("uses roles and reporting IDs after people are renamed, with executive and branch order", () => {
+    const people = data().directory.employees.map((person) => ({
+      ...person,
+      name: `Renamed ${person.id}`,
+    }));
+    const tree = kitchenLeadership(people);
+    expect(tree.roots.map((person) => person.id)).toEqual([
+      "ceo",
+      "coo",
+      "cfo",
+    ]);
     expect(
-      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind"),
-    ).toBe("org");
-    act(() => vi.advanceTimersByTime(5_000));
-    expect(
-      host.querySelector("[data-slide-kind]")?.getAttribute("data-slide-kind"),
-    ).toBe("org");
-    act(() => vi.advanceTimersByTime(5_000));
-    expect(host.querySelector("h1")?.textContent).toBe("September birthdays");
+      tree.branches
+        .filter((branch) => branch.executive.id === "ceo")
+        .map((branch) => branch.leader?.id ?? branch.label),
+    ).toEqual(["hr", "installation", "HVAC Service"]);
   });
-
-  it("continues through routine refreshes and prioritizes a newly synced birthday once", async () => {
-    const data = makeData();
-    data.news = [
-      {
-        id: "one",
-        title: "Office update",
-        body: "A real update.",
-        startsOn: null,
-        endsOn: null,
-      },
+  it("places all 37 crew members in five columns, including two helper columns", () => {
+    const people = [
+      ...Array.from({ length: 7 }, (_, i) =>
+        employee(`l${i}`, "HVAC Lead Installer"),
+      ),
+      ...Array.from({ length: 18 }, (_, i) =>
+        employee(`h${i}`, "HVAC Installation Helper"),
+      ),
+      ...Array.from({ length: 4 }, (_, i) =>
+        employee(`p${i}`, "Plumbing Installation Helper"),
+      ),
+      ...Array.from({ length: 4 }, (_, i) =>
+        employee(`e${i}`, "Electrician Installer"),
+      ),
+      ...Array.from({ length: 4 }, (_, i) =>
+        employee(`w${i}`, "Permits/Inspections Coordinator"),
+      ),
     ];
-    const updated = structuredClone(data);
-    updated.directory.employees.push({
-      ...data.directory.employees.find((person) => person.id === "a")!,
-      id: "new",
-      name: "Late Sync Example",
-      managerId: null,
+    const columns = kitchenCrewColumns(kitchenCrewGroups(people));
+    expect(columns).toHaveLength(5);
+    expect(columns.flat().flatMap((group) => group.people)).toHaveLength(37);
+    expect(
+      new Set(
+        columns
+          .flat()
+          .flatMap((group) => group.people.map((person) => person.id)),
+      ).size,
+    ).toBe(37);
+    expect(columns.at(-1)).toHaveLength(2);
+  });
+  it("paginates crew overflow without omitting employees", () => {
+    const people = Array.from({ length: 70 }, (_, i) =>
+      employee(`h${i}`, "HVAC Installation Helper", "installation"),
+    );
+    const value = data();
+    value.directory.employees.push(...people);
+    const slides = buildKitchenSlides(value, new Date()).filter(
+      (slide) => slide.kind === "crew",
+    );
+    expect(slides.length).toBeGreaterThan(1);
+    expect(
+      slides.flatMap((slide) =>
+        slide.columns!.flat().flatMap((group) => group.people),
+      ).length,
+    ).toBe(71);
+  });
+  it("sorts birthdays by date, uses eight per page, and skips empty monthly celebrations", () => {
+    const value = data();
+    value.directory.employees = value.directory.employees.map((person) => ({
+      ...person,
+      birthday: null,
       originalHireDate: null,
-    });
-    vi.stubGlobal(
-      "fetch",
-      vi
-        .fn()
-        .mockResolvedValueOnce({ ok: true, json: async () => data })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => structuredClone(data),
-        })
-        .mockResolvedValue({ ok: true, json: async () => updated }),
+    }));
+    expect(
+      buildKitchenSlides(value, new Date()).map((slide) => slide.kind),
+    ).toEqual(["org", "crew", "news"]);
+    value.directory.employees.push(
+      ...Array.from({ length: 10 }, (_, i) => ({
+        ...employee(`b${i}`, "Office Assistant"),
+        birthday: { month: 10, day: 20 - i },
+      })),
     );
-    await act(async () => root.render(<KitchenBoard tvMode autoplay />));
-    await act(async () => vi.advanceTimersByTimeAsync(60_000));
-    expect(host.querySelector("h1")?.textContent).toBe("Work anniversaries");
-    await act(async () => vi.advanceTimersByTimeAsync(5_000));
-    expect(host.querySelector("h1")?.textContent).toBe("Company news");
-    await act(async () => vi.advanceTimersByTimeAsync(55_000));
-    expect(host.querySelector("h1")?.textContent).toBe("Today’s birthdays");
-    expect(host.querySelector(".kitchen-stage")?.textContent).toContain(
-      "Late Sync Example",
+    const pages = buildKitchenSlides(value, new Date()).filter(
+      (slide) => slide.kind === "birthdays",
     );
-    await act(async () => vi.advanceTimersByTimeAsync(5_000));
-    expect(host.querySelector("h1")?.textContent).toBe(
-      "Today’s work anniversaries",
-    );
+    expect(pages.map((page) => page.events!.length)).toEqual([8, 2]);
+    expect(
+      pages.flatMap((page) => page.events!.map((event) => event.day)),
+    ).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
   });
-
-  it("rolls over the celebration month without a page reload", () => {
-    vi.setSystemTime(new Date("2026-10-01T06:59:50Z"));
-    act(() =>
+  it("rotates ordinary screens at 20 seconds and the Insider at 45 seconds", async () => {
+    await act(async () =>
+      root.render(<KitchenBoard tvMode autoplay initialData={data()} />),
+    );
+    const kind = () =>
+      host
+        .querySelector("[data-kitchen-board]")
+        ?.getAttribute("data-slide-kind");
+    expect(kind()).toBe("org");
+    await act(async () => vi.advanceTimersByTime(19_999));
+    expect(kind()).toBe("org");
+    await act(async () => vi.advanceTimersByTime(1));
+    expect(kind()).toBe("crew");
+    for (let i = 0; i < 3; i++)
+      await act(async () => vi.advanceTimersByTime(20_000));
+    expect(kind()).toBe("news");
+    await act(async () => vi.advanceTimersByTime(44_999));
+    expect(kind()).toBe("news");
+    await act(async () => vi.advanceTimersByTime(1));
+    expect(kind()).toBe("org");
+  });
+  it("shows the milestone reached this month and marks past dates", async () => {
+    await act(async () =>
       root.render(
-        <KitchenBoard tvMode autoplay={false} initialData={makeData()} />,
+        <KitchenBoard tvMode={false} autoplay={false} initialData={data()} />,
       ),
     );
-    const birthdaysTab = Array.from(host.querySelectorAll("button")).find(
-      (item) => item.textContent?.includes("Birthdays"),
+    const control = Array.from(host.querySelectorAll("nav button")).find(
+      (button) => button.textContent === "Anniversaries",
     )!;
-    act(() => birthdaysTab.click());
-    expect(host.textContent).toContain("September birthdays");
-    act(() => {
-      vi.advanceTimersByTime(30_000);
-    });
-    expect(host.textContent).toContain("October birthdays");
-  });
-
-  it("splits long news into readable screens without dropping words", () => {
-    const data = makeData();
-    const body = "A company update for our team. ".repeat(28).trim();
-    data.news = [
-      { id: "news", title: "Team update", body, startsOn: null, endsOn: null },
-    ];
-    const news = buildKitchenSlides(data, new Date()).filter(
-      (slide) => slide.kind === "news",
-    );
-    expect(news.length).toBeGreaterThan(1);
-    expect(news.every((slide) => slide.news!.body.length <= 350)).toBe(true);
-    expect(news.map((slide) => slide.news!.body).join(" ")).toBe(body);
-  });
-
-  it("shows a recoverable error instead of a fabricated roster", () => {
-    act(() =>
-      root.render(
-        <KitchenBoard
-          tvMode
-          autoplay
-          initialData={{ ...makeData(), status: "unavailable" }}
-        />,
-      ),
-    );
-    expect(host.textContent).toContain("temporarily unavailable");
-    expect(host.textContent).not.toContain("Manager Example");
+    act(() => (control as HTMLButtonElement).click());
+    expect(host.querySelector(".kitchen-years>strong")?.textContent).toBe("2");
+    expect(host.querySelector(".kitchen-event--passed")).not.toBeNull();
   });
 });

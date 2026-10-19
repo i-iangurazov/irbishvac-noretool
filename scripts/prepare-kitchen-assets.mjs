@@ -1,0 +1,10 @@
+import { createRequire } from "node:module";
+import { copyFileSync, mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const root = fileURLToPath(new URL("../", import.meta.url));
+const require = createRequire(resolve(root, "apps/web/package.json"));
+const file = require.resolve("pdfjs-dist/build/pdf.worker.min.mjs");
+const target = resolve(root, "apps/web/public/kitchen/pdf.worker.min.mjs");
+mkdirSync(dirname(target), { recursive: true });
+copyFileSync(file, target);

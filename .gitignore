@@ -16,3 +16,8 @@ playwright-report
 test-results
 var/
 reports/service-tech-mtd-*/
+
+# Copied from the pinned PDF.js package at build time
+apps/web/public/kitchen/pdf.worker.min.mjs
+
+.kitchen-qa/
