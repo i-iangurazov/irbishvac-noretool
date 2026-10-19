@@ -83,6 +83,29 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("October kitchen TV requirements", () => {
+  it("uses Rippling photos and initials after an image failure, without substituting library photos", async () => {
+    const fixture = data();
+    const ceo = fixture.directory.employees[0]!;
+    ceo.photoSource = "cloudflare";
+    ceo.photoUrl = "https://library.example.com/ceo.png";
+    ceo.photoFallbackUrl = "https://rippling.example.com/ceo.jpg";
+    await act(async () => {
+      root.render(
+        <KitchenBoard tvMode autoplay={false} initialData={fixture} />,
+      );
+    });
+    const image = host.querySelector<HTMLImageElement>(
+      'img[alt="Person ceo"]',
+    )!;
+    expect(image.getAttribute("src")).toBe(ceo.photoFallbackUrl);
+    const avatar = image.parentElement!;
+    await act(async () => {
+      image.dispatchEvent(new Event("error"));
+    });
+    expect(avatar.querySelector("img")).toBeNull();
+    expect(avatar.textContent).toBe("PC");
+  });
+
   it("builds the required five screens in order, keeping the installation team separate", () => {
     const slides = buildKitchenSlides(data(), new Date());
     expect(slides.map((slide) => slide.kind)).toEqual([

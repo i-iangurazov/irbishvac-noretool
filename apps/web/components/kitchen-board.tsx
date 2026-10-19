@@ -50,17 +50,16 @@ function initials(name: string) {
     .join("")
     .toUpperCase();
 }
+function ripplingPortrait(employee: KitchenEmployee) {
+  return employee.photoSource === "cloudflare"
+    ? (employee.photoFallbackUrl ?? null)
+    : employee.photoUrl;
+}
 function Portrait({ employee }: { employee: KitchenEmployee }) {
   const [failed, setFailed] = useState<string[]>([]);
   const [frame, setFrame] = useState<CSSProperties | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const urls = [
-    employee.photoSource === "cloudflare" && employee.photoUrl
-      ? `/_next/image?url=${encodeURIComponent(employee.photoUrl)}&w=640&q=90`
-      : employee.photoUrl,
-    employee.photoUrl,
-    employee.photoFallbackUrl,
-  ];
+  const urls = [ripplingPortrait(employee)];
   const src = urls.find((url): url is string =>
     Boolean(url && !failed.includes(url) && kitchenPortraitUsable(url)),
   );
@@ -523,11 +522,7 @@ export function KitchenBoard({
   const current = slides[index % Math.max(1, slides.length)];
   useEffect(() => {
     const sources = [
-      ...(data?.directory.employees ?? []).map((person) =>
-        person.photoSource === "cloudflare" && person.photoUrl
-          ? `/_next/image?url=${encodeURIComponent(person.photoUrl)}&w=640&q=90`
-          : person.photoUrl,
-      ),
+      ...(data?.directory.employees ?? []).map(ripplingPortrait),
       ...(issue?.pages ?? []),
     ];
     for (const src of new Set(sources)) {
