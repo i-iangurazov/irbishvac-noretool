@@ -120,6 +120,17 @@
   object-fit: cover;
   inset: 0;
 }
+.kitchen-avatar--prepared {
+  border-radius: 6px;
+  background: #003644;
+}
+.kitchen-avatar--prepared > img {
+  inset: 2px;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  object-fit: contain;
+  object-position: center;
+}
 .kitchen-stage {
   height: 890px;
   animation: kitchen-fade 0.6s ease-out;

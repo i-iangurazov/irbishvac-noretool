@@ -1,20 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronDown, RefreshCw } from "lucide-react";
+import {
+  isPreparedStaffPortrait,
+  staffPortraitUrl,
+} from "../../lib/staff-portrait-url";
 
 export function CsrAvatar({ name, src }: { name: string; src: string | null }) {
-  const [failed, setFailed] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState<string | null>(null);
   const image = useRef<HTMLImageElement>(null);
+  const current = [staffPortraitUrl(name), src].find((url): url is string =>
+    Boolean(url && !failed.includes(url)),
+  );
   useEffect(() => {
     // Cached images can finish before React attaches its load/error listeners.
     if (image.current?.complete) {
-      setLoaded(image.current.naturalWidth > 0);
-      setFailed(image.current.naturalWidth === 0);
+      if (image.current.naturalWidth > 0) setLoaded(current ?? null);
+      else if (current)
+        setFailed((values) => [...new Set([...values, current])]);
     }
-  }, [src]);
+  }, [current]);
   const initials = name
     .split(/[\s-]+/)
     .filter(Boolean)
@@ -22,16 +30,20 @@ export function CsrAvatar({ name, src }: { name: string; src: string | null }) {
     .filter((_, index, parts) => index === 0 || index === parts.length - 1)
     .join("");
   return (
-    <span className="csr-avatar" aria-label={name}>
+    <span
+      className={`csr-avatar${current && isPreparedStaffPortrait(current) ? " csr-avatar--prepared" : ""}`}
+      aria-label={name}
+    >
       <span aria-hidden="true">{initials}</span>
-      {src && !failed ? (
+      {current ? (
         <img
+          key={current}
           ref={image}
-          src={src}
+          src={current}
           alt={name}
-          style={{ opacity: loaded ? 1 : 0 }}
-          onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
+          style={{ opacity: loaded === current ? 1 : 0 }}
+          onLoad={() => setLoaded(current)}
+          onError={() => setFailed((values) => [...values, current])}
         />
       ) : null}
     </span>

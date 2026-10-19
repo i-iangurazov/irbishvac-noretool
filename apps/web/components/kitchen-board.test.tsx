@@ -12,6 +12,7 @@ import type {
   KitchenBoardData,
   KitchenEmployee,
 } from "../../../packages/domain/src/kitchen-board";
+import { staffPortraitUrl } from "../lib/staff-portrait-url";
 const employee = (
   id: string,
   title: string,
@@ -83,7 +84,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("October kitchen TV requirements", () => {
-  it("uses Rippling photos and initials after an image failure, without substituting library photos", async () => {
+  it("prefers the reviewed portrait, then falls back to Rippling and initials", async () => {
     const fixture = data();
     const ceo = fixture.directory.employees[0]!;
     ceo.photoSource = "cloudflare";
@@ -94,14 +95,18 @@ describe("October kitchen TV requirements", () => {
         <KitchenBoard tvMode autoplay={false} initialData={fixture} />,
       );
     });
-    const image = host.querySelector<HTMLImageElement>(
-      'img[alt="Person ceo"]',
-    )!;
-    expect(image.getAttribute("src")).toBe(ceo.photoFallbackUrl);
+    let image = host.querySelector<HTMLImageElement>('img[alt="Person ceo"]')!;
+    expect(image.getAttribute("src")).toBe(staffPortraitUrl(ceo.name, ceo.id));
     const avatar = image.parentElement!;
+    expect(avatar.classList.contains("kitchen-avatar--prepared")).toBe(true);
+    await act(async () => image.dispatchEvent(new Event("load")));
+    expect(image.style.width).toBe("");
     await act(async () => {
       image.dispatchEvent(new Event("error"));
     });
+    image = avatar.querySelector("img")!;
+    expect(image.getAttribute("src")).toBe(ceo.photoFallbackUrl);
+    await act(async () => image.dispatchEvent(new Event("error")));
     expect(avatar.querySelector("img")).toBeNull();
     expect(avatar.textContent).toBe("PC");
   });

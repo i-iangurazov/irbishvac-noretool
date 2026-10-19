@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node ../../scripts/prepare-kitchen-assets.mjs && next build",
+    "build": "pnpm --filter @irbis/db prisma:generate && node ../../scripts/prepare-kitchen-assets.mjs && next build",
     "dev": "node ../../scripts/prepare-kitchen-assets.mjs && next dev --port 3000",
     "start": "next start",
     "lint": "next lint",

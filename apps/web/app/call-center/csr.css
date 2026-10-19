@@ -1696,6 +1696,18 @@
 .csr-avatar img {
   object-position: center 72%;
 }
+.csr-avatar--prepared {
+  border-radius: 6px;
+  background: #003644;
+}
+.csr-avatar--prepared img {
+  inset: 2px;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  object-fit: contain;
+  object-position: center;
+  background: #003644;
+}
 @media (min-width: 1024px) and (max-width: 1199px) {
   .csr-people {
     grid-template-columns: repeat(2, minmax(0, 1fr));

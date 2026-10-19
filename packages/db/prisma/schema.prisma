@@ -195,3 +195,18 @@ model KitchenNewsletter {
   uploadedBy String
   uploadedAt DateTime @default(now())
 }
+
+// Reviewed dashboard portraits. Image bytes and employee aliases stay behind auth.
+model StaffPortrait {
+  key         String   @id
+  workerId    String?  @unique
+  displayName String
+  aliases     String[] @default([])
+  imageBytes  Bytes
+  mimeType    String   @default("image/webp")
+  width       Int
+  height      Int
+  checksum    String
+  sourceName  String
+  uploadedAt  DateTime @default(now())
+}

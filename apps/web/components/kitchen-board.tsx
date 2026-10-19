@@ -37,6 +37,10 @@ import {
   kitchenPortraitFrame,
 } from "../lib/kitchen-portrait";
 import type { NewsletterInfo } from "../lib/kitchen-newsletter";
+import {
+  isPreparedStaffPortrait,
+  staffPortraitUrl,
+} from "../lib/staff-portrait-url";
 export { buildKitchenSlides } from "../lib/kitchen-layout";
 export const nextKitchenSlide = (slides: KitchenSlide[], current: number) =>
   slides.length ? (current + 1) % slides.length : 0;
@@ -59,12 +63,19 @@ function Portrait({ employee }: { employee: KitchenEmployee }) {
   const [failed, setFailed] = useState<string[]>([]);
   const [frame, setFrame] = useState<CSSProperties | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const urls = [ripplingPortrait(employee)];
+  const urls = [
+    staffPortraitUrl(employee.name, employee.id),
+    ripplingPortrait(employee),
+  ];
   const src = urls.find((url): url is string =>
     Boolean(url && !failed.includes(url) && kitchenPortraitUsable(url)),
   );
+  const prepared = Boolean(src && isPreparedStaffPortrait(src));
   return (
-    <div className="kitchen-avatar" ref={ref}>
+    <div
+      className={`kitchen-avatar${prepared ? " kitchen-avatar--prepared" : ""}`}
+      ref={ref}
+    >
       <span aria-hidden="true">{initials(employee.name)}</span>
       {src && (
         <img
@@ -72,8 +83,9 @@ function Portrait({ employee }: { employee: KitchenEmployee }) {
           src={src}
           alt={employee.name}
           referrerPolicy="no-referrer"
-          style={frame ?? undefined}
+          style={prepared ? undefined : (frame ?? undefined)}
           onLoad={(event) => {
+            if (prepared) return;
             const img = event.currentTarget,
               box = ref.current;
             if (box)
