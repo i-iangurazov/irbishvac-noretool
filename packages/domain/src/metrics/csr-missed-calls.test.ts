@@ -39,6 +39,10 @@ describe("CSR missed calls", () => {
       call("abandoned", { categories: "inbound,abandoned,unanswered" }),
       call("supervisor", { participant_type: "listen_in" }),
       call("spam", { categories: "inbound,missed,spam" }),
+      call("legacy-connected", {
+        categories: "",
+        date_connected: "2026-10-10 15:59:01",
+      }),
       call("yesterday", { date_started: "2026-10-09 23:59:59" }),
       call("tomorrow", { date_started: "2026-10-11 00:00:00" }),
     ]);
@@ -68,6 +72,7 @@ describe("CSR missed calls", () => {
   });
   it("rejects incomplete, inconsistent and ambiguous attribution rather than manufacturing zeros", () => {
     expect(() => build([call("a", { is_internal: "" })])).toThrow();
+    expect(() => build([call("a", { categories: "" })])).toThrow();
     expect(() =>
       build([call("a", { date_connected: "2026-10-10 15:59:01" })]),
     ).toThrow();

@@ -53,7 +53,11 @@ export function buildCsrMissedCalls(
         .split(",")
         .map((value) => value.trim().toLowerCase()),
     );
-    if (!row.categories) throw new Error("Missing Dialpad call categories");
+    // Some historical answered legs have no category list. A connection
+    // timestamp establishes that they are not misses; unconnected legs still
+    // require an explicit outcome so missing data cannot become a false zero.
+    if (!row.categories && !row.date_connected)
+      throw new Error("Missing Dialpad call categories");
     const fingerprint = JSON.stringify([
       row.target_id,
       row.date_started,

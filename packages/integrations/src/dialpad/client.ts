@@ -101,12 +101,19 @@ export function dialpadStatsRequests(
     timezone,
   } as const;
   const requests: StatsRequest[] = [];
-  if (start < todayMs)
+  // Bound exports to 31 business dates. A full-year CSV can time out even when
+  // individual monthly exports complete; adjacent windows never overlap.
+  const dayMs = 86_400_000;
+  const historicalEnd = Math.min(end, todayMs - dayMs);
+  for (let windowStart = start; windowStart <= historicalEnd; ) {
+    const windowEnd = Math.min(historicalEnd, windowStart + 30 * dayMs);
     requests.push({
       ...base,
-      days_ago_start: Math.max(1, Math.round((todayMs - end) / 86_400_000)),
-      days_ago_end: Math.round((todayMs - start) / 86_400_000),
+      days_ago_start: Math.round((todayMs - windowEnd) / dayMs),
+      days_ago_end: Math.round((todayMs - windowStart) / dayMs),
     });
+    windowStart = windowEnd + dayMs;
+  }
   if (end >= todayMs) requests.push({ ...base, is_today: true });
   return requests;
 }
@@ -119,18 +126,44 @@ export class DialpadClient {
     return Boolean(this.apiKey.trim());
   }
 
+  private async readResponse(
+    url: string | URL,
+    options: RequestInit,
+    timeoutMs: number,
+  ): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await fetch(url, {
+          ...options,
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+      } catch (error) {
+        const transient =
+          error instanceof Error &&
+          (error.name === "TimeoutError" ||
+            (error instanceof TypeError && error.message === "fetch failed"));
+        if (!transient || attempt >= 2) throw error;
+        await delay((attempt + 1) * 1_000);
+      }
+    }
+  }
+
   private async api(path: string, body?: StatsRequest): Promise<unknown> {
     if (!this.isConfigured()) throw new Error("Dialpad is not configured");
-    const response = await fetch(`https://dialpad.com/api/v2/${path}`, {
+    const url = `https://dialpad.com/api/v2/${path}`;
+    const options: RequestInit = {
       method: body ? "POST" : "GET",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
-      signal: AbortSignal.timeout(25_000),
       redirect: "error",
-    });
+    };
+    // Retry interrupted reads of the same resource, never report-creation POSTs.
+    const response = body
+      ? await fetch(url, { ...options, signal: AbortSignal.timeout(25_000) })
+      : await this.readResponse(url, options, 25_000);
     // Never include response bodies, signed URLs, or credentials in errors/logs.
     if (!response.ok)
       throw new Error(`Dialpad request failed (${response.status})`);
@@ -211,10 +244,11 @@ export class DialpadClient {
         )
           throw new Error("Unexpected Dialpad report download host");
         // Signed downloads redirect within Dialpad. Validate every hop; never forward the API key.
-        const response = await fetch(url, {
-          redirect: "manual",
-          signal: AbortSignal.timeout(45_000),
-        });
+        const response = await this.readResponse(
+          url,
+          { redirect: "manual" },
+          45_000,
+        );
         if ([301, 302, 303, 307, 308].includes(response.status)) {
           const location = response.headers.get("location");
           await response.body?.cancel();
@@ -244,11 +278,17 @@ export class DialpadClient {
     now = new Date(),
     timezone = "America/Los_Angeles",
   ) {
-    const reports = await Promise.all(
-      dialpadStatsRequests(from, to, now, timezone).map((request) =>
-        this.callReport(request),
-      ),
-    );
-    return reports.flat();
+    const requests = dialpadStatsRequests(from, to, now, timezone);
+    const records: Record<string, string>[] = [];
+    // Keep analytics API load bounded, and never return a partial total.
+    for (let offset = 0; offset < requests.length; offset += 2) {
+      const reports = await Promise.all(
+        requests
+          .slice(offset, offset + 2)
+          .map((request) => this.callReport(request)),
+      );
+      records.push(...reports.flat());
+    }
+    return records;
   }
 }

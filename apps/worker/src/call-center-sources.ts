@@ -57,6 +57,8 @@ async function refresh(
     cached?.snapshotTime &&
     (cached.payloadJson as unknown as CsrSupplement)?.sales &&
     (cached.payloadJson as unknown as CsrSupplement)?.missed &&
+    (cached.payloadJson as unknown as CsrSupplement)?.text?.definition ===
+      "qualified-text-v1" &&
     Date.now() - cached.snapshotTime.getTime() < TTL
   )
     return cached.payloadJson as unknown as CsrSupplement;

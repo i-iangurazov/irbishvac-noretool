@@ -11,6 +11,7 @@ export type CsrSupplement = {
   from: string;
   to: string;
   text: {
+    definition?: "qualified-text-v1";
     source: CsrSourceState;
     byCsr: Record<string, number>;
     byChannel: Record<string, Record<string, number>>;
@@ -82,6 +83,7 @@ export function emptyCsrSupplement(from: string, to: string): CsrSupplement {
     from,
     to,
     text: {
+      definition: "qualified-text-v1",
       source: {
         ...source(),
         coveredMonths: [],
@@ -98,7 +100,7 @@ export function emptyCsrSupplement(from: string, to: string): CsrSupplement {
   };
 }
 
-/** Read only the consolidated Master Sheet, never also its duplicated channel tabs. */
+/** Read Text leads from the consolidated Master Sheet; calls come from ServiceTitan. */
 export function buildCsrTextLeads(
   sheets: Array<{ month: string; values: unknown[][] }>,
   from: string,
@@ -137,7 +139,7 @@ export function buildCsrTextLeads(
       const day = csrDateKey(row[date!]);
       if (!day || !day.startsWith(month) || day < from || day > to) continue;
       if (
-        !["text", "form"].includes(csrIdentity(row[medium!])) ||
+        csrIdentity(row[medium!]) !== "text" ||
         !["good", "mid"].includes(csrIdentity(row[quality!]))
       )
         continue;

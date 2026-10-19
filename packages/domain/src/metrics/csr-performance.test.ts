@@ -181,7 +181,7 @@ describe("CSR performance", () => {
     expect(result.unassignedTextLeads).toBe(1);
     expect(result.jobsByType).toEqual([{ name: "Repair", count: 2 }]);
   });
-  it("filters sheet rows by medium, quality and inclusive business dates; reads only the Master Sheet", () => {
+  it("counts only Text rows, excluding Calls and Forms, with quality and inclusive business-date filters", () => {
     const result = buildCsrTextLeads(
       [
         {
@@ -189,7 +189,8 @@ describe("CSR performance", () => {
           values: [
             textHeaders,
             ["A", "9/1/2026 00:01", "Text", "Good", "Yelp"],
-            ["A", "9/28/2026 23:59", "Form", "Mid", "Website"],
+            ["A", "9/28/2026 23:59", "Text", "Mid", "Website"],
+            ["A", "9/28/2026", "Form", "Good", "Website"],
             ["A", "9/29/2026", "Text", "Good", "Yelp"],
             ["A", "8/31/2026", "Text", "Good", "Yelp"],
             ["A", "9/1/2026", "Call", "Good", "Yelp"],

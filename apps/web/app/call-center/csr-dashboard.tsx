@@ -38,7 +38,7 @@ const rate = (value: number | null | undefined) =>
 const hints = {
   booking:
     "Inbound jobs booked ÷ lead calls. Text leads and manually created jobs are excluded from this call conversion rate.",
-  text: "Qualified text and form leads (Good or Mid) in the Call Center Master Sheet, attributed to the receiving CSR. Phone calls are excluded.",
+  text: "Qualified leads (Good or Mid) marked Text in the Call Center Master Sheet, attributed to the receiving CSR. Other request types are excluded; call metrics come from ServiceTitan.",
   jobs: "Unique jobs created in the selected period, attributed to Booked By in ServiceTitan’s Job Detail By CSR report. Includes all booking channels.",
   sold: "Jobs booked by this CSR in the selected period with at least one currently sold estimate of positive value ÷ all jobs booked by this CSR. Each job counts once. Includes sales made after the selected period, through the latest data refresh.",
   cancelled:
