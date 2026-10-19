@@ -157,7 +157,7 @@ function Leadership({
               style={{ gridColumn: `span ${Math.max(1, count)}` }}
             >
               <article
-                className={`kitchen-executive ${/\bCEO\b|chief executive/i.test(root.title) ? "kitchen-executive--ceo" : ""}`}
+                className={`kitchen-executive ${/\bCEO\b|chief executive/i.test(root.title) ? "kitchen-executive--ceo" : /\bCOO\b|chief operating/i.test(root.title) ? "kitchen-executive--coo" : ""}`}
               >
                 <Portrait employee={root} />
                 <div>
@@ -246,9 +246,15 @@ function Leadership({
                 </>
               ) : (
                 <div className="kitchen-report-rows">
-                  {branch.people.map((person) => (
-                    <PersonRow person={person} key={person.id} />
-                  ))}
+                  {branch.people.map((person) =>
+                    branch.leader &&
+                    /accounting|accountant/i.test(branch.leader.title) &&
+                    person.managerId === branch.executive.id ? (
+                      <Leader person={person} key={person.id} />
+                    ) : (
+                      <PersonRow person={person} key={person.id} />
+                    ),
+                  )}
                 </div>
               )}
             </section>

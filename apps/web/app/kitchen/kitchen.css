@@ -151,6 +151,9 @@
   gap: 16px;
   background: white;
 }
+.kitchen-executive--coo {
+  width: 340px;
+}
 .kitchen-executive--ceo {
   width: 400px;
   background: #f37021;
