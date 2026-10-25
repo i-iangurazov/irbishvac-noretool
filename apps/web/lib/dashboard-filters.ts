@@ -51,7 +51,7 @@ export const DASHBOARD_ROTATION_BOARDS = [
     href: "/electrical-install",
     label: "Electrical Install",
   },
-  { id: "advisors", href: "/advisors", label: "Advisors" },
+  { id: "advisors", href: "/advisors", label: "HVAC Sales" },
 ] as const;
 
 export type DashboardRotationBoardId =
