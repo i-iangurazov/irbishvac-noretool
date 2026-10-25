@@ -6,6 +6,7 @@ import {
 import { fetchApi } from "../../lib/api";
 import { resolveDashboardFilters } from "../../lib/dashboard-filters";
 import { getTvPerformanceGoal } from "../../lib/performance-goals";
+import { preparedStaffPortraitUrls } from "../../lib/staff-portraits";
 
 type AdvisorsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -38,6 +39,9 @@ export default async function AdvisorsPage({
     };
     snapshotTime: string | null;
   }>(`/dashboard/advisors?${filters.apiQueryString}`);
+  const portraits = await preparedStaffPortraitUrls(
+    data.rowsRanked.map((row) => row.name),
+  );
 
   return (
     <LeaderboardPage
@@ -71,12 +75,12 @@ export default async function AdvisorsPage({
 
         return {
           title: row.name,
-          imageUrl: row.photoUrl,
+          imageUrl: portraits.get(row.name) ?? row.photoUrl,
           valueLabel: "Sales",
           value: compactMoney(row.totalSales),
           stats: [
             {
-              label: "Sales Goal",
+              label: "Monthly Sales Goal",
               value:
                 goal?.monthlySalesGoal != null
                   ? compactMoney(goal.monthlySalesGoal)
@@ -99,23 +103,28 @@ export default async function AdvisorsPage({
               ),
             },
             {
-              label: "Opps / Goal",
+              label:
+                filters.preset === "mtd" && !filters.customRange
+                  ? "Opps / Goal"
+                  : "Opportunities",
               value: pair(
                 String(row.salesOpportunitiesCount),
-                goal?.targetOpportunitiesMonthly != null
+                filters.preset === "mtd" &&
+                  !filters.customRange &&
+                  goal?.targetOpportunitiesMonthly != null
                   ? String(goal.targetOpportunitiesMonthly)
                   : null,
               ),
             },
             {
-              label: "Membership Goal",
+              label: "Monthly Membership Goal",
               value:
                 goal?.membershipMonthlyGoal != null
                   ? String(goal.membershipMonthlyGoal)
                   : "Pending",
             },
             {
-              label: "Review Goal",
+              label: "Monthly Review Goal",
               value:
                 goal?.reviewMonthlyGoal != null
                   ? String(goal.reviewMonthlyGoal)

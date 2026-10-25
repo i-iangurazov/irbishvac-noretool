@@ -2284,6 +2284,13 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
   background: #edf3f6 !important;
 }
 
+/* Reviewed portraits already include the complete brand banner. */
+[data-dashboard-shell="true"] .leaderboard-card__avatar img[src^="/api/staff/portraits/"] {
+  object-fit: contain !important;
+  object-position: center !important;
+  background: #143e4b;
+}
+
 [data-dashboard-shell="true"]
   .leaderboard-showcase-grid
   .leaderboard-card--photo

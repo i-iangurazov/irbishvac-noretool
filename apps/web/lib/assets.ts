@@ -1,5 +1,6 @@
 import { getConfig } from "@irbis/config";
 import { resolveLogoUrl, resolveTechnicianPhotoUrl } from "@irbis/utils";
+import { isPreparedStaffPortrait } from "./staff-portrait-url";
 
 function getAssetConfig() {
   return getConfig().assets;
@@ -16,6 +17,7 @@ export function getBrandLogoUrl() {
 }
 
 export function resolveStaffHeadshotUrl(name: string, photoUrl?: string | null) {
+  if (photoUrl && isPreparedStaffPortrait(photoUrl)) return photoUrl;
   const assets = getAssetConfig();
   const resolved = resolveTechnicianPhotoUrl({
     publicBaseUrl: assets.publicBaseUrl,
