@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCampaignPerformanceSnapshot,
+  buildDepartmentSales,
   countWeekdays,
   inferCampaignBudgetType,
   inferCampaignCategory,
@@ -24,8 +25,8 @@ describe("campaign performance snapshot", () => {
         data: [["Yelp", 500, 400]]
       },
       soldEstimates: {
-        fields: [{ name: "ParentJobCampaign" }, { name: "Total" }],
-        data: [["Yelp", 900]]
+        fields: [{ name: "ParentJobCampaign" }, { name: "Total" }, { name: "BusinessUnit" }],
+        data: [["Yelp", 900, "HVAC"]]
       },
       revenueByCampaign: {
         fields: [{ name: "Name" }, { name: "CompletedRevenue" }],
@@ -48,6 +49,7 @@ describe("campaign performance snapshot", () => {
     expect(result.actual.qualifiedLeads).toBe(2);
     expect(result.actual.bookedJobs).toBe(1);
     expect(result.actual.spend).toBe(500);
+    expect(result.salesByDepartment).toEqual([{department:"HVAC",soldAmount:900}]);
     expect(result.actual.soldJobs).toBe(1);
     expect(result.actual.soldAmount).toBe(900);
     expect(result.actual.completedRevenue).toBe(600);
@@ -356,3 +358,12 @@ describe("department revenue", () => {
     expect(buildDepartmentRevenue({}, 1000)).toEqual([]);
   });
 });
+
+ describe("department sales", () => {
+  it("aggregates the explicit ServiceTitan BusinessUnit dimension without changing sold totals", () => {
+   expect(buildDepartmentSales({fields:[{name:"BusinessUnit"},{name:"Total"}],data:[["HVAC",100],["HVAC",200],[null,50],["Plumbing",-25]]})).toEqual([{department:"HVAC",soldAmount:300},{department:"Unassigned",soldAmount:50},{department:"Plumbing",soldAmount:-25}]);
+  });
+  it("does not invent department allocations for older reports", () => {
+   expect(buildDepartmentSales({fields:[{name:"ParentJobCampaign"},{name:"Total"}],data:[["Yelp",100]]})).toEqual([]);
+  });
+ });

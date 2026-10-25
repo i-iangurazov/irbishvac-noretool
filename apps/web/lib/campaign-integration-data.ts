@@ -26,7 +26,7 @@ export function campaignIntegrationReport(data: CampaignPerformanceData) {
     period: data.period, actual: data.actual, plan: data.plan, capacity: data.capacity,
     forecast: data.forecast, nextMonthDraft: data.nextMonthDraft, pace: data.pace,
     leadDataStatus: data.leadDataStatus ?? "available",
-    revenueByDepartment: data.revenueByDepartment ?? [], spendCoverage: coverage,
+    revenueByDepartment: data.revenueByDepartment ?? [], salesByDepartment: data.salesByDepartment ?? [], spendCoverage: coverage,
     rows: data.rows.map(publicRow), alerts: data.alerts, dataNotes: data.dataNotes ?? [],
     sources: data.sources.map(({ name, role, status, refreshedAt, rowCount }) => ({ name, role, status, refreshedAt, rowCount })),
     overview: {
