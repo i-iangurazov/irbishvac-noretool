@@ -17,6 +17,7 @@ import { CampaignPerformanceRefreshRunner } from "./campaign-performance";
 import { MembershipPerformanceRunner } from "./membership-performance";
 import { refreshAdvisorRoster } from "./advisor-roster";
 import { buildTvRefreshJobs } from "./tv-refresh-jobs";
+import { dashboardQueuePolicy } from "./queue-policy";
 
 type RefreshJob =
   | {
@@ -143,10 +144,7 @@ const worker = new Worker<RefreshJob, unknown, string>(
   },
   {
     connection,
-    limiter: {
-      max: 1,
-      duration: 65_000,
-    },
+    ...dashboardQueuePolicy,
   },
 );
 

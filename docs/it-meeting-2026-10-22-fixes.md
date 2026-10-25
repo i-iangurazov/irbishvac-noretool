@@ -15,6 +15,8 @@ Recovery is mounted above page error boundaries and remains active across normal
 
 Visible online TV views also refresh their server-rendered data every minute, including a stationary view with only one page. Ordinary route renders do not reset this interval; desktop and offline views do not trigger it.
 
+The refresh worker has two bounded execution slots while retaining one new job start per 65 seconds. A slow annual source request can no longer occupy its only slot and hold routine TV updates behind it. Railway watches shared packages and workspace dependency/build files as well as each application, so integration changes reach every dependent service.
+
 Before replacing the document, the client probes the same-origin `/healthz` endpoint. This endpoint returns only `{ "ok": true }`, without authentication or infrastructure/user data. An unavailable server leaves recovery JavaScript running in the existing document, with automatic subsequent probes. A captive HTML response cannot pass this check. Clerk refresh is attempted with a bounded wait before reloading; existing session expiry and access restrictions remain enforced.
 
 Server Components use the authenticated request identity and the existing backend server credential directly. They no longer forward an aging browser cookie through a second web middleware request. Reads and proxy calls have bounded transport timeouts, no caching, and explicit errors for network failures, redirects, HTML, or malformed JSON. Unauthenticated web API calls return JSON 401; pages still require sign-in.
