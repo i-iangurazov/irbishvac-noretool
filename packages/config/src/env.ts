@@ -113,6 +113,7 @@ const envSchema = z.object({
   MEMBERSHIP_RENEWAL_TARGET: z.preprocess(v => v === "" ? undefined : v, z.coerce.number().min(0).max(1).optional()),
   MEMBERSHIP_CANCELLATION_LIMIT: z.preprocess(v => v === "" ? undefined : v, z.coerce.number().min(0).max(1).optional()),
   MEMBERSHIP_MONTHLY_GOAL: z.coerce.number().positive().default(10),
+  MEMBERSHIP_HIDDEN_REPRESENTATIVE_IDS: z.string().default(""),
   MEMBERSHIP_GOAL_SCOPE: z.enum(["service", "csr", "all-technicians"]).default("service"),
   ST_REPORT_LEADS: z.string().min(1),
   ST_REPORT_CAMPAIGNS: z.string().min(1),

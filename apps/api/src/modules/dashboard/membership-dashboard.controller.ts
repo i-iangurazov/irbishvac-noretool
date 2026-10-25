@@ -59,6 +59,7 @@ export class MembershipDashboardController {
   ) {}
 
   @Get()
+  @Header("Cache-Control", "private, no-store")
   async getDashboard(@Query() query: Query): Promise<MembershipPerformance> {
     const period = membershipQueryPeriod(query);
     const record = await prisma.dashboardReadModel.findUnique({

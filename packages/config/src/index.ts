@@ -234,6 +234,7 @@ export function getConfig() {
       renewalTarget: env.MEMBERSHIP_RENEWAL_TARGET,
       cancellationLimit: env.MEMBERSHIP_CANCELLATION_LIMIT,
       monthlyGoal: env.MEMBERSHIP_MONTHLY_GOAL,
+      hiddenRepresentativeIds: env.MEMBERSHIP_HIDDEN_REPRESENTATIVE_IDS.split(",").map(id => id.trim()).filter(Boolean),
       goalScope: env.MEMBERSHIP_GOAL_SCOPE,
     },
     campaignPerformance: {

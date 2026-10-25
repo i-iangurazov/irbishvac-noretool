@@ -25,7 +25,6 @@ import {
   Banknote,
   BriefcaseBusiness,
   CalendarClock,
-  CircleHelp,
   RefreshCw,
   ShieldCheck,
   Target,
@@ -49,6 +48,8 @@ import {
   MembershipActivityPanel,
 } from "./membership-services";
 import { MembershipCustomerCard } from "./membership-customers";
+import { MembershipHint as Hint } from "./membership-hint";
+import { MembershipAccounting } from "./membership-ledger";
 import "../csr.css";
 import "./membership.css";
 
@@ -60,18 +61,11 @@ const money = (value: number | null) =>
     : new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
-        maximumFractionDigits: 0,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       }).format(value);
 const rate = (value: number | null) =>
   value == null ? "—" : `${(value * 100).toFixed(1)}%`;
-function Hint({ children }: { children: string }) {
-  return (
-    <span className="csr-hint" tabIndex={0} aria-label={children}>
-      <CircleHelp size={14} />
-      <span role="tooltip">{children}</span>
-    </span>
-  );
-}
 function Stat({
   label,
   value,
@@ -105,7 +99,7 @@ function Stat({
       <div>
         <span>
           {label}
-          <Hint>{hint}</Hint>
+          <Hint label={label}>{hint}</Hint>
         </span>
         <i>{icon}</i>
       </div>
@@ -142,7 +136,7 @@ function Health({
     >
       <h2>
         {title}
-        <Hint>{hint}</Hint>
+        <Hint label={title}>{hint}</Hint>
       </h2>
       <div className="membership-health__value">
         <strong>{rate(value)}</strong>
@@ -208,7 +202,16 @@ function MembershipComparisonPanel({
   comparison: MembershipComparison[];
   summary: MembershipPerformance["summary"];
 }) {
-  if (!comparison.length) return null;
+  if (!comparison.length)
+    return (
+      <section className="csr-panel membership-comparison">
+        <h2>Period comparison</h2>
+        <p className="membership-muted">
+          Comparisons start in September 2026. Earlier periods are outside this
+          reporting baseline.
+        </p>
+      </section>
+    );
   const rows: ComparisonRow[] = [
     {
       label: "Renewal rate",
@@ -278,11 +281,12 @@ function MembershipComparisonPanel({
     <section className="csr-panel membership-comparison">
       <div className="membership-panel-heading">
         <h2>Period comparison</h2>
-        <Hint>
+        <Hint label="period comparison">
           Month over month uses the previous calendar month, quarter over
           quarter the previous calendar quarter, and year over year the same
-          dates one year earlier. A dash means that source was unavailable for
-          the compared period; it is never a zero.
+          dates one year earlier. Comparisons start on September 1, 2026; Q3
+          2026 includes September only. A dash means that source was unavailable
+          for the compared period; it is never a zero.
         </Hint>
       </div>
       <div
@@ -305,8 +309,10 @@ function MembershipComparisonPanel({
             {rows.map((row) => (
               <tr key={row.label}>
                 <td>
-                  {row.label}
-                  <Hint>{row.hint}</Hint>
+                  <span className="membership-metric-label">
+                    {row.label}
+                    <Hint label={row.label}>{row.hint}</Hint>
+                  </span>
                 </td>
                 <td className="membership-comparison__current">
                   {row.format(row.current)}
@@ -318,9 +324,11 @@ function MembershipComparisonPanel({
                       ? row.current - value
                       : null;
                   const tone =
-                    changed == null || changed === 0 || row.direction === "neutral"
+                    changed == null ||
+                    changed === 0 ||
+                    row.direction === "neutral"
                       ? "flat"
-                      : (changed > 0) === (row.direction === "up")
+                      : changed > 0 === (row.direction === "up")
                         ? "better"
                         : "worse";
                   return (
@@ -394,7 +402,7 @@ function MembershipConversionGoals({
     <section className="csr-panel membership-goals">
       <div className="membership-panel-heading">
         <h2>Conversion goals</h2>
-        <Hint>
+        <Hint label="conversion goals">
           Targets from the IRBIS Membership Conversion Goals plan (July–December
           2026) shared by membership leadership. Monthly ranges are department
           totals, not per person.
@@ -417,8 +425,8 @@ function MembershipConversionGoals({
                 : `${required.toLocaleString("en-US")} / month`}
             </b>
             <small>
-              Net gain needed · plan requires ~
-              {goal.planMonthlyNetRequired}/month
+              Net gain needed · plan requires ~{goal.planMonthlyNetRequired}
+              /month
             </small>
           </div>
         </div>
@@ -506,7 +514,14 @@ function MembershipConversionGoals({
                 <span
                   className={`membership-goal-badge membership-goal-badge--${GOAL_TONES[membershipGoalStatus(summary.newSales, MEMBERSHIP_TOTAL_MONTHLY_GOAL)]}`}
                 >
-                  {GOAL_LABELS[membershipGoalStatus(summary.newSales, MEMBERSHIP_TOTAL_MONTHLY_GOAL)]}
+                  {
+                    GOAL_LABELS[
+                      membershipGoalStatus(
+                        summary.newSales,
+                        MEMBERSHIP_TOTAL_MONTHLY_GOAL,
+                      )
+                    ]
+                  }
                 </span>
               </td>
             </tr>
@@ -765,11 +780,12 @@ export function MembershipDashboard({
                 <h2>
                   <Banknote size={19} />
                   Membership sales value
-                  <Hint>
+                  <Hint label="membership sales value">
                     Sale and renewal item prices for memberships sold during the
-                    selected dates. Includes free and discounted memberships;
-                    excludes deleted records. This is sales value, not cash
-                    collected or deferred-revenue recognition.
+                    selected dates, before separate invoice adjustments.
+                    Excludes deleted or removed sale tasks. Net billing,
+                    adjustments and actual payments appear in Billing & payments
+                    below.
                   </Hint>
                 </h2>
                 <strong>{money(data.revenue.total)}</strong>
@@ -788,7 +804,7 @@ export function MembershipDashboard({
                 <h2>
                   <BriefcaseBusiness size={19} />
                   Member job revenue
-                  <Hint>
+                  <Hint label="member job revenue">
                     Revenue From Members report filtered by job completion date,
                     including adjustment invoices. Membership sale and renewal
                     line items are removed using each invoice’s membership type.
@@ -826,7 +842,7 @@ export function MembershipDashboard({
               <section className="csr-panel membership-departments">
                 <div className="membership-panel-heading">
                   <h2>Sales by department</h2>
-                  <Hint>
+                  <Hint label="sales by department">
                     Sales attributed to Sold By. CSR, HVAC Service, HVAC
                     Maintenance and Plumbing Service are separate. Installation,
                     advisors and unassigned sales remain in Other. Renewals are
@@ -872,10 +888,11 @@ export function MembershipDashboard({
                 )}
               </section>
             </div>
-            <MembershipComparisonPanel
-              comparison={comparison}
-              summary={s}
+            <MembershipAccounting
+              ledger={data.ledger}
+              audit={data.salesAudit}
             />
+            <MembershipComparisonPanel comparison={comparison} summary={s} />
             <MembershipConversionGoals
               summary={s}
               departments={data.departments}

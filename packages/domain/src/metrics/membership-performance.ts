@@ -9,6 +9,7 @@ import {
 } from "./membership-insights";
 import { getPresetRange, type DatePreset } from "@irbis/utils";
 import { membershipRenewalTarget } from "./membership-goals";
+import type { MembershipLedger } from "./membership-ledger";
 
 export type MembershipPeriod = { from: string; to: string };
 export type MembershipDepartment =
@@ -34,6 +35,7 @@ export type MembershipRepresentative = {
   goal: number | null;
 };
 export type MembershipComparisonKind = "month" | "quarter" | "year";
+export const MEMBERSHIP_COMPARISON_START = "2026-09-01";
 /**
  * The rate/volume metrics shown side by side when comparing reporting periods.
  * Counts are nullable so "source unavailable" never renders as a real zero.
@@ -56,7 +58,7 @@ export type MembershipComparison = {
   snapshot: MembershipRateSnapshot | null;
 };
 export type MembershipPerformance = {
-  version: 3;
+  version: 4;
   period: MembershipPeriod;
   snapshotTime: string | null;
   state: "ready" | "partial" | "pending";
@@ -69,6 +71,7 @@ export type MembershipPerformance = {
     activity: boolean;
     markets: boolean;
     recurringDetails: boolean;
+    accounting: boolean;
   };
   summary: {
     activeMembers: number | null;
@@ -121,6 +124,15 @@ export type MembershipPerformance = {
     other: number;
   } | null;
   membershipTypes: Array<{ name: string; active: number }>;
+  ledger?: MembershipLedger | null;
+  salesAudit?: {
+    excluded: Array<{
+      customer: string;
+      membershipId: string;
+      invoice: string;
+      reason: string;
+    }>;
+  };
 };
 
 export function resolveMembershipPeriod(
@@ -150,12 +162,12 @@ export function resolveMembershipPeriod(
 }
 
 export const membershipScopeKey = ({ from, to }: MembershipPeriod) =>
-  `membership-performance:v3:${from}:${to}`;
+  `membership-performance:v4:${from}:${to}`;
 export function emptyMembershipPerformance(
   period: MembershipPeriod,
 ): MembershipPerformance {
   return {
-    version: 3,
+    version: 4,
     period,
     snapshotTime: null,
     state: "pending",
@@ -168,6 +180,7 @@ export function emptyMembershipPerformance(
       activity: false,
       markets: false,
       recurringDetails: false,
+      accounting: false,
     },
     summary: {
       activeMembers: null,
@@ -329,7 +342,8 @@ export const comparisonLabel = (
   }
   if (kind === "quarter") {
     const month = Number(period.from.slice(5, 7));
-    return `vs Q${Math.floor((month - 1) / 3) + 1} ${period.from.slice(0, 4)}`;
+    const quarter = Math.floor((month - 1) / 3) + 1;
+    return `vs Q${quarter} ${period.from.slice(0, 4)}${period.from === MEMBERSHIP_COMPARISON_START ? " (Sep only)" : ""}`;
   }
   const fullYear = selected.from.slice(0, 4) !== selected.to.slice(0, 4);
   return fullYear
@@ -354,7 +368,10 @@ export function membershipComparisonPeriods(
     ),
   );
   const previousQuarterStart = shiftMonth(previousQuarterEnd.from, -2);
-  return [
+  const windows: Array<{
+    kind: MembershipComparisonKind;
+    period: MembershipPeriod;
+  }> = [
     { kind: "month", period: previousMonth },
     {
       kind: "quarter",
@@ -368,6 +385,18 @@ export function membershipComparisonPeriods(
       },
     },
   ];
+  return windows
+    .filter((entry) => entry.period.to >= MEMBERSHIP_COMPARISON_START)
+    .map((entry) => ({
+      ...entry,
+      period: {
+        ...entry.period,
+        from:
+          entry.period.from < MEMBERSHIP_COMPARISON_START
+            ? MEMBERSHIP_COMPARISON_START
+            : entry.period.from,
+      },
+    }));
 }
 
 /**
@@ -459,21 +488,24 @@ export function buildMembershipPerformance(input: {
   csrNames: string[];
   goalScope?: "service" | "csr" | "all-technicians";
   monthlyGoal?: number;
+  hiddenRepresentativeIds?: readonly string[];
   recurringDetails?: Row[] | null;
   history?: Row[] | null;
   jobRevenueRows?: Row[] | null;
   renewalTarget?: number | null;
   cancellationLimit?: number | null;
-  comparisonRows?:
-    | Array<{
-        kind: MembershipComparisonKind;
-        period: MembershipPeriod;
-        summaryRows: Row[] | null;
-        salesRows: Row[] | null;
-      }>
-    | null;
+  ledger?: MembershipLedger | null;
+  comparisonRows?: Array<{
+    kind: MembershipComparisonKind;
+    period: MembershipPeriod;
+    summaryRows: Row[] | null;
+    salesRows: Row[] | null;
+  }> | null;
 }): MembershipPerformance {
   const result = emptyMembershipPerformance(input.period);
+  const hiddenRepresentatives = new Set(input.hiddenRepresentativeIds ?? []);
+  result.ledger = input.ledger ?? null;
+  result.sources.accounting = Boolean(input.ledger?.paymentsAvailable);
   result.snapshotTime = input.now;
   result.goals.monthlyPerRep = input.monthlyGoal ?? 10;
   if (input.summaryRows) {
@@ -606,7 +638,9 @@ export function buildMembershipPerformance(input: {
             : isTech && /Plumb/i.test(bu) && /Service/i.test(bu)
               ? "plumbing"
               : "other";
-      const active = person.active === true;
+      const active =
+        person.active === true &&
+        !hiddenRepresentatives.has(String(person.id));
       const goal =
         active &&
         (csr ||
@@ -696,18 +730,20 @@ export function buildMembershipPerformance(input: {
     result.summary.activeMembers,
   );
   if (input.comparisonRows) {
-    result.comparison = input.comparisonRows.map((entry) => ({
-      kind: entry.kind,
-      label: comparisonLabel(entry.kind, entry.period, input.period),
-      period: entry.period,
-      snapshot: membershipPeriodSnapshot({
+    result.comparison = input.comparisonRows
+      .filter((entry) => entry.period.from >= MEMBERSHIP_COMPARISON_START)
+      .map((entry) => ({
+        kind: entry.kind,
+        label: comparisonLabel(entry.kind, entry.period, input.period),
         period: entry.period,
-        summaryRows: entry.summaryRows,
-        salesRows: entry.salesRows,
-        memberships: input.memberships,
-        membershipDetails: input.membershipDetails,
-      }),
-    }));
+        snapshot: membershipPeriodSnapshot({
+          period: entry.period,
+          summaryRows: entry.summaryRows,
+          salesRows: entry.salesRows,
+          memberships: input.memberships,
+          membershipDetails: input.membershipDetails,
+        }),
+      }));
   }
   result.state = Object.values(result.sources).every(Boolean)
     ? "ready"

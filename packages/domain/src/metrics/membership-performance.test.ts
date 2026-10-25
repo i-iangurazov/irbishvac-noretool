@@ -45,6 +45,28 @@ const base = () => ({
   csrNames: [],
 });
 describe("membership performance", () => {
+  it("keeps private current-team exclusions out of goals while retaining historical sales", () => {
+    const input = base();
+    input.salesRows = [
+      {
+        SoldOn: "2026-09-04",
+        SoldBy: "Service Tech",
+        ActivationMethod: "New Sale",
+      },
+    ];
+    const data = buildMembershipPerformance({
+      ...input,
+      hiddenRepresentativeIds: ["3"],
+    });
+    expect(data.representatives.find((row) => row.id === "3")).toMatchObject({
+      active: false,
+      goal: null,
+      newSales: 1,
+    });
+    expect(data.summary.newSales).toBe(1);
+    expect(data.departments.find((row) => row.id === "hvac")?.newSales).toBe(1);
+    expect(data.goals.achieved).toBe(0);
+  });
   it("separates new sales from renewals and reconciles representatives, departments and headline", () => {
     const input = base();
     input.salesRows = [
@@ -234,28 +256,26 @@ describe("membership performance", () => {
       membershipScopeKey({ from: "2026-01-01", to: period.to }),
     );
   });
-  it("builds previous month, previous quarter and prior-year comparison windows", () => {
-    expect(membershipComparisonPeriods(period)).toEqual([
-      { kind: "month", period: { from: "2026-08-01", to: "2026-08-31" } },
-      { kind: "quarter", period: { from: "2026-04-01", to: "2026-06-30" } },
-      { kind: "year", period: { from: "2025-09-01", to: "2025-09-30" } },
-    ]);
-    // A YTD range compares against the previous full month, the previous full
-    // quarter and the same YTD span one year earlier.
+  it("starts comparisons in September 2026 and marks the partial baseline quarter", () => {
+    expect(membershipComparisonPeriods(period)).toEqual([]);
     expect(
-      membershipComparisonPeriods({ from: "2026-01-01", to: "2026-09-30" }),
+      membershipComparisonPeriods({ from: "2026-10-01", to: "2026-10-31" }),
     ).toEqual([
-      { kind: "month", period: { from: "2026-08-01", to: "2026-08-31" } },
-      { kind: "quarter", period: { from: "2026-04-01", to: "2026-06-30" } },
-      { kind: "year", period: { from: "2025-01-01", to: "2025-09-30" } },
+      { kind: "month", period: { from: "2026-09-01", to: "2026-09-30" } },
+      { kind: "quarter", period: { from: "2026-09-01", to: "2026-09-30" } },
     ]);
-    // Month-end clamping keeps the quarter window aligned in February.
     expect(
-      membershipComparisonPeriods({ from: "2026-03-01", to: "2026-03-31" }),
+      membershipComparisonPeriods({ from: "2027-07-01", to: "2027-07-31" }),
     ).toEqual([
-      { kind: "month", period: { from: "2026-02-01", to: "2026-02-28" } },
-      { kind: "quarter", period: { from: "2025-10-01", to: "2025-12-31" } },
-      { kind: "year", period: { from: "2025-03-01", to: "2025-03-31" } },
+      { kind: "month", period: { from: "2027-06-01", to: "2027-06-30" } },
+      { kind: "quarter", period: { from: "2027-04-01", to: "2027-06-30" } },
+    ]);
+    expect(
+      membershipComparisonPeriods({ from: "2027-10-01", to: "2027-10-31" }),
+    ).toEqual([
+      { kind: "month", period: { from: "2027-09-01", to: "2027-09-30" } },
+      { kind: "quarter", period: { from: "2027-07-01", to: "2027-09-30" } },
+      { kind: "year", period: { from: "2026-10-01", to: "2026-10-31" } },
     ]);
   });
   it("computes a new-sales rate from the period-start balance", () => {
@@ -310,7 +330,7 @@ describe("membership performance", () => {
       comparisonRows: [
         {
           kind: "month",
-          period: { from: "2026-08-01", to: "2026-08-31" },
+          period: { from: "2026-09-01", to: "2026-09-30" },
           summaryRows: [
             {
               Name: "Annual",
@@ -322,7 +342,7 @@ describe("membership performance", () => {
           ],
           salesRows: [
             {
-              SoldOn: "2026-08-03",
+              SoldOn: "2026-09-03",
               SoldBy: "CSR One",
               ActivationMethod: "New Sale",
             },
@@ -330,7 +350,7 @@ describe("membership performance", () => {
         },
         {
           kind: "quarter",
-          period: { from: "2026-04-01", to: "2026-06-30" },
+          period: { from: "2026-09-01", to: "2026-09-30" },
           summaryRows: null,
           salesRows: null,
         },
@@ -342,7 +362,7 @@ describe("membership performance", () => {
       "quarter",
     ]);
     expect(data.comparison[0]).toMatchObject({
-      label: "vs Aug 2026",
+      label: "vs Sep 2026",
       snapshot: { newSales: 1, cancellationRate: 0.04 },
     });
     expect(data.comparison[1]?.snapshot).toBeNull();

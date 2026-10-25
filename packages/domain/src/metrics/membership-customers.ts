@@ -44,7 +44,7 @@ export type MembershipCustomerPage = {
   rows: MembershipCustomer[];
 };
 export const membershipCustomerScopeKey = (period: MembershipPeriod) =>
-  `membership-customers:v1:${period.from}:${period.to}`;
+  `membership-customers:v2:${period.from}:${period.to}`;
 const text = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 const id = (value: unknown) =>

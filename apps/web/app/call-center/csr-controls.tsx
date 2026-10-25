@@ -68,6 +68,11 @@ export function CsrPeriodPicker({
   const [start, setStart] = useState(from);
   const [end, setEnd] = useState(to);
   useEffect(() => {
+    setStart(from);
+    setEnd(to);
+    setSingle(allowSingleDate && from === to);
+  }, [from, to, allowSingleDate]);
+  useEffect(() => {
     const close = (event: MouseEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node))
         ref.current.open = false;
@@ -130,6 +135,7 @@ export function CsrPeriodPicker({
             required
             max={single ? undefined : end}
             value={start}
+            onInput={(event) => setStart(event.currentTarget.value)}
             onChange={(event) => setStart(event.target.value)}
           />
         </label>
@@ -145,6 +151,7 @@ export function CsrPeriodPicker({
               required
               min={start}
               value={end}
+              onInput={(event) => setEnd(event.currentTarget.value)}
               onChange={(event) => setEnd(event.target.value)}
             />
           </label>
