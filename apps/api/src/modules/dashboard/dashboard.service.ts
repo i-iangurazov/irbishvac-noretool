@@ -306,7 +306,11 @@ export class DashboardService {
     if (this.hasExplicitScope(context)) {
       this.queueRefresh(reportFamily, context);
 
-      if (!this.canUseLatestSnapshotFallback(context)) {
+      // Sales annual and monthly scopes must never borrow one another's figures.
+      if (
+        reportFamily === "advisors" ||
+        !this.canUseLatestSnapshotFallback(context)
+      ) {
         return this.attachSnapshotTime(build({}), null);
       }
 
@@ -431,6 +435,7 @@ export class DashboardService {
       dashboard,
       "hvac-comfort-advisor",
     );
+    if (!sales.snapshotTime) return sales; // Missing figures are unknown, not zero-activity staff.
     // Independent of the selected report period, including hires with no activity yet.
     try {
       const saved = await prisma.dashboardReadModel.findUnique({

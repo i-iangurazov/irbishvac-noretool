@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAdvisorDashboard,
   mergeAdvisorRoster,
+  filterAdvisorDashboardByDepartment,
   selectAdvisorRoster,
 } from "./advisors";
 describe("automatic sales roster", () => {
@@ -12,12 +13,14 @@ describe("automatic sales roster", () => {
         { id: 2, name: "Inactive", active: false, businessUnitId: 1812 },
         { id: 3, name: "Other Department", active: true, businessUnitId: 10 },
         { id: 4, name: "Inactive BU", active: true, businessUnitId: 9 },
+        { id: 5, name: "Electrical Seller", active: true, businessUnitId: 10 },
       ],
       [
         { id: 1812, name: "HVAC - Sales", active: true },
         { id: 9, active: false },
+        { id: 10, name: "Electrical - Sales", active: true },
       ],
-      [1812],
+      [1812, 10],
     );
     expect(roster).toEqual([
       { technicianId: "1", name: "New Hire", businessUnit: "HVAC - Sales" },
@@ -28,6 +31,34 @@ describe("automatic sales roster", () => {
       totalSales: 0,
       rankBySales: 1,
     });
+  });
+  it("does not show another trade's sellers from a broad source report or an older roster cache", () => {
+    const report = buildAdvisorDashboard([
+      {
+        Name: "HVAC Seller",
+        TechnicianBusinessUnit: "HVAC - Sales",
+        TotalSales: 100,
+      },
+      {
+        Name: "Plumbing Seller",
+        TechnicianBusinessUnit: "Plumbing - Sales",
+        TotalSales: 200,
+      },
+    ]);
+    const hvac = filterAdvisorDashboardByDepartment(
+      report,
+      "hvac-comfort-advisor",
+    );
+    const result = mergeAdvisorRoster(hvac, [
+      {
+        technicianId: "99",
+        name: "Electrical Seller",
+        businessUnit: "Electrical - Sales",
+      },
+    ]);
+    expect(result.rows.map((row) => row.name)).toEqual(["HVAC Seller"]);
+    expect(result.totals.totalSales).toBe(100);
+    expect(report.totals.totalSales).toBe(300);
   });
   it("keeps actual historical metrics and joins by ID without counting a renamed seller twice", () => {
     const source = buildAdvisorDashboard([

@@ -4,7 +4,7 @@ import {
   getDateParts,
   getPresetRange,
   toBusinessDateString,
-  type DatePreset
+  type DatePreset,
 } from "@irbis/utils";
 
 export type ReportFamilyKey =
@@ -41,7 +41,10 @@ export type ReportRequestContext = {
   businessUnitIds?: number[];
   timezone?: string;
   defaultBusinessUnits?: Partial<
-    Record<NonNullable<ServiceTitanReportDefinition["businessUnitGroup"]>, number[]>
+    Record<
+      NonNullable<ServiceTitanReportDefinition["businessUnitGroup"]>,
+      number[]
+    >
   >;
 };
 
@@ -52,6 +55,7 @@ export type ServiceTitanReportDefinition = {
   legacyTableName: string;
   defaultPreset: DatePreset;
   businessUnitGroup?: "installers" | "advisors" | "company";
+  businessUnitParameterName?: string;
   extraParameters?: Array<{ name: string; value: string | number | boolean }>;
   dateParameterNames?: Array<{ from: string; to: string }>;
   includeDefaultInactiveParameter?: boolean;
@@ -89,7 +93,7 @@ function buildTodayRange(referenceDate: Date, timeZone: string) {
   const today = toBusinessDateString(referenceDate, timeZone);
   return {
     from: today,
-    to: today
+    to: today,
   };
 }
 
@@ -97,7 +101,7 @@ function buildYesterdayRange(referenceDate: Date, timeZone: string) {
   const yesterday = toBusinessDateString(addDays(referenceDate, -1), timeZone);
   return {
     from: yesterday,
-    to: yesterday
+    to: yesterday,
   };
 }
 
@@ -107,11 +111,14 @@ function buildMonthToDateRange(
   explicitTo?: string,
 ) {
   const to = explicitTo ?? toBusinessDateString(referenceDate, timeZone);
-  const { year, month } = getDateParts(toReferenceDate(to, referenceDate), timeZone);
+  const { year, month } = getDateParts(
+    toReferenceDate(to, referenceDate),
+    timeZone,
+  );
 
   return {
     from: `${year}-${padTwo(month)}-01`,
-    to
+    to,
   };
 }
 
@@ -121,7 +128,7 @@ function buildYearFromSecondRange(referenceDate: Date, timeZone: string) {
 
   return {
     from: `${year}-01-02`,
-    to
+    to,
   };
 }
 
@@ -137,7 +144,7 @@ export function getServiceTitanReportDefinitions(): Record<
       category: config.serviceTitan.reports.technicians.category,
       reportId: config.serviceTitan.reports.technicians.reportId,
       legacyTableName: "st_technician",
-      defaultPreset: "mtd"
+      defaultPreset: "mtd",
     },
     installers: {
       family: "installers",
@@ -145,7 +152,7 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.installers.reportId,
       legacyTableName: "st_installer",
       defaultPreset: "mtd",
-      businessUnitGroup: "installers"
+      businessUnitGroup: "installers",
     },
     advisors: {
       family: "advisors",
@@ -153,21 +160,22 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.advisors.reportId,
       legacyTableName: "st_advisors",
       defaultPreset: "mtd",
-      businessUnitGroup: "advisors"
+      businessUnitGroup: "advisors",
+      businessUnitParameterName: "BusinessUnitId",
     },
     callCenterByCsr: {
       family: "callCenterByCsr",
       category: "operations",
       reportId: config.serviceTitan.reports.callCenterPerformance.reportId,
       legacyTableName: "st_per_summary",
-      defaultPreset: "mtd"
+      defaultPreset: "mtd",
     },
     callCenterSummary: {
       family: "callCenterSummary",
       category: "operations",
       reportId: config.serviceTitan.reports.callCenterPerformance.reportId,
       legacyTableName: "st_per_csr",
-      defaultPreset: "mtd"
+      defaultPreset: "mtd",
     },
     leadGeneration: {
       family: "leadGeneration",
@@ -175,14 +183,14 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.leads.reportId,
       legacyTableName: "st_lead",
       defaultPreset: "mtd",
-      businessUnitGroup: "company"
+      businessUnitGroup: "company",
     },
     campaigns: {
       family: "campaigns",
       category: config.serviceTitan.reports.campaigns.category,
       reportId: config.serviceTitan.reports.campaigns.reportId,
       legacyTableName: "st_campaign",
-      defaultPreset: "mtd"
+      defaultPreset: "mtd",
     },
     trending: {
       family: "trending",
@@ -190,14 +198,14 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.trending.reportId,
       legacyTableName: "st_trending",
       defaultPreset: "ytd",
-      extraParameters: [{ name: "Period", value: "Month" }]
+      extraParameters: [{ name: "Period", value: "Month" }],
     },
     marketing: {
       family: "marketing",
       category: config.serviceTitan.reports.campaigns.category,
       reportId: config.serviceTitan.reports.campaigns.reportId,
       legacyTableName: "st_marketing",
-      defaultPreset: "mtd"
+      defaultPreset: "mtd",
     },
     capacity: {
       family: "capacity",
@@ -206,7 +214,8 @@ export function getServiceTitanReportDefinitions(): Record<
       legacyTableName: "st_capacity",
       defaultPreset: "today",
       businessUnitGroup: "company",
-      rangeResolver: ({ referenceDate, timeZone }) => buildTodayRange(referenceDate, timeZone)
+      rangeResolver: ({ referenceDate, timeZone }) =>
+        buildTodayRange(referenceDate, timeZone),
     },
     jobCostingSummary: {
       family: "jobCostingSummary",
@@ -216,7 +225,7 @@ export function getServiceTitanReportDefinitions(): Record<
       defaultPreset: "mtd",
       extraParameters: [{ name: "DateType", value: 1 }],
       rangeResolver: ({ context, referenceDate, timeZone }) =>
-        buildMonthToDateRange(referenceDate, timeZone, context?.to)
+        buildMonthToDateRange(referenceDate, timeZone, context?.to),
     },
     revenueGoals: {
       family: "revenueGoals",
@@ -225,7 +234,8 @@ export function getServiceTitanReportDefinitions(): Record<
       legacyTableName: "st_revenue",
       defaultPreset: "ytd",
       businessUnitGroup: "company",
-      rangeResolver: ({ referenceDate, timeZone }) => buildYearFromSecondRange(referenceDate, timeZone)
+      rangeResolver: ({ referenceDate, timeZone }) =>
+        buildYearFromSecondRange(referenceDate, timeZone),
     },
     salesToday: {
       family: "salesToday",
@@ -233,7 +243,8 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.sales.reportId,
       legacyTableName: "st_sales",
       defaultPreset: "today",
-      rangeResolver: ({ referenceDate, timeZone }) => buildTodayRange(referenceDate, timeZone)
+      rangeResolver: ({ referenceDate, timeZone }) =>
+        buildTodayRange(referenceDate, timeZone),
     },
     salesYesterday: {
       family: "salesYesterday",
@@ -241,7 +252,8 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.sales.reportId,
       legacyTableName: "st_sales_yes",
       defaultPreset: "yesterday",
-      rangeResolver: ({ referenceDate, timeZone }) => buildYesterdayRange(referenceDate, timeZone)
+      rangeResolver: ({ referenceDate, timeZone }) =>
+        buildYesterdayRange(referenceDate, timeZone),
     },
     salesMonthlyPace: {
       family: "salesMonthlyPace",
@@ -251,7 +263,7 @@ export function getServiceTitanReportDefinitions(): Record<
       defaultPreset: "mtd",
       businessUnitGroup: "company",
       rangeResolver: ({ context, referenceDate, timeZone }) =>
-        buildMonthToDateRange(referenceDate, timeZone, context?.to)
+        buildMonthToDateRange(referenceDate, timeZone, context?.to),
     },
     revenueMonthlyPace: {
       family: "revenueMonthlyPace",
@@ -261,7 +273,7 @@ export function getServiceTitanReportDefinitions(): Record<
       defaultPreset: "mtd",
       businessUnitGroup: "company",
       rangeResolver: ({ context, referenceDate, timeZone }) =>
-        buildMonthToDateRange(referenceDate, timeZone, context?.to)
+        buildMonthToDateRange(referenceDate, timeZone, context?.to),
     },
     fieldProTechnicianActivity: {
       family: "fieldProTechnicianActivity",
@@ -273,17 +285,17 @@ export function getServiceTitanReportDefinitions(): Record<
         { from: "Technicians_From", to: "Technicians_To" },
         {
           from: "FieldProTechnicianRecordingPerformance_From",
-          to: "FieldProTechnicianRecordingPerformance_To"
-        }
+          to: "FieldProTechnicianRecordingPerformance_To",
+        },
       ],
       extraParameters: [
         { name: "Technicians_IncludeInactive", value: false },
         {
           name: "FieldProTechnicianRecordingPerformance_ProcessingStatus",
-          value: "complete"
-        }
+          value: "complete",
+        },
       ],
-      includeDefaultInactiveParameter: false
+      includeDefaultInactiveParameter: false,
     },
     fieldProJobRecordings: {
       family: "fieldProJobRecordings",
@@ -293,14 +305,14 @@ export function getServiceTitanReportDefinitions(): Record<
       defaultPreset: "mtd",
       dateParameterNames: [
         { from: "Jobs_From", to: "Jobs_To" },
-        { from: "FieldProJobRecordings_From", to: "FieldProJobRecordings_To" }
+        { from: "FieldProJobRecordings_From", to: "FieldProJobRecordings_To" },
       ],
       extraParameters: [
         { name: "Jobs_DateType", value: 1 },
         { name: "Jobs_IncludeAdjustmentInvoices", value: false },
-        { name: "FieldProJobRecordings_ProcessingStatus", value: "complete" }
+        { name: "FieldProJobRecordings_ProcessingStatus", value: "complete" },
       ],
-      includeDefaultInactiveParameter: false
+      includeDefaultInactiveParameter: false,
     },
     bookingRate: {
       family: "bookingRate",
@@ -308,8 +320,9 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.bookingRate.reportId,
       legacyTableName: "st_booking_rate",
       defaultPreset: "today",
-      rangeResolver: ({ referenceDate, timeZone }) => buildTodayRange(referenceDate, timeZone)
-    }
+      rangeResolver: ({ referenceDate, timeZone }) =>
+        buildTodayRange(referenceDate, timeZone),
+    },
   };
 }
 
@@ -319,33 +332,36 @@ export function resolveReportRequest(
 ): ResolvedReportRequest {
   const preset = context?.preset ?? definition.defaultPreset;
   const timeZone = context?.timezone ?? "America/Los_Angeles";
-  const referenceDate = toReferenceDate(context?.to, context?.referenceDate ?? new Date());
+  const referenceDate = toReferenceDate(
+    context?.to,
+    context?.referenceDate ?? new Date(),
+  );
   const presetRange = getPresetRange(preset, timeZone, referenceDate);
   const range = definition.rangeResolver
     ? definition.rangeResolver({
         preset,
         timeZone,
         referenceDate,
-        ...(context ? { context } : {})
+        ...(context ? { context } : {}),
       })
     : {
         ...presetRange,
         from: context?.from ?? presetRange.from,
-        to: context?.to ?? presetRange.to
+        to: context?.to ?? presetRange.to,
       };
 
   const parameters: ReportParameter[] = (
     definition.dateParameterNames ?? [{ from: "From", to: "To" }]
   ).flatMap((parameterNames) => [
     { name: parameterNames.from, value: range.from },
-    { name: parameterNames.to, value: range.to }
+    { name: parameterNames.to, value: range.to },
   ]);
 
   const businessUnits =
     context?.businessUnitIds ??
     (definition.businessUnitGroup
-      ? context?.defaultBusinessUnits?.[definition.businessUnitGroup] ??
-        getConfig().serviceTitan.businessUnits[definition.businessUnitGroup]
+      ? (context?.defaultBusinessUnits?.[definition.businessUnitGroup] ??
+        getConfig().serviceTitan.businessUnits[definition.businessUnitGroup])
       : undefined);
 
   const normalizedBusinessUnits =
@@ -355,8 +371,8 @@ export function resolveReportRequest(
 
   if (normalizedBusinessUnits && normalizedBusinessUnits.length > 0) {
     parameters.push({
-      name: "BusinessUnitIds",
-      value: normalizedBusinessUnits
+      name: definition.businessUnitParameterName ?? "BusinessUnitIds",
+      value: normalizedBusinessUnits,
     });
   }
 
@@ -367,7 +383,7 @@ export function resolveReportRequest(
   if (definition.includeDefaultInactiveParameter !== false) {
     parameters.push({
       name: "IncludeInactive",
-      value: "false"
+      value: "false",
     });
   }
 
@@ -375,8 +391,10 @@ export function resolveReportRequest(
     preset,
     range,
     parameters,
-    ...(normalizedBusinessUnits ? { businessUnitIds: normalizedBusinessUnits } : {}),
-    requestHash: JSON.stringify([definition.family, parameters])
+    ...(normalizedBusinessUnits
+      ? { businessUnitIds: normalizedBusinessUnits }
+      : {}),
+    requestHash: JSON.stringify([definition.family, parameters]),
   };
 }
 

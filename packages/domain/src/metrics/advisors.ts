@@ -48,6 +48,9 @@ export type AdvisorRosterMember = {
   businessUnit: string;
 };
 
+const isOtherSalesTrade = (businessUnit: string | null | undefined) =>
+  /plumb|electric/i.test(businessUnit ?? "");
+
 /** Add active sales-BU staff before their first sale, without changing report metrics. */
 export function mergeAdvisorRoster(
   dashboard: AdvisorDashboard,
@@ -62,6 +65,7 @@ export function mergeAdvisorRoster(
   );
   for (const person of roster) {
     if (
+      isOtherSalesTrade(person.businessUnit) ||
       !person.technicianId ||
       !person.name.trim() ||
       ids.has(person.technicianId) ||
@@ -118,6 +122,7 @@ export function selectAdvisorRoster(
       seen.has(id) ||
       !allowed.has(unitId) ||
       unit?.active !== true ||
+      isOtherSalesTrade(typeof unit?.name === "string" ? unit.name : null) ||
       typeof person.name !== "string" ||
       !person.name.trim()
     )
@@ -248,6 +253,11 @@ export function filterAdvisorDashboardByDepartment(
     ? dashboard.rows
     : (dashboard.rowsRanked ?? []);
   const rows = sourceRows.filter((row) => {
+    if (
+      department === "hvac-comfort-advisor" &&
+      isOtherSalesTrade(row.businessUnit)
+    )
+      return false;
     const resolvedDepartment =
       row.department ??
       classifyFieldStaffDepartment({

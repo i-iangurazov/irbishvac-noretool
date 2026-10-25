@@ -5,30 +5,36 @@ import { getConfig } from "@irbis/config";
 import {
   getServiceTitanReportDefinitions,
   resolveReportRequest,
-  type ReportFamilyKey
+  type ReportFamilyKey,
 } from "@irbis/integrations";
 import { createLogger, getRedisConnectionSettings } from "@irbis/utils";
 import type { DashboardRequestContext } from "./dashboard.service";
 import type { MembershipPeriod } from "@irbis/domain";
 
-type RefreshJob = {
-  type: "refresh-family";
-  family: ReportFamilyKey;
-  context?: DashboardRequestContext;
-} | {
-  type: "refresh-campaign-performance";
-  month: string;
-} | {
-  type: "refresh-membership-performance";
-  context: MembershipPeriod;
-};
+type RefreshJob =
+  | {
+      type: "refresh-family";
+      family: ReportFamilyKey;
+      context?: DashboardRequestContext;
+    }
+  | {
+      type: "refresh-campaign-performance";
+      month: string;
+    }
+  | {
+      type: "refresh-membership-performance";
+      context: MembershipPeriod;
+    };
 
 function getBullConnection(urlString: string): ConnectionOptions {
   return getRedisConnectionSettings(urlString);
 }
 
 function getRefreshJobId(prefix: string, family: string, requestHash: string) {
-  const scopeHash = createHash("sha256").update(requestHash).digest("hex").slice(0, 32);
+  const scopeHash = createHash("sha256")
+    .update(requestHash)
+    .digest("hex")
+    .slice(0, 32);
   return `${prefix}-${family}-${scopeHash}`;
 }
 
@@ -37,33 +43,42 @@ export class DashboardRefreshService {
   private readonly config = getConfig();
   private readonly logger = createLogger("api-dashboard-refresh");
   private readonly reportDefinitions = getServiceTitanReportDefinitions();
-  private readonly queue = new Queue<RefreshJob, unknown, string>("retool-replacement-refresh", {
-    connection: getBullConnection(this.config.redis.url),
-    defaultJobOptions: {
-      attempts: 3,
-      backoff: {
-        type: "exponential",
-        delay: 65_000
+  private readonly queue = new Queue<RefreshJob, unknown, string>(
+    "retool-replacement-refresh",
+    {
+      connection: getBullConnection(this.config.redis.url),
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 65_000,
+        },
+        removeOnComplete: 100,
+        removeOnFail: 100,
       },
-      removeOnComplete: 100,
-      removeOnFail: 100
-    }
-  });
+    },
+  );
 
-  async ensureRefreshEnqueued(family: ReportFamilyKey, context?: DashboardRequestContext) {
+  async ensureRefreshEnqueued(
+    family: ReportFamilyKey,
+    context?: DashboardRequestContext,
+  ) {
     try {
       const request = resolveReportRequest(this.reportDefinitions[family], {
         ...context,
-        timezone: this.config.app.timezone
+        timezone: this.config.app.timezone,
       });
       const jobId = getRefreshJobId("refresh", family, request.requestHash);
       const existing = await this.queue.getJob(jobId);
 
       if (existing) {
-        // CSR historical cohorts need new outcomes after the original refresh.
-        // Preserve in-flight jobs and avoid retry loops on a failing source.
-        const isCsr = family === "callCenterByCsr" || family === "callCenterSummary";
-        if (!isCsr || !["completed", "failed"].includes(await existing.getState()) || Date.now() - (existing.finishedOn ?? existing.timestamp) < 60_000) return false;
+        // A previous failed/completed attempt must not permanently freeze a
+        // missing scope. Retain in-flight work and a cooldown before retrying.
+        if (
+          !["completed", "failed"].includes(await existing.getState()) ||
+          Date.now() - (existing.finishedOn ?? existing.timestamp) < 60_000
+        )
+          return false;
         await existing.remove();
       }
 
@@ -72,7 +87,7 @@ export class DashboardRefreshService {
         {
           type: "refresh-family",
           family,
-          ...(context ? { context } : {})
+          ...(context ? { context } : {}),
         },
         { jobId },
       );
@@ -80,7 +95,10 @@ export class DashboardRefreshService {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn("Failed to enqueue dashboard refresh", { family, message });
+      this.logger.warn("Failed to enqueue dashboard refresh", {
+        family,
+        message,
+      });
       return false;
     }
   }
@@ -90,7 +108,15 @@ export class DashboardRefreshService {
     const existing = await this.queue.getJob(jobId);
     if (existing) {
       const state = await existing.getState();
-      if (["active", "waiting", "delayed", "prioritized", "waiting-children"].includes(state)) {
+      if (
+        [
+          "active",
+          "waiting",
+          "delayed",
+          "prioritized",
+          "waiting-children",
+        ].includes(state)
+      ) {
         return { jobId: String(existing.id), state, reused: true };
       }
       await existing.remove();
@@ -113,7 +139,7 @@ export class DashboardRefreshService {
       jobId,
       state: await job.getState(),
       failedReason: job.failedReason || null,
-      result: job.returnvalue ?? null
+      result: job.returnvalue ?? null,
     };
   }
 
@@ -122,18 +148,32 @@ export class DashboardRefreshService {
     const existing = await this.queue.getJob(jobId);
     if (existing) {
       const state = await existing.getState();
-      if (["active", "waiting", "delayed", "prioritized", "waiting-children"].includes(state) || Date.now() - (existing.finishedOn ?? existing.timestamp) < 60_000) {
+      if (
+        [
+          "active",
+          "waiting",
+          "delayed",
+          "prioritized",
+          "waiting-children",
+        ].includes(state) ||
+        Date.now() - (existing.finishedOn ?? existing.timestamp) < 60_000
+      ) {
         return { jobId, state, reused: true };
       }
       await existing.remove();
     }
-    await this.queue.add("refresh-membership-performance", { type: "refresh-membership-performance", context: period }, { jobId });
+    await this.queue.add(
+      "refresh-membership-performance",
+      { type: "refresh-membership-performance", context: period },
+      { jobId },
+    );
     return { jobId, state: "waiting", reused: false };
   }
 
   async getMembershipRefreshStatus(jobId: string) {
     const job = await this.queue.getJob(jobId);
-    if (!job || job.data.type !== "refresh-membership-performance") return { jobId, state: "not-found" };
+    if (!job || job.data.type !== "refresh-membership-performance")
+      return { jobId, state: "not-found" };
     return { jobId, state: await job.getState() };
   }
 }

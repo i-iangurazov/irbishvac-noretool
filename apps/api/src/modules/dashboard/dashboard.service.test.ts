@@ -202,6 +202,7 @@ describe("DashboardService", () => {
         SalesOpportunity: 4,
       },
     ]);
+    report.snapshotTime = new Date().toISOString();
     vi.spyOn(service, "getPerformanceAdvisors").mockResolvedValue(report);
     findUnique.mockResolvedValue({
       snapshotTime: new Date(),
@@ -227,6 +228,56 @@ describe("DashboardService", () => {
     ).toBe(0);
     findUnique.mockRejectedValueOnce(new Error("roster unavailable"));
     expect((await service.getAdvisors()).rows).toEqual(report.rows);
+  });
+
+  it("does not substitute monthly Sales figures for a missing annual scope", async () => {
+    const enqueue = vi.fn();
+    findUnique.mockResolvedValue(null);
+    findFirst.mockImplementation(async (query) =>
+      query.where.requestHash
+        ? null
+        : {
+            payloadJson: {
+              fields: [{ name: "Name" }, { name: "TotalSales" }],
+              data: [["Monthly Seller", 999]],
+            },
+          },
+    );
+    const { DashboardService } = await import("./dashboard.service");
+    const service = new DashboardService({
+      ensureRefreshEnqueued: enqueue,
+    } as never);
+    const result = await service.getPerformanceAdvisors({
+      preset: "ytd",
+      from: "2026-01-01",
+      to: "2026-10-25",
+    });
+    expect(result.rows).toEqual([]);
+    expect(result.snapshotTime).toBeNull();
+    expect(enqueue).toHaveBeenCalledOnce();
+    expect(findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps unavailable Sales figures distinct from zero-activity staff", async () => {
+    const { DashboardService } = await import("./dashboard.service");
+    const { buildAdvisorDashboard } = await import("@irbis/domain");
+    const service = new DashboardService();
+    vi.spyOn(service, "getPerformanceAdvisors").mockResolvedValue(
+      buildAdvisorDashboard([]),
+    );
+    findUnique.mockResolvedValue({
+      snapshotTime: new Date(),
+      payloadJson: [
+        {
+          technicianId: "1",
+          name: "Active Seller",
+          businessUnit: "HVAC - Sales",
+        },
+      ],
+    });
+    const result = await service.getAdvisors({ preset: "ytd" });
+    expect(result.rows).toEqual([]);
+    expect(findUnique).not.toHaveBeenCalled();
   });
 
   it("merges Field Pro activity with job recording durations", async () => {

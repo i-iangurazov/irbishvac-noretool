@@ -1,11 +1,36 @@
 import { describe, expect, it } from "vitest";
 import {
   ServiceTitanReportFetchError,
-  isRetryableServiceTitanStatus
+  isRetryableServiceTitanStatus,
 } from "./client";
 import { buildReportParameters } from "./reports";
 
 describe("buildReportParameters", () => {
+  it("uses the advisor report's declared BU parameter and keeps its request scope distinct from an unfiltered legacy request", () => {
+    const source = {
+      family: "advisors" as const,
+      category: "operations",
+      reportId: "synthetic",
+      legacyTableName: "synthetic",
+      defaultPreset: "mtd" as const,
+      businessUnitGroup: "advisors" as const,
+    };
+    const context = {
+      from: "2026-01-01",
+      to: "2026-10-25",
+      businessUnitIds: [1812],
+    };
+    expect(
+      buildReportParameters(
+        { ...source, businessUnitParameterName: "BusinessUnitId" },
+        context,
+      ),
+    ).toContainEqual({ name: "BusinessUnitId", value: [1812] });
+    expect(buildReportParameters(source, context)).toContainEqual({
+      name: "BusinessUnitIds",
+      value: [1812],
+    });
+  });
   it("builds basic range parameters", () => {
     const parameters = buildReportParameters(
       {
@@ -13,17 +38,20 @@ describe("buildReportParameters", () => {
         category: "technician",
         reportId: "66109112",
         legacyTableName: "st_technician",
-        defaultPreset: "mtd"
+        defaultPreset: "mtd",
       },
       {
         from: "2026-03-01",
-        to: "2026-03-20"
+        to: "2026-03-20",
       },
     );
 
     expect(parameters[0]).toEqual({ name: "From", value: "2026-03-01" });
     expect(parameters[1]).toEqual({ name: "To", value: "2026-03-20" });
-    expect(parameters.at(-1)).toEqual({ name: "IncludeInactive", value: "false" });
+    expect(parameters.at(-1)).toEqual({
+      name: "IncludeInactive",
+      value: "false",
+    });
   });
 
   it("builds both date scopes for multi-template Field Pro reports", () => {
@@ -38,10 +66,10 @@ describe("buildReportParameters", () => {
           { from: "Technicians_From", to: "Technicians_To" },
           {
             from: "FieldProTechnicianRecordingPerformance_From",
-            to: "FieldProTechnicianRecordingPerformance_To"
-          }
+            to: "FieldProTechnicianRecordingPerformance_To",
+          },
         ],
-        includeDefaultInactiveParameter: false
+        includeDefaultInactiveParameter: false,
       },
       { from: "2026-07-13", to: "2026-07-19" },
     );
@@ -49,8 +77,14 @@ describe("buildReportParameters", () => {
     expect(parameters).toEqual([
       { name: "Technicians_From", value: "2026-07-13" },
       { name: "Technicians_To", value: "2026-07-19" },
-      { name: "FieldProTechnicianRecordingPerformance_From", value: "2026-07-13" },
-      { name: "FieldProTechnicianRecordingPerformance_To", value: "2026-07-19" }
+      {
+        name: "FieldProTechnicianRecordingPerformance_From",
+        value: "2026-07-13",
+      },
+      {
+        name: "FieldProTechnicianRecordingPerformance_To",
+        value: "2026-07-19",
+      },
     ]);
   });
 
@@ -67,21 +101,21 @@ describe("buildReportParameters", () => {
             timeZone,
             year: "numeric",
             month: "2-digit",
-            day: "2-digit"
+            day: "2-digit",
           }).format(referenceDate);
 
           return {
             from: day,
-            to: day
+            to: day,
           };
-        }
+        },
       },
       {
         preset: "ytd",
         from: "2026-01-01",
         to: "2026-03-20",
         timezone: "America/Los_Angeles",
-        referenceDate: new Date("2026-03-21T12:00:00.000Z")
+        referenceDate: new Date("2026-03-21T12:00:00.000Z"),
       },
     );
 
@@ -104,20 +138,20 @@ describe("buildReportParameters", () => {
               timeZone,
               year: "numeric",
               month: "2-digit",
-              day: "2-digit"
+              day: "2-digit",
             }).format(referenceDate);
 
           return {
             from: `${to.slice(0, 8)}01`,
-            to
+            to,
           };
-        }
+        },
       },
       {
         preset: "ytd",
         to: "2026-03-21",
         timezone: "America/Los_Angeles",
-        referenceDate: new Date("2026-03-21T12:00:00.000Z")
+        referenceDate: new Date("2026-03-21T12:00:00.000Z"),
       },
     );
 
@@ -151,13 +185,15 @@ describe("ServiceTitanReportFetchError", () => {
       family: "campaigns",
       status: 500,
       body,
-      retryable: true
+      retryable: true,
     });
 
     expect(error.status).toBe(500);
     expect(error.retryable).toBe(true);
     expect(error.body).toBe(body);
-    expect(error.message).toContain("ServiceTitan report fetch failed (500) campaigns");
+    expect(error.message).toContain(
+      "ServiceTitan report fetch failed (500) campaigns",
+    );
     expect(error.message).toContain("[truncated 200 chars]");
     expect(error.message.length).toBeLessThan(body.length);
   });
