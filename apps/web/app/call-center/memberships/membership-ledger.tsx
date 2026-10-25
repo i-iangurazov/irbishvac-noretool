@@ -160,7 +160,7 @@ export function MembershipAccounting({
       )}
       <details className="membership-invoice-details">
         <summary>
-          View invoice details <span>{ledger.invoices.length}</span>
+          View invoice details <span>{scope.length}</span>
         </summary>
         <div className="membership-invoice-filters">
           <label className="membership-invoice-search">
