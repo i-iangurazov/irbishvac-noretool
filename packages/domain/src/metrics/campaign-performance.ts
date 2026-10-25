@@ -107,6 +107,7 @@ export type CampaignPerformanceSource = {
 };
 
 export type CampaignPerformanceSnapshot = {
+  salesByDepartment?: Array<{ department: string; soldAmount: number }>;
   revenueByDepartment: Array<{ department: string; completedRevenue: number }>;
   leadDataStatus: "available" | "unavailable";
   schemaVersion: number;
@@ -498,6 +499,20 @@ function buildNextMonthDraft(
   };
 }
 
+// Sold estimates already use the campaign period/cutoff. Only expose this
+// breakdown when the source explicitly provides a business-unit dimension.
+export function buildDepartmentSales(payload: unknown) {
+  const report = resolveTabularReport(payload);
+  const field = ["ParentJobBusinessUnit", "BusinessUnit", "Business Unit"].find(name => report.fields.some(field => field.name === name));
+  if (!field || !report.rows.length) return [];
+  const totals = new Map<string, number>();
+  for (const row of report.rows) {
+    const department = String(row[field] ?? "").trim() || "Unassigned";
+    totals.set(department, (totals.get(department) ?? 0) + toNumber(pickFirst(row, SOLD_ALIASES.amount)));
+  }
+  return [...totals].map(([department, soldAmount]) => ({ department, soldAmount }));
+}
+
 export function buildDepartmentRevenue(payload: unknown, campaignRevenue: number) {
   const report = resolveTabularReport(payload);
   if (!report.fields.some((field) => field.name === "CompletedRevenue") || !report.rows.length) return [];
@@ -689,6 +704,7 @@ export function buildCampaignPerformanceSnapshot(input: BuildCampaignPerformance
 
   return {
     schemaVersion: 9,
+    salesByDepartment: buildDepartmentSales(input.soldEstimates),
     revenueByDepartment: buildDepartmentRevenue(input.departmentRevenue, actual.completedRevenue),
     leadDataStatus: hasCallCenterRowsForMonth(input.callCenterValues, input.month) ? "available" : "unavailable",
     generatedAt,

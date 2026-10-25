@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCampaignPerformanceSnapshot,
+  buildDepartmentSales,
   countWeekdays,
   inferCampaignBudgetType,
   inferCampaignCategory,
@@ -356,3 +357,8 @@ describe("department revenue", () => {
     expect(buildDepartmentRevenue({}, 1000)).toEqual([]);
   });
 });
+
+ it("groups actual sold estimate values only when business-unit fields exist", () => {
+   expect(buildDepartmentSales({fields:[{name:"BusinessUnit"},{name:"Total"}],data:[["HVAC",100],["HVAC",200],[null,50]]})).toEqual([{department:"HVAC",soldAmount:300},{department:"Unassigned",soldAmount:50}]);
+   expect(buildDepartmentSales({fields:[{name:"ParentJobCampaign"},{name:"Total"}],data:[["Yelp",100]]})).toEqual([]);
+ });
