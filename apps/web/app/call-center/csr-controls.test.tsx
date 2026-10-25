@@ -14,6 +14,37 @@ beforeEach(() => {
 });
 
 describe("Membership date selection", () => {
+  it("does not steal focus from a tooltip when the date picker is closed", async () => {
+    await act(async () =>
+      root.render(
+        <>
+          <CsrPeriodPicker
+            from="2026-09-01"
+            to="2026-09-30"
+            label="September"
+            query=""
+          />
+          <button id="metric-help">About metric</button>
+        </>,
+      ),
+    );
+    const help = host.querySelector<HTMLButtonElement>("#metric-help")!;
+    help.focus();
+    await act(async () =>
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      ),
+    );
+    expect(document.activeElement).toBe(help);
+    host.querySelector("details")!.open = true;
+    await act(async () =>
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      ),
+    );
+    expect(host.querySelector("details")!.open).toBe(false);
+    expect(document.activeElement).toBe(host.querySelector("summary"));
+  });
   it("accepts typed September dates when moving backwards from October", async () => {
     await act(async () =>
       root.render(

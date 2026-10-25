@@ -2021,3 +2021,6 @@
   outline: 2px solid #2863bb;
   outline-offset: 2px;
 }
+.membership-sales > .membership-leaderboard-note {
+  margin: 8px 24px 0;
+}

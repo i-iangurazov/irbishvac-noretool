@@ -78,7 +78,7 @@ export function CsrPeriodPicker({
         ref.current.open = false;
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && ref.current) {
+      if (event.key === "Escape" && ref.current?.open) {
         ref.current.open = false;
         ref.current.querySelector("summary")?.focus();
       }
