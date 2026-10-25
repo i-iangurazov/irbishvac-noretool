@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { DashboardAutoRefreshRuntime } from "./dashboard-auto-refresh-runtime";
 import { TvFullscreenButton } from "./tv-fullscreen-button";
 import { TvRotationRuntime } from "./tv-rotation-runtime";
 import { TvSettingsModal } from "./tv-settings-modal";
@@ -154,7 +153,6 @@ export function DashboardShell(props: DashboardShellProps) {
       data-rotate-mode={props.tvMenu?.rotateMode ? "true" : "false"}
       className="dashboard-shell h-[100dvh] overflow-hidden bg-[#f6f7fa] text-slate-900"
     >
-      <DashboardAutoRefreshRuntime enabled={Boolean(props.tvMode)} />
       <TvRotationRuntime
         activePath={props.activePath}
         currentPage={props.rotationPage?.current}

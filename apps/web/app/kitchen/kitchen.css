@@ -137,6 +137,7 @@
 }
 .kitchen-org {
   padding-top: 7px;
+  position: relative;
 }
 .kitchen-executives,
 .kitchen-branches {
@@ -153,7 +154,7 @@
 }
 .kitchen-executive {
   height: 120px;
-  width: 400px;
+  width: min(400px, 100%);
   padding: 20px 22px;
   border-radius: 18px;
   border-top: 6px solid #003644;
@@ -163,10 +164,10 @@
   background: white;
 }
 .kitchen-executive--coo {
-  width: 340px;
+  width: min(340px, 100%);
 }
 .kitchen-executive--ceo {
-  width: 400px;
+  width: min(400px, 100%);
   background: #f37021;
   color: white;
   border-color: #f37021;
@@ -200,11 +201,28 @@
   font-weight: 600;
   line-height: 1.4;
 }
+.kitchen-executive-zone--compact .kitchen-executive {
+  padding: 16px;
+  gap: 12px;
+}
+.kitchen-executive-zone--compact .kitchen-executive .kitchen-avatar {
+  width: 56px;
+  height: 56px;
+  border-width: 2px;
+}
+.kitchen-executive-zone--compact .kitchen-executive h2 {
+  font-size: 22px;
+}
+.kitchen-executive-zone--compact .kitchen-executive p {
+  font-size: 13px;
+}
 .kitchen-root-line {
   position: absolute;
   bottom: 40px;
   height: 30px;
   width: 3px;
+  left: 50%;
+  transform: translateX(-50%);
   background: #64cbe8;
 }
 .kitchen-branch {
@@ -221,6 +239,7 @@
   position: absolute;
   top: 0;
   left: 50%;
+  transform: translateX(-50%);
   width: 3px;
   height: 40px;
   background: #64cbe8;
@@ -246,7 +265,7 @@
   border-radius: 16px;
   border-top: 6px solid #1a6887;
   background: white;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -257,6 +276,45 @@
   font-weight: 900;
   line-height: 1.12;
   letter-spacing: -0.45px;
+  overflow-wrap: anywhere;
+}
+.kitchen-leader > div:last-child {
+  min-width: 0;
+}
+.kitchen-department-label {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  color: #1a6887;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.1px;
+}
+.kitchen-branch:not(:has(.kitchen-department-label)) .kitchen-branch-connector {
+  margin-bottom: 28px;
+}
+.kitchen-branch--standalone .kitchen-branch-connector {
+  visibility: hidden;
+}
+.kitchen-independent-departments {
+  position: absolute;
+  top: 580px;
+  left: 0;
+  width: calc((100% + 16px) / var(--branch-count) * 2 - 16px);
+}
+.kitchen-independent-departments > h3 {
+  font-size: 22px;
+  font-weight: 900;
+  color: #1a6887;
+  margin-bottom: 10px;
+}
+.kitchen-independent-departments > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.kitchen-independent-departments .kitchen-leader {
+  height: 126px;
 }
 .kitchen-leader p,
 .kitchen-service-leader p {

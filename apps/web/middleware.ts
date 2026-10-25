@@ -1,5 +1,9 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
-import { NextResponse, type NextRequest, type NextFetchEvent } from "next/server";
+import {
+  NextResponse,
+  type NextRequest,
+  type NextFetchEvent,
+} from "next/server";
 import {
   isCampaignIntegrationPath,
   isPublicAuthPath,
@@ -15,6 +19,15 @@ const authenticatedMiddleware = clerkMiddleware(async (auth, request) => {
   const authState = await auth();
 
   if (!authState.isAuthenticated) {
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        {
+          status: 401,
+          headers: { "Cache-Control": "private, no-store" },
+        },
+      );
+    }
     return authState.redirectToSignIn({
       returnBackUrl: resolvePublicRequestUrl(
         request.url,
@@ -23,11 +36,13 @@ const authenticatedMiddleware = clerkMiddleware(async (auth, request) => {
     });
   }
 
-  if (!isAllowedDashboardIdentity({
-    isAuthenticated: authState.isAuthenticated,
-    userId: authState.userId,
-    primaryEmail: authState.sessionClaims.primaryEmail,
-  })) {
+  if (
+    !isAllowedDashboardIdentity({
+      isAuthenticated: authState.isAuthenticated,
+      userId: authState.userId,
+      primaryEmail: authState.sessionClaims.primaryEmail,
+    })
+  ) {
     return NextResponse.redirect(
       new URL(
         "/access-denied",
@@ -39,8 +54,13 @@ const authenticatedMiddleware = clerkMiddleware(async (auth, request) => {
   return NextResponse.next();
 });
 
-export default function middleware(request: NextRequest, event: NextFetchEvent) {
-  if (isCampaignIntegrationPath(request.nextUrl.pathname)) return NextResponse.next();
+export default function middleware(
+  request: NextRequest,
+  event: NextFetchEvent,
+) {
+  if (request.nextUrl.pathname === "/healthz") return NextResponse.next();
+  if (isCampaignIntegrationPath(request.nextUrl.pathname))
+    return NextResponse.next();
   return authenticatedMiddleware(request, event);
 }
 

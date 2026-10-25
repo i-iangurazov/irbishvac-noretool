@@ -1,5 +1,7 @@
 import { ClerkProvider, Show, UserButton } from "@clerk/nextjs";
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { DashboardTvRuntime } from "../components/dashboard-tv-runtime";
 import { getBrandLogoUrl } from "../lib/assets";
 import "./globals.css";
 
@@ -11,13 +13,23 @@ export const metadata: Metadata = {
   ...(brandLogoUrl ? { icons: { icon: brandLogoUrl } } : {}),
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body data-vw-app="true">
         <ClerkProvider dynamic>
+          <Suspense fallback={null}>
+            <DashboardTvRuntime />
+          </Suspense>
           <Show when="signed-in">
-            <div className="irbis-account-control" aria-label="Account settings">
+            <div
+              className="irbis-account-control"
+              aria-label="Account settings"
+            >
               <UserButton />
             </div>
           </Show>

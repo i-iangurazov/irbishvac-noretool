@@ -9,6 +9,9 @@ export type KitchenEmployee = {
   photoSource?: "cloudflare" | "rippling";
   birthday: { month: number; day: number } | null;
   originalHireDate: string | null;
+  /** Explicit board-only department contacts, distinct from Rippling employment/reporting. */
+  orgDepartmentLabel?: string;
+  orgStandalone?: boolean;
 };
 
 export type KitchenDirectory = {

@@ -23,6 +23,7 @@ export type OrgBranch = {
   label: string | null;
   people: KitchenEmployee[];
   installation: boolean;
+  standalone?: boolean;
 };
 export type KitchenSlide = {
   id: string;
@@ -48,7 +49,7 @@ export function kitchenLeadership(employees: KitchenEmployee[]) {
   const reports = (id: string) =>
     employees.filter((person) => person.managerId === id);
   const roots = employees
-    .filter((person) => !person.managerId)
+    .filter((person) => !person.managerId && !person.orgStandalone)
     .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
   const installationManager =
     employees.find((person) => /installation manager/i.test(person.title)) ??
@@ -69,7 +70,7 @@ export function kitchenLeadership(employees: KitchenEmployee[]) {
       branches.push({
         executive,
         leader,
-        label: null,
+        label: leader.orgDepartmentLabel ?? null,
         people: reports(leader.id),
         installation: leader.id === installationManager?.id,
       });
@@ -119,6 +120,16 @@ export function kitchenLeadership(employees: KitchenEmployee[]) {
       roots.indexOf(a.executive) - roots.indexOf(b.executive) ||
       branchRank(a) - branchRank(b),
   );
+  for (const leader of employees.filter((person) => person.orgStandalone)) {
+    branches.push({
+      executive: leader,
+      leader,
+      label: leader.orgDepartmentLabel ?? leader.department,
+      people: reports(leader.id),
+      installation: false,
+      standalone: true,
+    });
+  }
   const totalReports = (id: string) => {
     const visited = new Set([id]);
     const queue = [...reports(id)];

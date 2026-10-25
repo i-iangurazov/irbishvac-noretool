@@ -8,12 +8,13 @@ import {
   getServiceTitanReportDefinitions,
   resolveReportRequest,
   type ReportFamilyKey,
-  type ReportRequestContext
+  type ReportRequestContext,
 } from "@irbis/integrations";
 import { createLogger } from "@irbis/utils";
 import { DASHBOARD_FAMILY_MAP, buildDashboardReadModel } from "./read-models";
 
 import { refreshCsrSources } from "./call-center-sources";
+import { refreshAdvisorRoster } from "./advisor-roster";
 
 const logger = createLogger("worker-runner");
 
@@ -83,12 +84,14 @@ export class DashboardRefreshRunner {
       definition.category === "UNRESOLVED" ||
       definition.reportId === "UNRESOLVED"
     ) {
-      throw new Error(`Report mapping for ${family} is unresolved in env config`);
+      throw new Error(
+        `Report mapping for ${family} is unresolved in env config`,
+      );
     }
 
     const request = resolveReportRequest(definition, {
       ...context,
-      timezone: this.config.app.timezone
+      timezone: this.config.app.timezone,
     });
     const parameters = request.parameters;
     const requestHash = request.requestHash;
@@ -107,15 +110,15 @@ export class DashboardRefreshRunner {
         attempts: attemptNumber,
         payload: {
           family,
-          parameters
+          parameters,
         },
-        startedAt: new Date()
-      }
+        startedAt: new Date(),
+      },
     });
 
     const ingestionRun = await prisma.ingestionRun.upsert({
       where: {
-        idempotencyKey
+        idempotencyKey,
       },
       create: {
         family: dashboardFamily,
@@ -128,10 +131,10 @@ export class DashboardRefreshRunner {
         responseMeta: {
           correlationId,
           requestHash,
-          attemptNumber
+          attemptNumber,
         },
         startedAt: new Date(),
-        jobRunId: jobRun.id
+        jobRunId: jobRun.id,
       },
       update: {
         status: RunStatus.RUNNING,
@@ -142,26 +145,42 @@ export class DashboardRefreshRunner {
         responseMeta: {
           correlationId,
           requestHash,
-          attemptNumber
+          attemptNumber,
         },
         startedAt: new Date(),
         finishedAt: null,
         errorJson: Prisma.DbNull,
-        jobRunId: jobRun.id
-      }
+        jobRunId: jobRun.id,
+      },
     });
 
     try {
+      if (family === "advisors") {
+        try {
+          await refreshAdvisorRoster();
+        } catch {
+          logger.warn(
+            "Advisor roster refresh unavailable; retaining the last complete roster and report metrics.",
+          );
+        }
+      }
       const result = await this.client.fetchReport({
         family,
         category: definition.category,
         reportId: definition.reportId,
         parameters,
-        correlationId
+        correlationId,
       });
       if (family === "callCenterByCsr" || family === "callCenterSummary") {
-        const csrSupplement = await refreshCsrSources(request.range.from, request.range.to, correlationId);
-        result.payload = { ...(result.payload as Record<string, unknown>), csrSupplement };
+        const csrSupplement = await refreshCsrSources(
+          request.range.from,
+          request.range.to,
+          correlationId,
+        );
+        result.payload = {
+          ...(result.payload as Record<string, unknown>),
+          csrSupplement,
+        };
       }
       const fetchedAt = new Date();
 
@@ -178,20 +197,20 @@ export class DashboardRefreshRunner {
           sourceSnapshotTime: fetchedAt,
           payloadJson: result.payload,
           fetchedAt,
-          ingestionRunId: ingestionRun.id
-        }
+          ingestionRunId: ingestionRun.id,
+        },
       });
 
       const readModel = buildDashboardReadModel(family, result.payload, {
-        businessDate: readModelBusinessDate
+        businessDate: readModelBusinessDate,
       }) as Prisma.InputJsonValue;
 
       await prisma.dashboardReadModel.upsert({
         where: {
           family_scopeKey: {
             family: dashboardFamily,
-            scopeKey: requestHash
-          }
+            scopeKey: requestHash,
+          },
         },
         create: {
           family: dashboardFamily,
@@ -201,7 +220,7 @@ export class DashboardRefreshRunner {
           payloadJson: readModel,
           sourceSnapshotIds: [rawSnapshot.id],
           snapshotTime: fetchedAt,
-          ingestionRunId: ingestionRun.id
+          ingestionRunId: ingestionRun.id,
         },
         update: {
           businessDateFrom,
@@ -209,16 +228,16 @@ export class DashboardRefreshRunner {
           payloadJson: readModel,
           sourceSnapshotIds: [rawSnapshot.id],
           snapshotTime: fetchedAt,
-          ingestionRunId: ingestionRun.id
-        }
+          ingestionRunId: ingestionRun.id,
+        },
       });
 
       await prisma.dashboardReadModel.upsert({
         where: {
           family_scopeKey: {
             family: dashboardFamily,
-            scopeKey: "latest"
-          }
+            scopeKey: "latest",
+          },
         },
         create: {
           family: dashboardFamily,
@@ -228,7 +247,7 @@ export class DashboardRefreshRunner {
           payloadJson: readModel,
           sourceSnapshotIds: [rawSnapshot.id],
           snapshotTime: fetchedAt,
-          ingestionRunId: ingestionRun.id
+          ingestionRunId: ingestionRun.id,
         },
         update: {
           businessDateFrom,
@@ -236,8 +255,8 @@ export class DashboardRefreshRunner {
           payloadJson: readModel,
           sourceSnapshotIds: [rawSnapshot.id],
           snapshotTime: fetchedAt,
-          ingestionRunId: ingestionRun.id
-        }
+          ingestionRunId: ingestionRun.id,
+        },
       });
 
       await prisma.ingestionRun.update({
@@ -248,10 +267,10 @@ export class DashboardRefreshRunner {
             correlationId,
             requestHash,
             endpoint: result.endpoint,
-            attemptNumber
+            attemptNumber,
           },
-          finishedAt: new Date()
-        }
+          finishedAt: new Date(),
+        },
       });
 
       await prisma.jobRun.update({
@@ -259,14 +278,15 @@ export class DashboardRefreshRunner {
         data: {
           status: RunStatus.SUCCEEDED,
           attempts: attemptNumber,
-          finishedAt: new Date()
-        }
+          finishedAt: new Date(),
+        },
       });
 
       logger.info("Refreshed dashboard family", { family, correlationId });
       return { family, readModel };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown worker error";
+      const message =
+        error instanceof Error ? error.message : "Unknown worker error";
 
       await prisma.ingestionRun.update({
         where: { id: ingestionRun.id },
@@ -277,7 +297,7 @@ export class DashboardRefreshRunner {
               ? {
                   message,
                   retryAfterSeconds: error.retryAfterSeconds,
-                  family
+                  family,
                 }
               : error instanceof ServiceTitanReportFetchError
                 ? {
@@ -285,11 +305,11 @@ export class DashboardRefreshRunner {
                     status: error.status,
                     retryable: error.retryable,
                     family,
-                    bodyExcerpt: error.body.slice(0, 1_000)
+                    bodyExcerpt: error.body.slice(0, 1_000),
                   }
-              : { message },
-          finishedAt: new Date()
-        }
+                : { message },
+          finishedAt: new Date(),
+        },
       });
 
       await prisma.jobRun.update({
@@ -302,7 +322,7 @@ export class DashboardRefreshRunner {
               ? {
                   message,
                   retryAfterSeconds: error.retryAfterSeconds,
-                  family
+                  family,
                 }
               : error instanceof ServiceTitanReportFetchError
                 ? {
@@ -310,11 +330,11 @@ export class DashboardRefreshRunner {
                     status: error.status,
                     retryable: error.retryable,
                     family,
-                    bodyExcerpt: error.body.slice(0, 1_000)
+                    bodyExcerpt: error.body.slice(0, 1_000),
                   }
-              : { message },
-          finishedAt: new Date()
-        }
+                : { message },
+          finishedAt: new Date(),
+        },
       });
 
       if (error instanceof ServiceTitanRateLimitError) {
@@ -322,7 +342,7 @@ export class DashboardRefreshRunner {
           family,
           correlationId,
           message,
-          retryAfterSeconds: error.retryAfterSeconds
+          retryAfterSeconds: error.retryAfterSeconds,
         });
       } else if (error instanceof ServiceTitanReportFetchError) {
         logger.warn("Dashboard refresh hit ServiceTitan report fetch error", {
@@ -330,10 +350,14 @@ export class DashboardRefreshRunner {
           correlationId,
           status: error.status,
           retryable: error.retryable,
-          message
+          message,
         });
       } else {
-        logger.error("Dashboard refresh failed", { family, correlationId, message });
+        logger.error("Dashboard refresh failed", {
+          family,
+          correlationId,
+          message,
+        });
       }
 
       throw error;
@@ -351,16 +375,28 @@ export class DashboardRefreshRunner {
       attempt += 1;
 
       try {
-        return await this.refreshFamilyOnce(family, correlationId, context, attempt);
+        return await this.refreshFamilyOnce(
+          family,
+          correlationId,
+          context,
+          attempt,
+        );
       } catch (error) {
-        if (error instanceof ServiceTitanRateLimitError && attempt < this.maxRefreshAttempts) {
-          const retryAfterSeconds = Math.max(error.retryAfterSeconds ?? 60, 60) + 2;
-          logger.warn("Retrying dashboard refresh after ServiceTitan rate limit", {
-            family,
-            correlationId,
-            attempt,
-            retryAfterSeconds
-          });
+        if (
+          error instanceof ServiceTitanRateLimitError &&
+          attempt < this.maxRefreshAttempts
+        ) {
+          const retryAfterSeconds =
+            Math.max(error.retryAfterSeconds ?? 60, 60) + 2;
+          logger.warn(
+            "Retrying dashboard refresh after ServiceTitan rate limit",
+            {
+              family,
+              correlationId,
+              attempt,
+              retryAfterSeconds,
+            },
+          );
           await this.sleep(retryAfterSeconds * 1_000);
           continue;
         }
@@ -371,13 +407,16 @@ export class DashboardRefreshRunner {
           attempt < this.maxRefreshAttempts
         ) {
           const retryDelayMs = this.getTransientRetryDelayMs(attempt);
-          logger.warn("Retrying dashboard refresh after transient ServiceTitan error", {
-            family,
-            correlationId,
-            attempt,
-            status: error.status,
-            retryDelaySeconds: retryDelayMs / 1_000
-          });
+          logger.warn(
+            "Retrying dashboard refresh after transient ServiceTitan error",
+            {
+              family,
+              correlationId,
+              attempt,
+              status: error.status,
+              retryDelaySeconds: retryDelayMs / 1_000,
+            },
+          );
           await this.sleep(retryDelayMs);
           continue;
         }
@@ -396,7 +435,7 @@ export const PEOPLE_REFRESH_FAMILIES: ReportFamilyKey[] = [
   "callCenterByCsr",
   "leadGeneration",
   "campaigns",
-  "trending"
+  "trending",
 ];
 
 export const COMPANY_REFRESH_FAMILIES: ReportFamilyKey[] = [
@@ -408,5 +447,5 @@ export const COMPANY_REFRESH_FAMILIES: ReportFamilyKey[] = [
   "salesYesterday",
   "salesMonthlyPace",
   "revenueMonthlyPace",
-  "bookingRate"
+  "bookingRate",
 ];

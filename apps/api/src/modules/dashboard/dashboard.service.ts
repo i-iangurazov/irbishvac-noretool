@@ -3,10 +3,12 @@ import {
   DashboardFamily,
   prisma,
   setDefaultMonthlyGoalEntries,
-  type GoalTrackerEntry
+  type GoalTrackerEntry,
 } from "@irbis/db";
 import {
   buildAdvisorDashboard,
+  mergeAdvisorRoster,
+  type AdvisorRosterMember,
   buildBookingRateSummary,
   buildCsrPerformanceDashboard,
   buildCampaignDashboard,
@@ -28,20 +30,27 @@ import {
   buildTechnicianDashboard,
   buildTrendingModel,
   type CampaignPerformanceSnapshot,
-  type FieldStaffDepartment
+  type FieldStaffDepartment,
 } from "@irbis/domain";
 import {
   getServiceTitanReportDefinitions,
   resolveReportRequest,
   type ReportFamilyKey,
-  type ReportRequestContext
+  type ReportRequestContext,
 } from "@irbis/integrations";
 import { getConfig } from "@irbis/config";
-import { createLogger, getDateParts, getDaysInBusinessMonth } from "@irbis/utils";
+import {
+  createLogger,
+  getDateParts,
+  getDaysInBusinessMonth,
+} from "@irbis/utils";
 import { type GoalTrackerDto } from "../goals/goals.service";
 import { DashboardRefreshService } from "./dashboard-refresh.service";
 
-export type DashboardRequestContext = Pick<ReportRequestContext, "preset" | "from" | "to">;
+export type DashboardRequestContext = Pick<
+  ReportRequestContext,
+  "preset" | "from" | "to"
+>;
 
 export type CompanyWideDashboardResponse = {
   marketing: ReturnType<typeof buildMarketingDonut>;
@@ -65,7 +74,7 @@ function toGoalTrackerDto(goal: GoalTrackerEntry): GoalTrackerDto {
     monthName: goal.monthName,
     goalAmount: Number(goal.goalAmount),
     createdAt: goal.createdAt.toISOString(),
-    updatedAt: goal.updatedAt.toISOString()
+    updatedAt: goal.updatedAt.toISOString(),
   };
 }
 
@@ -90,39 +99,61 @@ export class DashboardService {
     private readonly refreshService?: DashboardRefreshService,
   ) {}
 
-  private async safeQuery<T>(operation: string, fallback: T, query: () => Promise<T>): Promise<T> {
+  private async safeQuery<T>(
+    operation: string,
+    fallback: T,
+    query: () => Promise<T>,
+  ): Promise<T> {
     try {
       return await query();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.warn("Falling back because dashboard query failed", {
         operation,
-        errorMessage
+        errorMessage,
       });
       return fallback;
     }
   }
 
-  private attachSnapshotTime<T>(payload: T, snapshotTime: Date | string | null | undefined): T {
-    if (!snapshotTime || !payload || typeof payload !== "object" || Array.isArray(payload)) {
+  private attachSnapshotTime<T>(
+    payload: T,
+    snapshotTime: Date | string | null | undefined,
+  ): T {
+    if (
+      !snapshotTime ||
+      !payload ||
+      typeof payload !== "object" ||
+      Array.isArray(payload)
+    ) {
       return payload;
     }
 
     const record = payload as Record<string, unknown>;
-    if (typeof record.snapshotTime === "string" && record.snapshotTime.length > 0) {
+    if (
+      typeof record.snapshotTime === "string" &&
+      record.snapshotTime.length > 0
+    ) {
       return payload;
     }
 
     return {
       ...record,
-      snapshotTime: typeof snapshotTime === "string" ? snapshotTime : snapshotTime.toISOString()
+      snapshotTime:
+        typeof snapshotTime === "string"
+          ? snapshotTime
+          : snapshotTime.toISOString(),
     } as T;
   }
 
-  private resolveRequest(reportFamily: ReportFamilyKey, context?: DashboardRequestContext) {
+  private resolveRequest(
+    reportFamily: ReportFamilyKey,
+    context?: DashboardRequestContext,
+  ) {
     return resolveReportRequest(this.reportDefinitions[reportFamily], {
       ...context,
-      timezone: this.config.app.timezone
+      timezone: this.config.app.timezone,
     });
   }
 
@@ -146,9 +177,12 @@ export class DashboardService {
       businessDay: getDateParts(businessDate, this.config.app.timezone).day,
       businessWeekdayName: new Intl.DateTimeFormat("en-US", {
         weekday: "long",
-        timeZone: this.config.app.timezone
+        timeZone: this.config.app.timezone,
       }).format(businessDate),
-      daysInMonth: getDaysInBusinessMonth(businessDate, this.config.app.timezone)
+      daysInMonth: getDaysInBusinessMonth(
+        businessDate,
+        this.config.app.timezone,
+      ),
     };
   }
 
@@ -156,7 +190,7 @@ export class DashboardService {
     return this.safeQuery(`latest-snapshot:${family}`, null, () =>
       prisma.rawReportSnapshot.findFirst({
         where: { family },
-        orderBy: [{ fetchedAt: "desc" }, { sourceSnapshotTime: "desc" }]
+        orderBy: [{ fetchedAt: "desc" }, { sourceSnapshotTime: "desc" }],
       }),
     );
   }
@@ -168,18 +202,24 @@ export class DashboardService {
   ) {
     const request = this.resolveRequest(reportFamily, context);
 
-    return this.safeQuery(`snapshot:${family}:${request.requestHash}`, null, () =>
-      prisma.rawReportSnapshot.findFirst({
-        where: {
-          family,
-          requestHash: request.requestHash
-        },
-        orderBy: [{ fetchedAt: "desc" }, { sourceSnapshotTime: "desc" }]
-      }),
+    return this.safeQuery(
+      `snapshot:${family}:${request.requestHash}`,
+      null,
+      () =>
+        prisma.rawReportSnapshot.findFirst({
+          where: {
+            family,
+            requestHash: request.requestHash,
+          },
+          orderBy: [{ fetchedAt: "desc" }, { sourceSnapshotTime: "desc" }],
+        }),
     );
   }
 
-  private queueRefresh(reportFamily: ReportFamilyKey, context?: DashboardRequestContext) {
+  private queueRefresh(
+    reportFamily: ReportFamilyKey,
+    context?: DashboardRequestContext,
+  ) {
     void this.refreshService?.ensureRefreshEnqueued(reportFamily, context);
   }
 
@@ -189,41 +229,55 @@ export class DashboardService {
     context?: DashboardRequestContext,
   ): Promise<T | null> {
     const request = this.resolveRequest(reportFamily, context);
-    const readModel = await this.safeQuery(`read-model:${family}:${request.requestHash}`, null, () =>
-      prisma.dashboardReadModel.findUnique({
-        where: {
-          family_scopeKey: {
-            family,
-            scopeKey: request.requestHash
-          }
-        }
-      }),
+    const readModel = await this.safeQuery(
+      `read-model:${family}:${request.requestHash}`,
+      null,
+      () =>
+        prisma.dashboardReadModel.findUnique({
+          where: {
+            family_scopeKey: {
+              family,
+              scopeKey: request.requestHash,
+            },
+          },
+        }),
     );
 
     if (!readModel) {
       return null;
     }
 
-    return this.attachSnapshotTime(readModel.payloadJson as T, readModel.snapshotTime);
+    return this.attachSnapshotTime(
+      readModel.payloadJson as T,
+      readModel.snapshotTime,
+    );
   }
 
-  private async getLatestReadModel<T>(family: DashboardFamily): Promise<T | null> {
-    const readModel = await this.safeQuery(`read-model:${family}:latest`, null, () =>
-      prisma.dashboardReadModel.findUnique({
-        where: {
-          family_scopeKey: {
-            family,
-            scopeKey: "latest"
-          }
-        }
-      }),
+  private async getLatestReadModel<T>(
+    family: DashboardFamily,
+  ): Promise<T | null> {
+    const readModel = await this.safeQuery(
+      `read-model:${family}:latest`,
+      null,
+      () =>
+        prisma.dashboardReadModel.findUnique({
+          where: {
+            family_scopeKey: {
+              family,
+              scopeKey: "latest",
+            },
+          },
+        }),
     );
 
     if (!readModel) {
       return null;
     }
 
-    return this.attachSnapshotTime(readModel.payloadJson as T, readModel.snapshotTime);
+    return this.attachSnapshotTime(
+      readModel.payloadJson as T,
+      readModel.snapshotTime,
+    );
   }
 
   private async resolveMetricFamily<T>(
@@ -237,7 +291,11 @@ export class DashboardService {
       return readModel;
     }
 
-    const scopedSnapshot = await this.getSnapshotForContext(family, reportFamily, context);
+    const scopedSnapshot = await this.getSnapshotForContext(
+      family,
+      reportFamily,
+      context,
+    );
     if (scopedSnapshot) {
       return this.attachSnapshotTime(
         build(scopedSnapshot.payloadJson),
@@ -289,7 +347,9 @@ export class DashboardService {
     return getDateParts(businessDate, this.config.app.timezone).year;
   }
 
-  private async getGoalsForContext(context?: DashboardRequestContext): Promise<GoalTrackerDto[]> {
+  private async getGoalsForContext(
+    context?: DashboardRequestContext,
+  ): Promise<GoalTrackerDto[]> {
     const goalYear = this.resolveGoalYear(context);
     const goals = await this.safeQuery(
       `goal-tracker:default-monthly:${goalYear}`,
@@ -323,11 +383,17 @@ export class DashboardService {
   }
 
   async getPlumbingTechnicians(context?: DashboardRequestContext) {
-    return this.getTechnicianDashboardForDepartment("plumbing-service", context);
+    return this.getTechnicianDashboardForDepartment(
+      "plumbing-service",
+      context,
+    );
   }
 
   async getElectricalTechnicians(context?: DashboardRequestContext) {
-    return this.getTechnicianDashboardForDepartment("electrical-service", context);
+    return this.getTechnicianDashboardForDepartment(
+      "electrical-service",
+      context,
+    );
   }
 
   async getInstallers(context?: DashboardRequestContext) {
@@ -339,7 +405,10 @@ export class DashboardService {
   }
 
   async getElectricalInstallers(context?: DashboardRequestContext) {
-    return this.getInstallerDashboardForDepartment("electrical-install", context);
+    return this.getInstallerDashboardForDepartment(
+      "electrical-install",
+      context,
+    );
   }
 
   private async getInstallerDashboardForDepartment(
@@ -358,8 +427,33 @@ export class DashboardService {
 
   async getAdvisors(context?: DashboardRequestContext) {
     const dashboard = await this.getPerformanceAdvisors(context);
-
-    return filterAdvisorDashboardByDepartment(dashboard, "hvac-comfort-advisor");
+    const sales = filterAdvisorDashboardByDepartment(
+      dashboard,
+      "hvac-comfort-advisor",
+    );
+    // Independent of the selected report period, including hires with no activity yet.
+    try {
+      const saved = await prisma.dashboardReadModel.findUnique({
+        where: {
+          family_scopeKey: {
+            family: DashboardFamily.ADVISORS,
+            scopeKey: "staff-roster:v1",
+          },
+        },
+      });
+      if (
+        saved?.snapshotTime &&
+        Date.now() - saved.snapshotTime.getTime() < 24 * 3_600_000 &&
+        Array.isArray(saved.payloadJson)
+      )
+        return mergeAdvisorRoster(
+          sales,
+          saved.payloadJson as unknown as AdvisorRosterMember[],
+        );
+    } catch {
+      /* A roster outage must not hide the report's existing salespeople. */
+    }
+    return sales;
   }
 
   async getPerformanceAdvisors(context?: DashboardRequestContext) {
@@ -386,7 +480,7 @@ export class DashboardService {
         "fieldProJobRecordings",
         (payload) => buildFieldProJobRecordings(payload),
         context,
-      )
+      ),
     ]);
 
     return buildFieldProPerformance(activity, recordings);
@@ -397,25 +491,55 @@ export class DashboardService {
     const request = this.resolveRequest("callCenterByCsr", context);
     const dates = {
       businessDateFrom: new Date(`${request.range.from}T00:00:00Z`),
-      businessDateTo: new Date(`${request.range.to}T00:00:00Z`)
+      businessDateTo: new Date(`${request.range.to}T00:00:00Z`),
     };
-    const snapshot = await this.safeQuery("csr-scoped-snapshot", null, () => prisma.rawReportSnapshot.findFirst({
-      where: { family: { in: [DashboardFamily.CALL_CENTER_BY_CSR, DashboardFamily.CALL_CENTER_SUMMARY] }, ...dates },
-      orderBy: { fetchedAt: "desc" }
-    }));
-    const extra = await this.safeQuery("csr-supplement", null, () => prisma.dashboardReadModel.findUnique({
-      where: { family_scopeKey: { family: DashboardFamily.CALL_CENTER_BY_CSR, scopeKey: `csr-sources:v1:${request.range.from}:${request.range.to}` } }
-    }));
-    const supplementFresh = extra?.snapshotTime && Date.now() - extra.snapshotTime.getTime() < 10 * 60_000;
+    const snapshot = await this.safeQuery("csr-scoped-snapshot", null, () =>
+      prisma.rawReportSnapshot.findFirst({
+        where: {
+          family: {
+            in: [
+              DashboardFamily.CALL_CENTER_BY_CSR,
+              DashboardFamily.CALL_CENTER_SUMMARY,
+            ],
+          },
+          ...dates,
+        },
+        orderBy: { fetchedAt: "desc" },
+      }),
+    );
+    const extra = await this.safeQuery("csr-supplement", null, () =>
+      prisma.dashboardReadModel.findUnique({
+        where: {
+          family_scopeKey: {
+            family: DashboardFamily.CALL_CENTER_BY_CSR,
+            scopeKey: `csr-sources:v1:${request.range.from}:${request.range.to}`,
+          },
+        },
+      }),
+    );
+    const supplementFresh =
+      extra?.snapshotTime &&
+      Date.now() - extra.snapshotTime.getTime() < 10 * 60_000;
     const cachedSupplement = extra?.payloadJson as {
       sales?: unknown;
       missed?: unknown;
     } | null;
     // Past booking cohorts can gain sales later; refresh them on demand as well.
-    if (!snapshot || !supplementFresh || !cachedSupplement?.sales || !cachedSupplement?.missed)
+    if (
+      !snapshot ||
+      !supplementFresh ||
+      !cachedSupplement?.sales ||
+      !cachedSupplement?.missed
+    )
       this.queueRefresh("callCenterByCsr", context);
-    const result = buildCsrPerformanceDashboard(snapshot?.payloadJson ?? {}, extra?.payloadJson as Parameters<typeof buildCsrPerformanceDashboard>[1]);
-    return this.attachSnapshotTime(result, snapshot?.sourceSnapshotTime ?? snapshot?.fetchedAt);
+    const result = buildCsrPerformanceDashboard(
+      snapshot?.payloadJson ?? {},
+      extra?.payloadJson as Parameters<typeof buildCsrPerformanceDashboard>[1],
+    );
+    return this.attachSnapshotTime(
+      result,
+      snapshot?.sourceSnapshotTime ?? snapshot?.fetchedAt,
+    );
   }
 
   async getCallCenterSummary(context?: DashboardRequestContext) {
@@ -444,21 +568,30 @@ export class DashboardService {
     );
   }
 
-  async getCampaignPerformance(month: string): Promise<CampaignPerformanceSnapshot | null> {
+  async getCampaignPerformance(
+    month: string,
+  ): Promise<CampaignPerformanceSnapshot | null> {
     if (!/^\d{4}-\d{2}$/.test(month)) {
       throw new Error("Campaign month must use YYYY-MM format");
     }
-    const readModel = await this.safeQuery(`campaign-performance:${month}`, null, () =>
-      prisma.dashboardReadModel.findUnique({
-        where: {
-          family_scopeKey: {
-            family: DashboardFamily.CAMPAIGNS,
-            scopeKey: `campaign-performance:${month}`
-          }
-        }
-      }),
+    const readModel = await this.safeQuery(
+      `campaign-performance:${month}`,
+      null,
+      () =>
+        prisma.dashboardReadModel.findUnique({
+          where: {
+            family_scopeKey: {
+              family: DashboardFamily.CAMPAIGNS,
+              scopeKey: `campaign-performance:${month}`,
+            },
+          },
+        }),
     );
-    return (readModel?.payloadJson as unknown as CampaignPerformanceSnapshot | undefined) ?? null;
+    return (
+      (readModel?.payloadJson as unknown as
+        | CampaignPerformanceSnapshot
+        | undefined) ?? null
+    );
   }
 
   async requestCampaignPerformanceRefresh(month: string) {
@@ -478,17 +611,21 @@ export class DashboardService {
     return this.refreshService.getRefreshStatus(jobId);
   }
 
-  async getTrending(context?: DashboardRequestContext): Promise<ReturnType<typeof buildTrendingModel>> {
+  async getTrending(
+    context?: DashboardRequestContext,
+  ): Promise<ReturnType<typeof buildTrendingModel>> {
     const goalYear = this.resolveGoalYear(context);
     const hasExplicitScope = this.hasExplicitScope(context);
     const [scopedSnapshot, latestSnapshot, goals] = await Promise.all([
       this.getSnapshotForContext(DashboardFamily.TRENDING, "trending", context),
       this.getLatestSnapshot(DashboardFamily.TRENDING),
-      this.getGoalsForContext(context)
+      this.getGoalsForContext(context),
     ]);
     const snapshot =
       scopedSnapshot ??
-      (!hasExplicitScope || this.canUseLatestSnapshotFallback(context) ? latestSnapshot : null);
+      (!hasExplicitScope || this.canUseLatestSnapshotFallback(context)
+        ? latestSnapshot
+        : null);
 
     if (!scopedSnapshot && hasExplicitScope) {
       this.queueRefresh("trending", context);
@@ -499,7 +636,7 @@ export class DashboardService {
         snapshot?.payloadJson ?? {},
         goals.map((goal) => ({
           monthName: goal.monthName,
-          goalAmount: Number(goal.goalAmount)
+          goalAmount: Number(goal.goalAmount),
         })),
         { currentYear: goalYear },
       ),
@@ -507,7 +644,9 @@ export class DashboardService {
     );
   }
 
-  async getCompanyWide(context?: DashboardRequestContext): Promise<CompanyWideDashboardResponse> {
+  async getCompanyWide(
+    context?: DashboardRequestContext,
+  ): Promise<CompanyWideDashboardResponse> {
     const businessDateContext = this.getBusinessDateContext(context);
     const businessDay = businessDateContext.businessDay;
     const businessWeekdayName = businessDateContext.businessWeekdayName;
@@ -526,7 +665,7 @@ export class DashboardService {
       bookingRate,
       scopedTrendingSnapshot,
       latestTrendingSnapshot,
-      goals
+      goals,
     ] = await Promise.all([
       this.resolveMetricFamily(
         DashboardFamily.MARKETING,
@@ -540,7 +679,7 @@ export class DashboardService {
         (payload) =>
           buildCapacitySummary(payload, {
             mode: "daily",
-            currentWeekdayName: businessWeekdayName
+            currentWeekdayName: businessWeekdayName,
           }),
         context,
       ),
@@ -574,7 +713,7 @@ export class DashboardService {
         (payload) =>
           buildSalesMonthlyPace(payload, {
             businessDayOfMonth: businessDay,
-            daysInMonth: businessDateContext.daysInMonth
+            daysInMonth: businessDateContext.daysInMonth,
           }),
         context,
       ),
@@ -592,7 +731,7 @@ export class DashboardService {
       ),
       this.getSnapshotForContext(DashboardFamily.TRENDING, "trending", context),
       this.getLatestSnapshot(DashboardFamily.TRENDING),
-      this.getGoalsForContext(context)
+      this.getGoalsForContext(context),
     ]);
     const trendingSnapshot =
       scopedTrendingSnapshot ??
@@ -619,13 +758,13 @@ export class DashboardService {
           trendingSnapshot?.payloadJson ?? {},
           goals.map((goal) => ({
             monthName: goal.monthName,
-            goalAmount: Number(goal.goalAmount)
+            goalAmount: Number(goal.goalAmount),
           })),
           { currentYear: goalYear },
         ),
         trendingSnapshot?.sourceSnapshotTime ?? trendingSnapshot?.fetchedAt,
       ),
-      goals
+      goals,
     };
   }
 }

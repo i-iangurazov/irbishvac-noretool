@@ -16,6 +16,7 @@ import {
 import { RipplingClient, RipplingApiError } from "@irbis/integrations";
 
 import { preferKitchenCloudflarePhotos } from "./kitchen-photos";
+import { applyKitchenOrgDisplay } from "./kitchen-org-display";
 
 const EMPTY_DIRECTORY = normalizeKitchenDirectory([], [], []);
 
@@ -165,9 +166,11 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
       }
       return {
         ...common,
-        directory: applyKitchenBirthdayExclusions(
-          saved.payloadJson as unknown as KitchenDirectory,
-          this.config.rippling.birthdayExcludedWorkerIds,
+        directory: applyKitchenOrgDisplay(
+          applyKitchenBirthdayExclusions(
+            saved.payloadJson as unknown as KitchenDirectory,
+            this.config.rippling.birthdayExcludedWorkerIds,
+          ),
         ),
         syncedAt: saved.syncedAt.toISOString(),
         stale:

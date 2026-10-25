@@ -2,6 +2,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TvRotationRuntime } from "../../../packages/ui/src/components/tv-rotation-runtime";
+import { DASHBOARD_RECOVERY_EVENT } from "../../../packages/ui/src/components/dashboard-recovery";
 
 const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 // Keep the router identity stable, as it is in Next.js.
@@ -15,7 +16,7 @@ let onChange: (() => void) | undefined;
 
 beforeEach(() => {
   vi.useFakeTimers();
-  replace.mockClear();
+  replace.mockReset();
   wide = true;
   onChange = undefined;
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -61,6 +62,39 @@ function render(
 }
 
 describe("TV rotation", () => {
+  it("recovers a navigation that never commits", () => {
+    const recover = vi.fn();
+    window.addEventListener(DASHBOARD_RECOVERY_EVENT, recover);
+    render();
+    act(() => vi.advanceTimersByTime(39_999));
+    expect(recover).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(1));
+    expect(
+      (recover.mock.calls[0]?.[0] as CustomEvent).detail.targetHref,
+    ).toContain("page=2");
+    window.removeEventListener(DASHBOARD_RECOVERY_EVENT, recover);
+  });
+  it("cancels the failed-navigation watchdog after a successful route commit", () => {
+    const recover = vi.fn();
+    window.addEventListener(DASHBOARD_RECOVERY_EVENT, recover);
+    render();
+    act(() => vi.advanceTimersByTime(10_000));
+    render({ currentPage: 2 });
+    act(() => vi.advanceTimersByTime(30_000));
+    expect(recover).not.toHaveBeenCalled();
+    window.removeEventListener(DASHBOARD_RECOVERY_EVENT, recover);
+  });
+  it("requests recovery when routing throws", () => {
+    const recover = vi.fn();
+    window.addEventListener(DASHBOARD_RECOVERY_EVENT, recover);
+    replace.mockImplementationOnce(() => {
+      throw Error("navigation unavailable");
+    });
+    render();
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(recover).toHaveBeenCalledOnce();
+    window.removeEventListener(DASHBOARD_RECOVERY_EVENT, recover);
+  });
   it("shows each page for ten seconds", () => {
     render();
     act(() => vi.advanceTimersByTime(9_999));

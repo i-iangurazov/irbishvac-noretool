@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import {
+  DASHBOARD_READY_EVENT,
+  requestDashboardRecovery,
+} from "./dashboard-recovery";
 
 type NavItem = {
   href: string;
@@ -38,6 +42,9 @@ export function TvRotationRuntime({
   const router = useRouter();
   // Server refreshes recreate nav objects; only a route change should reset the timer.
   const routeKey = JSON.stringify(navItems.map((item) => item.href));
+  useEffect(() => {
+    window.dispatchEvent(new Event(DASHBOARD_READY_EVENT));
+  }, [activePath, currentPage, presetQuery]);
 
   useEffect(() => {
     const routes = JSON.parse(routeKey) as string[];
@@ -49,10 +56,20 @@ export function TvRotationRuntime({
       return;
     }
 
+    let navigationTimeout: number | undefined;
     const navigate = (href: string) => {
-      router.replace(href as Parameters<typeof router.replace>[0], {
-        scroll: false,
-      });
+      navigationTimeout = window.setTimeout(
+        () => requestDashboardRecovery(href),
+        30_000,
+      );
+      try {
+        router.replace(href as Parameters<typeof router.replace>[0], {
+          scroll: false,
+        });
+      } catch {
+        window.clearTimeout(navigationTimeout);
+        requestDashboardRecovery(href);
+      }
     };
 
     const query = window.matchMedia(`(min-width: ${minViewportWidth}px)`);
@@ -97,6 +114,7 @@ export function TvRotationRuntime({
 
     return () => {
       window.clearTimeout(timeout);
+      window.clearTimeout(navigationTimeout);
       query.removeEventListener("change", schedule);
     };
   }, [

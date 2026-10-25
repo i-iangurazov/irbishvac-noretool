@@ -65,6 +65,7 @@ function Portrait({ employee }: { employee: KitchenEmployee }) {
   const ref = useRef<HTMLDivElement>(null);
   const urls = [
     staffPortraitUrl(employee.name, employee.id),
+    ...(employee.orgDepartmentLabel ? [staffPortraitUrl(employee.name)] : []),
     ripplingPortrait(employee),
   ];
   const src = urls.find((url): url is string =>
@@ -149,7 +150,12 @@ function Leadership({
   const { roots, reports, totalReports } = kitchenLeadership(
     data.directory.employees,
   );
-  const branches = slide.branches ?? [];
+  const departments = (slide.branches ?? []).filter(
+    (branch) => branch.standalone,
+  );
+  const branches = (slide.branches ?? []).filter(
+    (branch) => !branch.standalone,
+  );
   return (
     <div
       className="kitchen-org"
@@ -165,7 +171,7 @@ function Leadership({
           return (
             <div
               key={root.id}
-              className="kitchen-executive-zone"
+              className={`kitchen-executive-zone${count <= 1 ? " kitchen-executive-zone--compact" : ""}`}
               style={{ gridColumn: `span ${Math.max(1, count)}` }}
             >
               <article
@@ -224,13 +230,27 @@ function Leadership({
           return (
             <section
               key={`${branch.executive.id}-${branch.leader?.id ?? branch.label}`}
-              className="kitchen-branch"
+              className={`kitchen-branch${branch.standalone ? " kitchen-branch--standalone" : ""}`}
             >
               <div
                 className="kitchen-branch-connector"
                 data-before={sameBefore}
                 data-after={sameAfter}
               />
+              {branch.leader && (
+                <div className="kitchen-department-label">
+                  {branch.label ??
+                    (/human resources/i.test(branch.leader.title)
+                      ? "Human Resources"
+                      : branch.installation
+                        ? "Installation"
+                        : /account/i.test(branch.leader.title)
+                          ? "Accounting"
+                          : /warehouse/i.test(branch.leader.title)
+                            ? "Warehouse"
+                            : branch.leader.department)}
+                </div>
+              )}
               {branch.leader ? (
                 <Leader
                   person={branch.leader}
@@ -273,6 +293,22 @@ function Leadership({
           );
         })}
       </div>
+      {departments.length > 0 && (
+        <aside
+          className="kitchen-independent-departments"
+          aria-label="Company departments"
+        >
+          <h3>Company departments</h3>
+          <div>
+            {departments.map((branch) => (
+              <section key={branch.leader!.id}>
+                <div className="kitchen-department-label">{branch.label}</div>
+                <Leader person={branch.leader!} />
+              </section>
+            ))}
+          </div>
+        </aside>
+      )}
     </div>
   );
 }

@@ -25,20 +25,20 @@ vi.mock("@irbis/db", () => ({
     REVENUE_MONTHLY_PACE: "REVENUE_MONTHLY_PACE",
     BOOKING_RATE: "BOOKING_RATE",
     FIELD_PRO_TECHNICIAN_ACTIVITY: "FIELD_PRO_TECHNICIAN_ACTIVITY",
-    FIELD_PRO_JOB_RECORDINGS: "FIELD_PRO_JOB_RECORDINGS"
+    FIELD_PRO_JOB_RECORDINGS: "FIELD_PRO_JOB_RECORDINGS",
   },
   prisma: {
     rawReportSnapshot: {
-      findFirst
+      findFirst,
     },
     dashboardReadModel: {
-      findUnique
+      findUnique,
     },
     goalTrackerEntry: {
-      findMany
-    }
+      findMany,
+    },
   },
-  setDefaultMonthlyGoalEntries
+  setDefaultMonthlyGoalEntries,
 }));
 
 vi.mock("@irbis/integrations", () => ({
@@ -62,27 +62,33 @@ vi.mock("@irbis/integrations", () => ({
     bookingRate: { family: "bookingRate", defaultPreset: "today" },
     fieldProTechnicianActivity: {
       family: "fieldProTechnicianActivity",
-      defaultPreset: "mtd"
+      defaultPreset: "mtd",
     },
-    fieldProJobRecordings: { family: "fieldProJobRecordings", defaultPreset: "mtd" }
+    fieldProJobRecordings: {
+      family: "fieldProJobRecordings",
+      defaultPreset: "mtd",
+    },
   }),
-  resolveReportRequest: (definition: { family: string }, context?: { preset?: string; from?: string; to?: string }) => ({
+  resolveReportRequest: (
+    definition: { family: string },
+    context?: { preset?: string; from?: string; to?: string },
+  ) => ({
     parameters: [
       { name: "From", value: context?.from ?? "2026-03-01" },
-      { name: "To", value: context?.to ?? "2026-03-21" }
+      { name: "To", value: context?.to ?? "2026-03-21" },
     ],
     range: {
       from: context?.from ?? "2026-03-01",
-      to: context?.to ?? "2026-03-21"
+      to: context?.to ?? "2026-03-21",
     },
-    requestHash: `${definition.family}:${context?.preset ?? "default"}:${context?.from ?? "2026-03-01"}:${context?.to ?? "2026-03-21"}`
-  })
+    requestHash: `${definition.family}:${context?.preset ?? "default"}:${context?.from ?? "2026-03-01"}:${context?.to ?? "2026-03-21"}`,
+  }),
 }));
 
 vi.mock("@irbis/config", () => ({
   getConfig: () => ({
-    app: { timezone: "America/Los_Angeles" }
-  })
+    app: { timezone: "America/Los_Angeles" },
+  }),
 }));
 
 describe("DashboardService", () => {
@@ -99,7 +105,11 @@ describe("DashboardService", () => {
     findUnique.mockResolvedValue(null);
     const { DashboardService } = await import("./dashboard.service");
     const service = new DashboardService();
-    const context = { preset: "mtd" as const, from: "2026-09-01", to: "2026-09-28" };
+    const context = {
+      preset: "mtd" as const,
+      from: "2026-09-01",
+      to: "2026-09-28",
+    };
     const summary = await service.getCallCenterSummary(context);
     const cards = await service.getCallCenterByCsr(context);
     expect(summary).toEqual(cards);
@@ -107,10 +117,21 @@ describe("DashboardService", () => {
     expect(summary.snapshotTime).toBeNull();
     expect(findFirst).toHaveBeenCalledTimes(2);
     expect(findFirst).toHaveBeenCalledWith({
-      where: { family: { in: ["CALL_CENTER_BY_CSR", "CALL_CENTER_SUMMARY"] }, businessDateFrom: new Date("2026-09-01T00:00:00Z"), businessDateTo: new Date("2026-09-28T00:00:00Z") },
-      orderBy: { fetchedAt: "desc" }
+      where: {
+        family: { in: ["CALL_CENTER_BY_CSR", "CALL_CENTER_SUMMARY"] },
+        businessDateFrom: new Date("2026-09-01T00:00:00Z"),
+        businessDateTo: new Date("2026-09-28T00:00:00Z"),
+      },
+      orderBy: { fetchedAt: "desc" },
     });
-    expect(findUnique).toHaveBeenCalledWith({ where: { family_scopeKey: { family: "CALL_CENTER_BY_CSR", scopeKey: "csr-sources:v1:2026-09-01:2026-09-28" } } });
+    expect(findUnique).toHaveBeenCalledWith({
+      where: {
+        family_scopeKey: {
+          family: "CALL_CENTER_BY_CSR",
+          scopeKey: "csr-sources:v1:2026-09-01:2026-09-28",
+        },
+      },
+    });
   });
 
   it("builds technician route payloads from raw snapshots", async () => {
@@ -126,10 +147,10 @@ describe("DashboardService", () => {
           { name: "ClosedOpportunities" },
           { name: "OpportunityAverageSale" },
           { name: "MembershipOpportunities" },
-          { name: "MembershipsSold" }
+          { name: "MembershipsSold" },
         ],
-        data: [["A", "Service", 1000, 100, 10, 5, 300, 4, 2]]
-      }
+        data: [["A", "Service", 1000, 100, 10, 5, 300, 4, 2]],
+      },
     });
 
     const { DashboardService } = await import("./dashboard.service");
@@ -148,13 +169,13 @@ describe("DashboardService", () => {
           { name: "TechnicianBusinessUnit" },
           { name: "TotalSales" },
           { name: "SalesOpportunity" },
-          { name: "CloseRateRolling" }
+          { name: "CloseRateRolling" },
         ],
         data: [
           ["HVAC Advisor", "HVAC Sales", 1000, 2, 0.5],
-          ["Plumbing Advisor", "Plumbing Sales", 800, 2, 0.4]
-        ]
-      }
+          ["Plumbing Advisor", "Plumbing Sales", 800, 2, 0.4],
+        ],
+      },
     });
 
     const { DashboardService } = await import("./dashboard.service");
@@ -163,8 +184,49 @@ describe("DashboardService", () => {
 
     expect(result.rowsRanked.map((row) => row.name)).toEqual([
       "HVAC Advisor",
-      "Plumbing Advisor"
+      "Plumbing Advisor",
     ]);
+  });
+
+  it("adds active sales-BU staff to a cached selected period without altering its metrics", async () => {
+    const { DashboardService } = await import("./dashboard.service");
+    const { buildAdvisorDashboard } = await import("@irbis/domain");
+    const service = new DashboardService();
+    const report = buildAdvisorDashboard([
+      {
+        Name: "Historical Seller",
+        TechnicianId: 1,
+        TechnicianBusinessUnit: "HVAC - Sales",
+        TotalSales: 250,
+        ClosedAverageSale: 125,
+        SalesOpportunity: 4,
+      },
+    ]);
+    vi.spyOn(service, "getPerformanceAdvisors").mockResolvedValue(report);
+    findUnique.mockResolvedValue({
+      snapshotTime: new Date(),
+      payloadJson: [
+        {
+          technicianId: "2",
+          name: "Future Hire",
+          businessUnit: "HVAC - Sales",
+        },
+      ],
+    });
+    const result = await service.getAdvisors({
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+    expect(result.rows.map((row) => row.name)).toEqual([
+      "Historical Seller",
+      "Future Hire",
+    ]);
+    expect(result.totals).toEqual(report.totals);
+    expect(
+      result.rows.find((row) => row.name === "Future Hire")?.totalSales,
+    ).toBe(0);
+    findUnique.mockRejectedValueOnce(new Error("roster unavailable"));
+    expect((await service.getAdvisors()).rows).toEqual(report.rows);
   });
 
   it("merges Field Pro activity with job recording durations", async () => {
@@ -183,12 +245,16 @@ describe("DashboardService", () => {
               totalRecordings: 10,
               qualityRecordings: 8,
               qualityRecordingRate: 0.8,
-              recordingCoverage: 10 / 15
-            }
+              recordingCoverage: 10 / 15,
+            },
           ],
-          totals: { completedJobs: 15, totalRecordings: 10, qualityRecordings: 8 },
-          snapshotTime: "2026-07-20T12:00:00.000Z"
-        }
+          totals: {
+            completedJobs: 15,
+            totalRecordings: 10,
+            qualityRecordings: 8,
+          },
+          snapshotTime: "2026-07-20T12:00:00.000Z",
+        },
       })
       .mockResolvedValueOnce({
         payloadJson: {
@@ -196,30 +262,30 @@ describe("DashboardService", () => {
             {
               jobId: "132620437",
               technician: "Matthew Stalcup",
-              durationMinutes: 85.77
+              durationMinutes: 85.77,
             },
             {
               jobId: "132578823",
               technician: "Matthew Stalcup",
-              durationMinutes: 74.71
-            }
+              durationMinutes: 74.71,
+            },
           ],
-          snapshotTime: "2026-07-20T12:00:00.000Z"
-        }
+          snapshotTime: "2026-07-20T12:00:00.000Z",
+        },
       });
 
     const { DashboardService } = await import("./dashboard.service");
     const service = new DashboardService();
     const result = await service.getPerformanceFieldPro({
       from: "2026-07-13",
-      to: "2026-07-19"
+      to: "2026-07-19",
     });
 
     expect(result.rows[0]).toMatchObject({
       name: "Matthew Stalcup",
       totalRecordings: 10,
       qualityRecordingRate: 0.8,
-      averageRecordingMinutes: 80.24
+      averageRecordingMinutes: 80.24,
     });
   });
 
@@ -229,13 +295,21 @@ describe("DashboardService", () => {
     findFirst.mockResolvedValue({ payloadJson: {}, fetchedAt: new Date() });
     const enqueue = vi.fn();
     const { DashboardService } = await import("./dashboard.service");
-    const service = new DashboardService({ ensureRefreshEnqueued: enqueue } as never);
+    const service = new DashboardService({
+      ensureRefreshEnqueued: enqueue,
+    } as never);
     const context = { from: "2026-09-01", to: "2026-09-30" };
-    findUnique.mockResolvedValue({ payloadJson: extra, snapshotTime: new Date(Date.now() - 11 * 60_000) });
+    findUnique.mockResolvedValue({
+      payloadJson: extra,
+      snapshotTime: new Date(Date.now() - 11 * 60_000),
+    });
     await service.getCallCenterByCsr(context);
     expect(enqueue).toHaveBeenCalledWith("callCenterByCsr", context);
     enqueue.mockClear();
-    findUnique.mockResolvedValue({ payloadJson: extra, snapshotTime: new Date() });
+    findUnique.mockResolvedValue({
+      payloadJson: extra,
+      snapshotTime: new Date(),
+    });
     await service.getCallCenterSummary(context);
     expect(enqueue).not.toHaveBeenCalled();
     delete extra.sales;
@@ -244,29 +318,27 @@ describe("DashboardService", () => {
   });
 
   it("uses the latest cached read model while an MTD refresh is queued", async () => {
-    findUnique
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        payloadJson: {
-          rowsRanked: [{ name: "Cached technician" }]
-        },
-        snapshotTime: new Date("2026-03-21T12:00:00.000Z")
-      });
+    findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      payloadJson: {
+        rowsRanked: [{ name: "Cached technician" }],
+      },
+      snapshotTime: new Date("2026-03-21T12:00:00.000Z"),
+    });
     findFirst.mockResolvedValue(null);
 
     const enqueue = vi.fn();
     const { DashboardService } = await import("./dashboard.service");
     const service = new DashboardService({
-      ensureRefreshEnqueued: enqueue
+      ensureRefreshEnqueued: enqueue,
     } as never);
     const result = await service.getTechnicians({
       preset: "mtd",
       from: "2026-03-01",
-      to: "2026-03-22"
+      to: "2026-03-22",
     });
 
     expect(result.rowsRanked).toEqual([
-      expect.objectContaining({ name: "Cached technician" })
+      expect.objectContaining({ name: "Cached technician" }),
     ]);
     expect(result.snapshotTime).toBe("2026-03-21T12:00:00.000Z");
     expect(enqueue).toHaveBeenCalledTimes(1);
@@ -274,26 +346,24 @@ describe("DashboardService", () => {
 
   it("prefers a newer raw snapshot over the latest read model during MTD refresh", async () => {
     findUnique.mockResolvedValue(null);
-    findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        payloadJson: {
-          fields: [{ name: "Name" }, { name: "TechnicianBusinessUnit" }],
-          data: [["Fresh technician", "HVAC Service"]]
-        },
-        sourceSnapshotTime: new Date("2026-03-22T12:00:00.000Z"),
-        fetchedAt: new Date("2026-03-22T12:01:00.000Z")
-      });
+    findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      payloadJson: {
+        fields: [{ name: "Name" }, { name: "TechnicianBusinessUnit" }],
+        data: [["Fresh technician", "HVAC Service"]],
+      },
+      sourceSnapshotTime: new Date("2026-03-22T12:00:00.000Z"),
+      fetchedAt: new Date("2026-03-22T12:01:00.000Z"),
+    });
 
     const enqueue = vi.fn();
     const { DashboardService } = await import("./dashboard.service");
     const service = new DashboardService({
-      ensureRefreshEnqueued: enqueue
+      ensureRefreshEnqueued: enqueue,
     } as never);
     const result = await service.getTechnicians({
       preset: "mtd",
       from: "2026-03-01",
-      to: "2026-03-22"
+      to: "2026-03-22",
     });
 
     expect(result.rowsRanked[0]?.name).toBe("Fresh technician");
@@ -308,11 +378,11 @@ describe("DashboardService", () => {
     const enqueue = vi.fn();
     const { DashboardService } = await import("./dashboard.service");
     const service = new DashboardService({
-      ensureRefreshEnqueued: enqueue
+      ensureRefreshEnqueued: enqueue,
     } as never);
     const result = await service.getTechnicians({
       from: "2026-03-01",
-      to: "2026-03-22"
+      to: "2026-03-22",
     });
 
     expect(result.rowsRanked).toEqual([]);
@@ -345,7 +415,7 @@ describe("DashboardService", () => {
     await service.getTrending({
       preset: "ytd",
       from: "2025-01-02",
-      to: "2025-10-14"
+      to: "2025-10-14",
     });
 
     expect(setDefaultMonthlyGoalEntries).toHaveBeenCalledWith(2025);

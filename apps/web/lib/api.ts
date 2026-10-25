@@ -1,4 +1,6 @@
-import { headers } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
+import { getConfig } from "@irbis/config";
+import { isAllowedDashboardIdentity } from "./dashboard-identity";
 
 export type DashboardNavItem = {
   id: string;
@@ -75,7 +77,7 @@ export const navItems: DashboardNavItem[] = [
   {
     id: "advisors",
     href: "/advisors",
-    label: "Advisors",
+    label: "HVAC Sales",
     shortLabel: "AD",
     section: "Field Performance",
   },
@@ -123,36 +125,6 @@ export const navItems: DashboardNavItem[] = [
   },
 ];
 
-async function getWebOrigin() {
-  if (typeof window !== "undefined") {
-    return "";
-  }
-
-  try {
-    const requestHeaders = await headers();
-    const host =
-      requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-
-    if (host) {
-      const protocol =
-        requestHeaders.get("x-forwarded-proto") ??
-        (host.includes("localhost") || host.startsWith("127.0.0.1")
-          ? "http"
-          : "https");
-
-      return `${protocol}://${host}`;
-    }
-  } catch {
-    // Ignore missing request context and use environment fallback instead.
-  }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  return "http://localhost:3000";
-}
-
 export class DashboardApiError extends Error {
   readonly status: number;
 
@@ -164,28 +136,50 @@ export class DashboardApiError extends Error {
 }
 
 export async function fetchApi<T>(path: string): Promise<T> {
-  const baseUrl = await getWebOrigin();
-  const requestHeaders = new Headers();
+  // Use the identity already verified for this Server Component request. A
+  // self-fetch through Clerk middleware re-verifies an aging browser cookie and
+  // can turn a token-refresh redirect into an HTML response during rotation.
+  const identity = await auth();
+  if (
+    !isAllowedDashboardIdentity({
+      isAuthenticated: identity.isAuthenticated,
+      userId: identity.userId,
+      primaryEmail: identity.sessionClaims?.primaryEmail,
+    })
+  )
+    throw new DashboardApiError(path, 401);
+  if (!path.startsWith("/dashboard/")) throw new DashboardApiError(path, 400);
 
+  const baseUrl =
+    process.env.API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    "http://localhost:3001";
+  let response: Response;
   try {
-    const incomingHeaders = await headers();
-    const cookie = incomingHeaders.get("cookie");
-
-    if (cookie) {
-      requestHeaders.set("cookie", cookie);
-    }
+    response = await fetch(new URL(`/api${path}`, baseUrl), {
+      cache: "no-store",
+      redirect: "manual",
+      headers: {
+        accept: "application/json",
+        "x-dashboard-access-token": getConfig().auth.cookieSecret,
+      },
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch (error) {
+    const timedOut = Boolean(
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      /timeout|abort/i.test(String(error.name)),
+    );
+    throw new DashboardApiError(path, timedOut ? 504 : 503);
+  }
+  if (!response.ok) throw new DashboardApiError(path, response.status);
+  if (!response.headers.get("content-type")?.includes("application/json"))
+    throw new DashboardApiError(path, 502);
+  try {
+    return (await response.json()) as T;
   } catch {
-    // Unit tests and build-time evaluation do not always have request context.
+    throw new DashboardApiError(path, 502);
   }
-
-  const response = await fetch(`${baseUrl}/api${path}`, {
-    cache: "no-store",
-    headers: requestHeaders,
-  });
-
-  if (!response.ok) {
-    throw new DashboardApiError(path, response.status);
-  }
-
-  return response.json() as Promise<T>;
 }

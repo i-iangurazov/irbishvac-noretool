@@ -1,16 +1,20 @@
 import { createHash } from "node:crypto";
 import { Queue, Worker, type ConnectionOptions } from "bullmq";
 import { getConfig } from "@irbis/config";
-import { ServiceTitanRateLimitError, type ReportRequestContext } from "@irbis/integrations";
+import {
+  ServiceTitanRateLimitError,
+  type ReportRequestContext,
+} from "@irbis/integrations";
 import { createLogger, getRedisConnectionSettings } from "@irbis/utils";
 import {
   COMPANY_REFRESH_FAMILIES,
   DashboardRefreshRunner,
-  PEOPLE_REFRESH_FAMILIES
+  PEOPLE_REFRESH_FAMILIES,
 } from "./runner";
 import { buildLatestSnapshotPlan } from "./snapshot-plan";
 import { CampaignPerformanceRefreshRunner } from "./campaign-performance";
 import { MembershipPerformanceRunner } from "./membership-performance";
+import { refreshAdvisorRoster } from "./advisor-roster";
 
 type RefreshJob =
   | {
@@ -19,7 +23,11 @@ type RefreshJob =
       context?: Pick<ReportRequestContext, "preset" | "from" | "to">;
     }
   | { type: "refresh-campaign-performance"; month?: string }
-  | { type: "refresh-membership-performance"; context?: Pick<ReportRequestContext, "preset" | "from" | "to"> }
+  | { type: "refresh-advisor-roster" }
+  | {
+      type: "refresh-membership-performance";
+      context?: Pick<ReportRequestContext, "preset" | "from" | "to">;
+    }
   | { type: "refresh-pipeline"; pipeline: "people" | "company" };
 
 const logger = createLogger("worker-main");
@@ -30,7 +38,10 @@ function getBullConnection(urlString: string): ConnectionOptions {
 }
 
 function getRefreshJobId(prefix: string, family: string, requestHash: string) {
-  const scopeHash = createHash("sha256").update(requestHash).digest("hex").slice(0, 32);
+  const scopeHash = createHash("sha256")
+    .update(requestHash)
+    .digest("hex")
+    .slice(0, 32);
   return `${prefix}-${family}-${scopeHash}`;
 }
 
@@ -43,11 +54,11 @@ const refreshQueue = new Queue<RefreshJob, unknown, string>(queueName, {
     attempts: 3,
     backoff: {
       type: "exponential",
-      delay: 45_000
+      delay: 45_000,
     },
     removeOnComplete: 100,
-    removeOnFail: 100
-  }
+    removeOnFail: 100,
+  },
 });
 const runner = new DashboardRefreshRunner();
 const campaignPerformanceRunner = new CampaignPerformanceRefreshRunner();
@@ -57,7 +68,7 @@ function currentBusinessMonth() {
   return new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
     month: "2-digit",
-    timeZone: config.app.timezone
+    timeZone: config.app.timezone,
   }).format(new Date());
 }
 
@@ -67,36 +78,49 @@ const worker = new Worker<RefreshJob, unknown, string>(
     if (!(await runner.isPersistenceAvailable())) {
       logger.warn("Skipping worker job because database is unavailable", {
         jobId: job.id,
-        name: job.name
+        name: job.name,
       });
 
       return {
         status: "skipped",
-        reason: "database_unavailable"
+        reason: "database_unavailable",
       };
     }
 
     if (!runner.isIngestionConfigured()) {
-      logger.warn("Skipping worker job because ServiceTitan configuration is incomplete", {
-        jobId: job.id,
-        name: job.name,
-        missing: runner.getMissingIntegrationConfig()
-      });
+      logger.warn(
+        "Skipping worker job because ServiceTitan configuration is incomplete",
+        {
+          jobId: job.id,
+          name: job.name,
+          missing: runner.getMissingIntegrationConfig(),
+        },
+      );
 
       return {
         status: "skipped",
-        reason: "missing_servicetitan_config"
+        reason: "missing_servicetitan_config",
       };
     }
 
     const correlationId = `${job.id ?? "job"}:${Date.now()}`;
 
+    if (job.data.type === "refresh-advisor-roster")
+      return refreshAdvisorRoster();
+
     if (job.data.type === "refresh-campaign-performance") {
-      return campaignPerformanceRunner.refresh(job.data.month ?? currentBusinessMonth(), correlationId);
+      return campaignPerformanceRunner.refresh(
+        job.data.month ?? currentBusinessMonth(),
+        correlationId,
+      );
     }
 
     if (job.data.type === "refresh-family") {
-      return runner.refreshFamily(job.data.family, correlationId, job.data.context);
+      return runner.refreshFamily(
+        job.data.family,
+        correlationId,
+        job.data.context,
+      );
     }
 
     if (job.data.type === "refresh-membership-performance") {
@@ -104,7 +128,9 @@ const worker = new Worker<RefreshJob, unknown, string>(
     }
 
     const families =
-      job.data.pipeline === "people" ? PEOPLE_REFRESH_FAMILIES : COMPANY_REFRESH_FAMILIES;
+      job.data.pipeline === "people"
+        ? PEOPLE_REFRESH_FAMILIES
+        : COMPANY_REFRESH_FAMILIES;
 
     const results = [];
     for (const family of families) {
@@ -117,9 +143,9 @@ const worker = new Worker<RefreshJob, unknown, string>(
     connection,
     limiter: {
       max: 1,
-      duration: 65_000
-    }
-  }
+      duration: 65_000,
+    },
+  },
 );
 
 worker.on("completed", (job) => {
@@ -132,7 +158,7 @@ worker.on("failed", (job, error) => {
       jobId: job?.id,
       name: job?.name,
       message: error.message,
-      retryAfterSeconds: error.retryAfterSeconds
+      retryAfterSeconds: error.retryAfterSeconds,
     });
     return;
   }
@@ -140,7 +166,7 @@ worker.on("failed", (job, error) => {
   logger.error("Worker job failed", {
     jobId: job?.id,
     name: job?.name,
-    message: error.message
+    message: error.message,
   });
 });
 
@@ -154,34 +180,78 @@ async function bootstrap() {
       { pattern: "15 */2 * * *", tz: config.app.timezone },
       {
         name: "scheduled-campaign-performance",
-        data: { type: "refresh-campaign-performance" }
+        data: { type: "refresh-campaign-performance" },
       },
     );
     logger.info("Campaign performance scheduler enabled", {
       pattern: "15 */2 * * *",
-      timezone: config.app.timezone
+      timezone: config.app.timezone,
     });
   } else {
-    logger.warn("Campaign performance scheduler disabled until source access is configured", {
-      missing: campaignMissing
-    });
+    logger.warn(
+      "Campaign performance scheduler disabled until source access is configured",
+      {
+        missing: campaignMissing,
+      },
+    );
   }
 
   if (runner.isIngestionConfigured()) {
-    for (const [preset, pattern] of [["mtd", "5,35 * * * *"], ["ytd", "20 * * * *"]] as const) {
+    await refreshQueue.upsertJobScheduler(
+      "sales-staff-every-15-minutes",
+      { pattern: "*/15 * * * *", tz: config.app.timezone },
+      {
+        name: "scheduled-sales-staff",
+        data: { type: "refresh-advisor-roster" },
+      },
+    );
+    if (await runner.isPersistenceAvailable()) {
+      try {
+        await refreshAdvisorRoster();
+      } catch {
+        logger.warn(
+          "Sales roster startup sync unavailable; scheduled retries remain enabled.",
+        );
+      }
+    }
+    for (const [preset, pattern] of [
+      ["mtd", "5,35 * * * *"],
+      ["ytd", "20 * * * *"],
+    ] as const) {
       await refreshQueue.upsertJobScheduler(
         `csr-performance-${preset}`,
         { pattern, tz: config.app.timezone },
-        { name: `scheduled-csr-${preset}`, data: { type: "refresh-family", family: "callCenterByCsr", context: { preset } } },
+        {
+          name: `scheduled-csr-${preset}`,
+          data: {
+            type: "refresh-family",
+            family: "callCenterByCsr",
+            context: { preset },
+          },
+        },
       );
     }
-    logger.info("CSR performance schedulers enabled", { mtd: "every 30 minutes", ytd: "hourly" });
-    for (const [preset, pattern] of [["mtd", "12,27,42,57 * * * *"], ["ytd", "47 * * * *"]] as const) {
-      await refreshQueue.upsertJobScheduler(`membership-performance-${preset}`, { pattern, tz: config.app.timezone }, {
-        name: `scheduled-memberships-${preset}`, data: { type: "refresh-membership-performance", context: { preset } },
-      });
+    logger.info("CSR performance schedulers enabled", {
+      mtd: "every 30 minutes",
+      ytd: "hourly",
+    });
+    for (const [preset, pattern] of [
+      ["mtd", "12,27,42,57 * * * *"],
+      ["ytd", "47 * * * *"],
+    ] as const) {
+      await refreshQueue.upsertJobScheduler(
+        `membership-performance-${preset}`,
+        { pattern, tz: config.app.timezone },
+        {
+          name: `scheduled-memberships-${preset}`,
+          data: { type: "refresh-membership-performance", context: { preset } },
+        },
+      );
     }
-    logger.info("Membership performance schedulers enabled", { mtd: "every 15 minutes", ytd: "hourly" });
+    logger.info("Membership performance schedulers enabled", {
+      mtd: "every 15 minutes",
+      ytd: "hourly",
+    });
   }
 
   if (!config.worker.bootstrapOnStart) {
@@ -190,14 +260,19 @@ async function bootstrap() {
   }
 
   if (!(await runner.isPersistenceAvailable())) {
-    logger.warn("Worker booted without a reachable database; refresh bootstrap skipped");
+    logger.warn(
+      "Worker booted without a reachable database; refresh bootstrap skipped",
+    );
     return;
   }
 
   if (!runner.isIngestionConfigured()) {
-    logger.warn("Worker booted without full ServiceTitan configuration; refresh bootstrap skipped", {
-      missing: runner.getMissingIntegrationConfig()
-    });
+    logger.warn(
+      "Worker booted without full ServiceTitan configuration; refresh bootstrap skipped",
+      {
+        missing: runner.getMissingIntegrationConfig(),
+      },
+    );
     return;
   }
 
@@ -209,11 +284,11 @@ async function bootstrap() {
       {
         type: "refresh-family",
         family: item.family,
-        ...(item.context ? { context: item.context } : {})
+        ...(item.context ? { context: item.context } : {}),
       },
       {
-        jobId: getRefreshJobId("bootstrap", item.family, item.requestHash)
-      }
+        jobId: getRefreshJobId("bootstrap", item.family, item.requestHash),
+      },
     );
   }
 

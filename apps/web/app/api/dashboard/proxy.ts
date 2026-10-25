@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getConfig } from "@irbis/config";
 import { auth } from "@clerk/nextjs/server";
-import { isAllowedDashboardIdentity, SHARED_DASHBOARD_USER_ID } from "../../../lib/dashboard-identity";
+import {
+  isAllowedDashboardIdentity,
+  SHARED_DASHBOARD_USER_ID,
+} from "../../../lib/dashboard-identity";
 
 function getApiBaseUrl() {
   return (
@@ -86,7 +89,9 @@ export async function proxyDashboardRequest(
     headers.set("x-dashboard-user-id", identity.userId!);
     headers.set(
       "x-dashboard-user-label",
-      identity.userId === SHARED_DASHBOARD_USER_ID ? "Shared dashboard" : String(identity.sessionClaims?.primaryEmail ?? ""),
+      identity.userId === SHARED_DASHBOARD_USER_ID
+        ? "Shared dashboard"
+        : String(identity.sessionClaims?.primaryEmail ?? ""),
     );
   }
   const isCampaignPlanningWrite =
@@ -101,20 +106,38 @@ export async function proxyDashboardRequest(
     method,
     headers,
     cache: "no-store",
+    redirect: "manual",
+    signal: AbortSignal.timeout(20_000),
   };
 
   if (body !== null) {
     init.body = body;
   }
 
-  const response = await fetch(buildTargetUrl(request, path), init);
-  const responseBody = await response.text();
-
-  return new NextResponse(responseBody, {
-    status: response.status,
-    headers: {
-      "content-type":
-        response.headers.get("content-type") ?? "application/json",
-    },
-  });
+  try {
+    const response = await fetch(buildTargetUrl(request, path), init);
+    const responseBody = await response.text();
+    return new NextResponse(responseBody, {
+      status: response.status,
+      headers: {
+        "content-type":
+          response.headers.get("content-type") ?? "application/json",
+        "cache-control": "private, no-store",
+      },
+    });
+  } catch (error) {
+    const timedOut = Boolean(
+      error &&
+      typeof error === "object" &&
+      "name" in error &&
+      /timeout|abort/i.test(String(error.name)),
+    );
+    return NextResponse.json(
+      { error: "Dashboard connection temporarily unavailable" },
+      {
+        status: timedOut ? 504 : 503,
+        headers: { "cache-control": "private, no-store" },
+      },
+    );
+  }
 }

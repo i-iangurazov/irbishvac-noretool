@@ -82,9 +82,9 @@ describe("kitchen synchronization", () => {
       syncedAt: new Date(),
     });
     const result = await new KitchenService().board();
-    expect(result.directory.employees).toEqual([
-      { ...employee, birthday: null },
-    ]);
+    expect(
+      result.directory.employees.find((person) => person.id === "excluded"),
+    ).toEqual({ ...employee, birthday: null });
     expect(employee.birthday).toEqual({ month: 10, day: 21 });
     expect(mocks.directory).not.toHaveBeenCalled();
   });
