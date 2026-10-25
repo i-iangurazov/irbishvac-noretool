@@ -1,33 +1,39 @@
-# Revenue & Sales tab
+# Revenue & Sales
 
-Requirements: https://app.notion.com/p/400c710dca6e80af9c07daea5fb7a186
+Implements [Emil's Revenue & Sales Tab task](https://app.notion.com/p/400c710dca6e80af9c07daea5fb7a186) inside the existing Marketing workspace. Uses its shared shell, Montserrat type, green/orange palette, cards, controls and chart library.
 
-Reviewed against main `9b805ef0de9251d477ef216f3ced12e87561289d` on 2026-10-26. The other published branch pointed to the same commit; no later Revenue/Sales PR was returned by the repository search. Notion status is not treated as evidence of implementation.
-
-| Requirement | Implementation |
+| Requirement | Result |
 | --- | --- |
-| Revenue & Sales tab name | Header link renamed; existing view URL preserved |
-| Total Revenue/Sales switch | Summary, group cards, distribution and table use selected value |
-| Circular channel / business unit distribution | Accessible SVG rings and value/share legends; grouping selector |
-| Paid Channels / Organic / Unmapped | Existing classification reused, including automation under Organic and retention/partner under Unmapped; ATL also remains visible |
-| Marketing Spend split | Paid media = Performance Marketing; existing separate-spend category = Branding/ATL; commissions displayed separately |
-| ROAS/SOAS and expense ratio ordering | Table sorts by selected value, return descending or expense ratio ascending, with undefined values last |
-| Performance by Channels | Left table and right circular chart; independent all/paid/organic filters and chart Revenue/Sales switch |
+| Revenue & Sales navigation | Renamed the existing tab; preserves the `view=revenue` URL |
+| Revenue / Sales | Summary toggle updates the total, acquisition cards, distribution, table and efficiency labels |
+| Circular distribution | Channel / business-unit selector, currency and percentage legend, full breakdown disclosure |
+| Paid Channels / Organic / Unmapped | Existing category mapping retained, including automation under Organic; all channel dollars remain in totals |
+| Performance Marketing / Branding/ATL | Media spend split by existing paid and separate-spend categories; other spend reconciled explicitly and commissions separate |
+| ROAS / SOAS / Expense ratio | Efficiency selector; channel sorting by amount, return descending or expense ratio ascending |
+| Performance by Channels | Table plus horizontal bar chart, independent all/paid/organic filters and independent chart Revenue/Sales selection |
+| Responsive interface | Two-column desktop layout; readable mobile cards and channel rows; scrollable table and expandable chart on small screens |
 
-## Definitions and limitations
+## Metric definitions
 
-- Revenue = `actual.completedRevenue`; Sales = `actual.soldAmount` (sold estimate value, not cash receipts). Both retain the existing period/cutoff.
-- ROAS = attributed completed revenue / media advertising spend, consistent with the [Google Ads definition](https://business.google.com/ca-en/accelerate/resources/articles/glossary/). SOAS here means sold estimate value / media advertising spend and is explicitly defined in the UI; it is not ROI.
-- Expense to Income/Sales Ratio = media spend / the corresponding attributed revenue/sales, displayed as a percentage. This tab uses the **same covered paid-channel cohort** on both sides for both return and expense ratios. These are paid acquisition metrics, not a claim about company-wide marketing efficiency.
-- Commission costs are separate from the advertising denominator. Existing all-in calculations used elsewhere are unchanged.
-- Active paid channels with no positive recorded spend are excluded from both sides and named in the partial-coverage notice. Zero spend is not assumed to mean free acquisition. Spend-only channels stay in the denominator. Zero income yields a zero return; division by zero is unavailable, never infinity. Nonpaid and ATL rows have no attributed paid return.
-- All-channel totals retain Unmapped and ATL. A difference between channel and summary totals is an explicit reporting reconciliation item. Negative adjustments remain in the legend and are excluded from circle areas, with an on-screen explanation that shares use positive values.
-- Business-unit revenue uses the existing invoice-item breakdown and its reconciliation. Sold estimate business-unit totals are added only when the source explicitly has `ParentJobBusinessUnit`, `BusinessUnit`, or `Business Unit`; blank values remain Unassigned. Existing reports without this dimension show unavailable Sales by business unit rather than reusing revenue or inventing allocations. No ServiceTitan report configuration is changed.
+- Revenue uses `actual.completedRevenue`; Sales uses `actual.soldAmount`, the sold-estimate amount, not collected cash. Existing attribution, dates, cutoff, plans, costs and source joins remain intact.
+- ROAS = covered paid-channel completed revenue / covered paid media spend. SOAS = the same covered channels' sold-estimate value / paid media spend. This follows the [advertising return definition](https://business.google.com/ca-en/accelerate/resources/articles/glossary/) and is separate from ROI or the existing all-in return metrics elsewhere in the dashboard.
+- A paid channel with financial/lead/job activity but no positive recorded spend is excluded from both sides of ROAS/SOAS. The interface marks partial coverage and names missing channels in Metric definitions & data coverage. Spend-only paid channels remain in the denominator. Zero income gives 0×; zero cost gives unavailable, never infinity.
+- **Marketing Efficiency expense ratio** = all recorded marketing media spend, including Branding/ATL and other tracked spend, / total selected Revenue or Sales. Missing recorded costs may understate it; the partial-coverage indicator and explanation remain visible.
+- **Channel expense ratio** = that paid channel's media spend / its selected Revenue or Sales. Undefined denominators and nonpaid advertising returns display — and sort last. Commissions do not silently enter media spend.
+- Positive chart values determine circular areas. Negative adjustments stay separately visible; the UI explains that positive values determine chart shares. Source departments are never proportionally scaled to campaign revenue. An explicit reporting reconciliation retains the authoritative total.
+
+## Business-unit data
+
+Revenue reuses the existing department report. Sales now aggregates the existing sold-estimates report's explicit `BusinessUnit` column (also accepts compatible parent-job/name aliases); blanks remain Unassigned. This adds `salesByDepartment` to the snapshot and the read API. Existing snapshots without this additive field remain compatible and show an explicit unavailable state. Newly generated snapshots include the field through the existing worker path; no report configuration or production snapshot was changed manually.
+
+Read-only verification used the October snapshot generated on 2026-10-25 with cutoff 2026-10-25 (24 channels and 12 department records). The existing sold-estimates report for exactly the same period contained 228 estimates and six business units. Its sales total reconciled to the snapshot's $1,524,088.11. Raw evidence and credentials remain local and are not committed.
 
 ## Validation
 
-- Web typecheck, domain typecheck and ESLint on changed TypeScript files passed.
-- Next.js production compilation, lint and type validation passed. Full build stops at page-data collection because this clean checkout has no required runtime environment variables (database, Redis, authentication and ServiceTitan configuration). No production credentials were loaded.
-- Web suite: 184 tests passed. Domain suite: 89 tests passed.
-- Browser fixture used the real RevenueView component, August snapshot and marketing stylesheet. Chromium interactions checked summary Sales selection, paid table filtering and independent chart Sales selection at 390, 768, 1365 and 1920 pixels. Page overflow was 0 at every size, with no JavaScript errors. Mobile and laptop screenshots were visually inspected. Wide tables scroll inside their panel on small screens.
-- The browser fixture bypassed the authenticated app shell; this is component responsive QA, not a production session test. No production API, database, refresh or deployment was invoked.
+- Web: 199 tests passed; domain: 98 tests passed. Includes switches, independent filters, business-unit data and missing-data behavior, zero/unknown costs, spend-only channels, company versus channel expense scopes, reconciliation, sorting and server hydration.
+- Full Next.js build, web/domain typechecks and ESLint on changed files passed. The clean build uses local placeholder runtime configuration, not production credentials.
+- Browser checks use the real `/marketing?month=2026-10&view=revenue` route, shared shell, fonts, logo and styles. Local-only authentication/data adapters supply read-only source snapshots; production authentication is unchanged. All controls and Revenue/Sales department states were exercised at 390, 768, 1440 and 1920 px, with zero page overflow and no JavaScript errors. Desktop/mobile screenshots visually inspected.
+- `apps/web/scripts/qa-revenue-sales.mjs` provides repeatable browser checks against a local app, with `REVENUE_QA_BASE_URL`, `REVENUE_QA_MONTH`, `REVENUE_QA_OUTPUT_DIR` and optional `REVENUE_QA_REQUIRE_UNITS=1`. Full-page captures temporarily expand the native scrolling container only during capture; normal app scrolling stays unchanged.
+- Web suite was run with two workers and a 15-second test timeout to avoid CPU-contention timeouts in the existing 24-hour TV-recovery simulation. No product timeout changed.
+
+No production database/report writes, refresh requests or direct production deployment were performed.

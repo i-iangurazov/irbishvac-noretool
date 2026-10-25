@@ -499,15 +499,15 @@ function buildNextMonthDraft(
   };
 }
 
-// Sold estimates already use the campaign period/cutoff. Only expose this
-// breakdown when the source explicitly provides a business-unit dimension.
+// The sold-estimates report already has the campaign period/cutoff applied.
+// BusinessUnit is the explicit dimension supplied by that ServiceTitan report.
 export function buildDepartmentSales(payload: unknown) {
   const report = resolveTabularReport(payload);
-  const field = ["ParentJobBusinessUnit", "BusinessUnit", "Business Unit"].find(name => report.fields.some(field => field.name === name));
+  const field = report.fields.find(field => ["BusinessUnit", "ParentJobBusinessUnit", "Business Unit"].includes(field.name));
   if (!field || !report.rows.length) return [];
   const totals = new Map<string, number>();
   for (const row of report.rows) {
-    const department = String(row[field] ?? "").trim() || "Unassigned";
+    const department = String(row[field.name] ?? "").trim() || "Unassigned";
     totals.set(department, (totals.get(department) ?? 0) + toNumber(pickFirst(row, SOLD_ALIASES.amount)));
   }
   return [...totals].map(([department, soldAmount]) => ({ department, soldAmount }));

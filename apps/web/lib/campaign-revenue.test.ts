@@ -6,6 +6,8 @@ import type {
 } from "../components/campaign-performance-page";
 import {
   advertisingReturns,
+  marketingExpenses,
+  revenueDistribution,
   filterRevenueRows,
   sortRevenueRows,
 } from "./campaign-revenue";
@@ -81,5 +83,60 @@ describe("Revenue & Sales metrics", () => {
         .map((r) => r.channel),
     ).toEqual(["B", "A"]);
     expect(rows[0]!.channel).toBe("A");
+  });
+});
+
+describe("marketing spend and distribution reconciliation", () => {
+  it("uses total recorded marketing spend including ATL for the company expense ratio", () => {
+    const data = {
+      ...(snapshot as CampaignPerformanceData),
+      rows: [
+        row("Paid", "paid", 1000, 2000, 100),
+        row("TV", "separate-spend", 0, 0, 200),
+      ],
+      actual: {
+        ...(snapshot as CampaignPerformanceData).actual,
+        spend: 300,
+        completedRevenue: 10000,
+        soldAmount: 20000,
+      },
+    };
+    expect(marketingExpenses(data, "completedRevenue")).toMatchObject({
+      paid: 100,
+      branding: 200,
+      total: 300,
+      other: 0,
+      ratio: 0.03,
+    });
+    expect(marketingExpenses(data, "soldAmount").ratio).toBe(0.015);
+  });
+  it("keeps source department adjustments, reconciles totals and never mutates the snapshot", () => {
+    const data = {
+      ...(snapshot as CampaignPerformanceData),
+      actual: {
+        ...(snapshot as CampaignPerformanceData).actual,
+        completedRevenue: 100,
+      },
+      revenueByDepartment: [
+        { department: "HVAC", completedRevenue: 120 },
+        { department: "Reporting reconciliation", completedRevenue: -20 },
+      ],
+    };
+    expect(revenueDistribution(data, "completedRevenue", "department")).toEqual(
+      [
+        { name: "HVAC", value: 120 },
+        { name: "Reporting reconciliation", value: -20 },
+      ],
+    );
+    expect(data.revenueByDepartment[1]!.completedRevenue).toBe(-20);
+    expect(revenueDistribution(data, "soldAmount", "department")).toBeNull();
+  });
+  it("preserves zero-return spend-only paid channels in the denominator", () => {
+    expect(
+      advertisingReturns(
+        [row("A", "paid", 100, 200, 10), row("B", "paid", 0, 0, 90)],
+        "completedRevenue",
+      ).returnOnSpend,
+    ).toBe(1);
   });
 });
