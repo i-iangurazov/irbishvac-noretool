@@ -2,22 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CircleHelp, RefreshCw, Target } from "lucide-react";
+import { RefreshCw, Target } from "lucide-react";
 import type {
   MembershipPerformance,
   MembershipRepresentative,
   MembershipDepartment,
 } from "@irbis/domain";
 import { CsrAvatar } from "../csr-controls";
-
-function GoalHint({ children }: { children: string }) {
-  return (
-    <span className="csr-hint" tabIndex={0} aria-label={children}>
-      <CircleHelp size={12} />
-      <span role="tooltip">{children}</span>
-    </span>
-  );
-}
+import { MembershipHint as GoalHint } from "./membership-hint";
 
 export function MembershipRefresh({
   query,
@@ -134,8 +126,10 @@ export function MembershipSalesTable({
   departmentLabels: Record<MembershipDepartment, string>;
 }) {
   const [department, setDepartment] = useState("all");
-  const [ranking, setRanking] = useState("total");
+  const [ranking, setRanking] = useState("new");
+  const [team, setTeam] = useState("current");
   const visible = rows
+    .filter((row) => team === "all" || row.active)
     .filter((row) => department === "all" || row.department === department)
     .sort(
       (a, b) =>
@@ -160,6 +154,14 @@ export function MembershipSalesTable({
         </h2>
         <div className="membership-leaderboard-filters">
           <select
+            aria-label="Leaderboard team scope"
+            value={team}
+            onChange={(e) => setTeam(e.target.value)}
+          >
+            <option value="current">Current team</option>
+            <option value="all">All sellers</option>
+          </select>
+          <select
             aria-label="Rank membership sales by"
             value={ranking}
             onChange={(e) => setRanking(e.target.value)}
@@ -182,6 +184,11 @@ export function MembershipSalesTable({
           </select>
         </div>
       </div>
+      <p className="membership-leaderboard-note">
+        {team === "current"
+          ? "Showing the current team. Company and department totals include all historical sellers."
+          : "Showing all attributed sales, including former staff and unassigned accounts. Goals apply to the current target group."}
+      </p>
       <div className="membership-goal-summary">
         <div>
           <strong>
@@ -234,8 +241,10 @@ export function MembershipSalesTable({
               <th>Renewals</th>
               <th>Total</th>
               <th>
-                Period goal{" "}
-                <GoalHint>{`${goals.monthlyPerRep} new sales per calendar month. Partial months use the full monthly target for the current roster. Renewals are excluded.`}</GoalHint>
+                <span className="membership-metric-label">
+                  Period goal{" "}
+                  <GoalHint>{`${goals.monthlyPerRep} new sales per calendar month. Partial months use the full monthly target for the current roster. Renewals are excluded.`}</GoalHint>
+                </span>
               </th>
             </tr>
           </thead>

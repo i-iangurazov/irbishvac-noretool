@@ -13,6 +13,150 @@ const paths: Record<Resource, string> = {
 export class MembershipSourceClient {
   constructor(private readonly client = new ServiceTitanClient()) {}
 
+  private async accounting(
+    resource: "invoices" | "payments",
+    filters: Record<string, string>,
+  ) {
+    const config = getConfig().serviceTitan,
+      token = await this.client.getAccessToken();
+    const rows: Record<string, unknown>[] = [];
+    const seen = new Set<string>();
+    for (let page = 1; page <= 100; page++) {
+      const url = new URL(
+        `https://api.servicetitan.io/accounting/v2/tenant/${config.tenantId}/${resource}`,
+      );
+      url.search = new URLSearchParams({
+        ...filters,
+        page: String(page),
+        pageSize: "500",
+        includeTotal: "true",
+      }).toString();
+      let response: Response | undefined;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        response = await fetch(url, {
+          headers: {
+            "ST-App-Key": config.appKey,
+            Authorization: `Bearer ${token}`,
+          },
+          signal: AbortSignal.timeout(60_000),
+        });
+        if (response.status !== 429 && response.status < 500) break;
+        if (attempt < 2)
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              Math.min(
+                65,
+                Math.max(5, Number(response!.headers.get("retry-after")) || 30),
+              ) * 1000,
+            ),
+          );
+      }
+      if (!response?.ok)
+        throw new Error(
+          `Membership ${resource} unavailable (${response?.status ?? "network"})`,
+        );
+      const body = (await response.json()) as {
+        data?: Record<string, unknown>[];
+        hasMore?: boolean;
+        totalCount?: number;
+      };
+      if (!Array.isArray(body.data) || typeof body.hasMore !== "boolean")
+        throw new Error(`Invalid ${resource} pagination`);
+      for (const row of body.data) {
+        const id = String(row.id);
+        if (!/^\d+$/.test(id) || seen.has(id))
+          throw new Error(`Duplicate ${resource} page`);
+        seen.add(id);
+        rows.push(row);
+      }
+      if (!body.hasMore) {
+        if (
+          typeof body.totalCount === "number" &&
+          body.totalCount !== rows.length
+        )
+          throw new Error(`Incomplete ${resource} pagination`);
+        return rows;
+      }
+      if (!body.data.length) throw new Error(`Empty ${resource} page`);
+    }
+    throw new Error(`Membership ${resource} exceeded pagination limit`);
+  }
+
+  async invoices(period: { from: string; to: string }) {
+    const end = new Date(`${period.to}T00:00:00Z`);
+    end.setUTCDate(end.getUTCDate() + 1);
+    const rows = await this.accounting("invoices", {
+      invoicedOnOrAfter: period.from,
+      invoicedOnBefore: end.toISOString().slice(0, 10),
+      activeState: "All",
+    });
+    if (
+      rows.some(
+        (row) =>
+          typeof row.invoiceDate !== "string" ||
+          row.invoiceDate.slice(0, 10) < period.from ||
+          row.invoiceDate.slice(0, 10) > period.to,
+      )
+    )
+      throw new Error("Invoice date filter could not be verified");
+    return rows;
+  }
+
+  async invoice(invoiceNumber: string) {
+    if (!invoiceNumber.trim()) throw new Error("Invoice number missing");
+    const rows = await this.accounting("invoices", {
+      number: invoiceNumber,
+      activeState: "All",
+    });
+    if (rows.length !== 1 || rows[0]!.referenceNumber !== invoiceNumber)
+      throw new Error("Member invoice could not be matched exactly");
+    return rows[0]!;
+  }
+
+  async invoicePayments(invoiceIds: string[]) {
+    const unique = [...new Set(invoiceIds)];
+    if (unique.some((id) => !/^\d+$/.test(id)))
+      throw new Error("Invalid invoice ID");
+    const result = new Map<string, Record<string, unknown>>();
+    for (let offset = 0; offset < unique.length; offset += 50) {
+      const batch = unique.slice(offset, offset + 50),
+        allowed = new Set(batch);
+      const rows = await this.accounting("payments", {
+        appliedToInvoiceIds: batch.join(","),
+        activeState: "All",
+      });
+      for (const row of rows) {
+        const applied = row.appliedTo as
+          | Array<{ appliedTo?: unknown }>
+          | undefined;
+        if (
+          !Array.isArray(applied) ||
+          !applied.some((a) => allowed.has(String(a.appliedTo)))
+        )
+          throw new Error("Payment invoice filter could not be verified");
+        // Credentials, card authorization codes, staff emails and payment notes never enter snapshots.
+        result.set(String(row.id), {
+          id: row.id,
+          active: row.active,
+          date: row.date,
+          total: row.total,
+          refundedPaymentId: row.refundedPaymentId,
+          appliedTo: applied.map((a) => {
+            const value = a as Record<string, unknown>;
+            return {
+              appliedId: value.appliedId,
+              appliedTo: value.appliedTo,
+              appliedAmount: value.appliedAmount,
+              appliedOn: value.appliedOn,
+            };
+          }),
+        });
+      }
+    }
+    return [...result.values()];
+  }
+
   async customerTypes(ids: string[]): Promise<Map<string, string>> {
     const unique = [...new Set(ids)];
     if (unique.some((id) => !/^\d+$/.test(id)))

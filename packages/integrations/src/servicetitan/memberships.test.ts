@@ -107,16 +107,14 @@ describe("membership audit and invoice reads", () => {
   it("rejects an ignored invoice filter rather than subtracting an unrelated charge", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(
-            JSON.stringify({
-              hasMore: false,
-              data: [{ referenceNumber: "wrong", items: [] }],
-            }),
-          ),
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            hasMore: false,
+            data: [{ referenceNumber: "wrong", items: [] }],
+          }),
         ),
+      ),
     );
     await expect(
       new MembershipSourceClient().invoiceMembershipCharges("123"),
@@ -146,4 +144,71 @@ it("respects the CRM limit of 50 IDs per lookup and validates returned identitie
   expect(f.mock.calls[0]![0].searchParams.get("ids")!.split(",")).toHaveLength(
     50,
   );
+});
+
+it("reads invoice allocations with verified filters and strips payment secrets", async () => {
+  const f = vi
+    .fn()
+    .mockResolvedValue(
+      response(
+        [
+          {
+            id: 7,
+            active: true,
+            date: "2026-09-14",
+            authCode: "never-expose",
+            memo: "private note",
+            appliedTo: [
+              {
+                appliedId: 8,
+                appliedTo: 42,
+                appliedAmount: "22.00",
+                appliedBy: "private@example.test",
+                appliedOn: "2026-09-14",
+              },
+            ],
+          },
+        ],
+        false,
+        1,
+      ),
+    );
+  vi.stubGlobal("fetch", f);
+  const rows = await new MembershipSourceClient().invoicePayments(["42"]);
+  expect(f.mock.calls[0]![0].searchParams.get("appliedToInvoiceIds")).toBe(
+    "42",
+  );
+  expect(rows[0]).not.toHaveProperty("authCode");
+  expect(rows[0]).not.toHaveProperty("memo");
+  expect((rows[0]!.appliedTo as unknown[])[0]).not.toHaveProperty("appliedBy");
+  f.mockResolvedValue(
+    response([{ id: 7, appliedTo: [{ appliedTo: 999 }] }], false, 1),
+  );
+  await expect(
+    new MembershipSourceClient().invoicePayments(["42"]),
+  ).rejects.toThrow("filter could not be verified");
+});
+
+it("rejects truncated accounting pages and an ignored invoice date filter", async () => {
+  const f = vi
+    .fn()
+    .mockResolvedValue(
+      response([{ id: 1, invoiceDate: "2026-08-31" }], false, 1),
+    );
+  vi.stubGlobal("fetch", f);
+  await expect(
+    new MembershipSourceClient().invoices({
+      from: "2026-09-01",
+      to: "2026-09-30",
+    }),
+  ).rejects.toThrow("date filter");
+  f.mockResolvedValue(
+    response([{ id: 1, invoiceDate: "2026-09-01" }], false, 2),
+  );
+  await expect(
+    new MembershipSourceClient().invoices({
+      from: "2026-09-01",
+      to: "2026-09-30",
+    }),
+  ).rejects.toThrow("Incomplete");
 });

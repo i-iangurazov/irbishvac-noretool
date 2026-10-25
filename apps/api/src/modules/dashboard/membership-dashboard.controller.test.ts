@@ -41,7 +41,7 @@ describe("membership dashboard API", () => {
       where: {
         family_scopeKey: {
           family: "CALL_CENTER_SOURCE",
-          scopeKey: "membership-performance:v3:2026-09-01:2026-09-28",
+          scopeKey: "membership-performance:v4:2026-09-01:2026-09-28",
         },
       },
     });
@@ -235,7 +235,7 @@ describe("membership customer drilldowns", () => {
       where: {
         family_scopeKey: {
           family: "CALL_CENTER_SOURCE",
-          scopeKey: `membership-customers:v1:${period.from}:${period.to}`,
+          scopeKey: `membership-customers:v2:${period.from}:${period.to}`,
         },
       },
     });
