@@ -117,7 +117,7 @@ export default async function AdvisorsPage({
               ),
             },
             {
-              label: "Monthly Membership Goal",
+              label: "Membership Goal/mo",
               value:
                 goal?.membershipMonthlyGoal != null
                   ? String(goal.membershipMonthlyGoal)
