@@ -3,6 +3,7 @@ import { Queue, Worker, type ConnectionOptions } from "bullmq";
 import { getConfig } from "@irbis/config";
 import {
   ServiceTitanRateLimitError,
+  getServiceTitanReportDefinitions,
   type ReportRequestContext,
 } from "@irbis/integrations";
 import { createLogger, getRedisConnectionSettings } from "@irbis/utils";
@@ -15,6 +16,7 @@ import { buildLatestSnapshotPlan } from "./snapshot-plan";
 import { CampaignPerformanceRefreshRunner } from "./campaign-performance";
 import { MembershipPerformanceRunner } from "./membership-performance";
 import { refreshAdvisorRoster } from "./advisor-roster";
+import { buildTvRefreshJobs } from "./tv-refresh-jobs";
 
 type RefreshJob =
   | {
@@ -197,6 +199,28 @@ async function bootstrap() {
   }
 
   if (runner.isIngestionConfigured()) {
+    // Keep the office TVs current even if GitHub's scheduled full refresh is delayed.
+    for (const data of buildTvRefreshJobs(getServiceTitanReportDefinitions())) {
+      await refreshQueue.upsertJobScheduler(
+        `tv-mtd-${data.family}`,
+        { pattern: "8,38 * * * *", tz: config.app.timezone },
+        {
+          name: `scheduled-tv-${data.family}`,
+          data,
+        },
+      );
+      await refreshQueue.add(`startup-tv-${data.family}`, data, {
+        jobId: getRefreshJobId(
+          "tv-startup",
+          data.family,
+          String(Math.floor(Date.now() / 1_800_000)),
+        ),
+      });
+    }
+    logger.info("TV metric refresh schedulers enabled", {
+      period: "mtd",
+      intervalMinutes: 30,
+    });
     await refreshQueue.upsertJobScheduler(
       "sales-staff-every-15-minutes",
       { pattern: "*/15 * * * *", tz: config.app.timezone },
