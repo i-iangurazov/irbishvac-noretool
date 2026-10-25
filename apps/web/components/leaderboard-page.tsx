@@ -297,8 +297,11 @@ export function LeaderboardPage(props: LeaderboardPageProps) {
           )
         ) : (
           <EmptyDashboardState
-            title="No cached snapshot for this range yet"
-            description="The API queued a background refresh for the selected preset. This page will populate as soon as the worker stores the real snapshot."
+            title="Updating this report"
+            description={
+              "The figures for this date range are being retrieved." +
+              (tvMode ? " This screen refreshes automatically." : " Please check back shortly.")
+            }
           />
         )}
       </div>

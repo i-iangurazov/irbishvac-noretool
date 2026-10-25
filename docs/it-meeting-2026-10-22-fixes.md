@@ -23,7 +23,7 @@ Server Components use the authenticated request identity and the existing backen
 
 ## Verification
 
-- Released behavior is covered by 393 passing tests: web 176, API 61, worker 35, domain 88, integrations 29, and UI 4. Experimental long-query transport tests are recorded separately until their live source check completes.
+- Released behavior is covered by 393 passing tests: web 176, API 61, worker 35, domain 88, integrations 29, and UI 4. Experimental long-query transport and its unsuccessful live source checks are retained privately and are not deployed.
 - Type checks and production builds for affected applications passed.
 - Recovery tests include an accelerated 24-hour run with frequent route commits and document reloads, business midnight, fixed ranges, offline/wake, storage failures, retry backoff, hung auth/probe calls, superseded navigation, and timeout failures.
 - Browser QA uses the production Kitchen directory and reviewed portrait files. A real React page failure automatically recovers. A stopped local server preserves the reconnecting document until the server returns.
