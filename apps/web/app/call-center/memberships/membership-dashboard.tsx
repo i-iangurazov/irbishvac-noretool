@@ -41,7 +41,7 @@ import {
   buildTvModeHref,
   type ResolvedDashboardFilters,
 } from "../../../lib/dashboard-filters";
-import { CsrPeriodPicker } from "../csr-controls";
+import { MembershipPeriodPicker } from "./membership-period-picker";
 import { MembershipRefresh, MembershipSalesTable } from "./membership-controls";
 import {
   MembershipRecurringPanel,
@@ -652,13 +652,18 @@ export function MembershipDashboard({
         <div className="csr-toolbar membership-toolbar">
           <h1>Membership Performance</h1>
           <div className="csr-toolbar__actions">
-            <CsrPeriodPicker
-              allowSingleDate
+            <MembershipPeriodPicker
               key={query}
               from={filters.from}
               to={filters.to}
               query={query}
               label={label}
+              today={new Intl.DateTimeFormat("en-CA", {
+                timeZone: "America/Los_Angeles",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              }).format(new Date())}
             />
             <MembershipRefresh
               query={filters.apiQueryString}

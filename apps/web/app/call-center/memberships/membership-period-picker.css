@@ -1,0 +1,384 @@
+.membership-period {
+  min-width: 0;
+}
+.membership-period__trigger span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.membership-period-dialog {
+  position: fixed;
+  margin: 0;
+  padding: 0;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  border: 1px solid #dfe6f0;
+  border-radius: 18px;
+  background: #fff;
+  color: #243449;
+  box-shadow: 0 22px 80px #172b4d30;
+  font-family: Montserrat, sans-serif;
+  font-size: 13px;
+}
+.membership-period-dialog::backdrop {
+  background: #20324822;
+}
+.membership-period-dialog * {
+  box-sizing: border-box;
+}
+.membership-period-dialog button,
+.membership-period-dialog input,
+.membership-period-dialog select {
+  font: inherit;
+}
+.membership-period-dialog button {
+  cursor: pointer;
+}
+.membership-period-dialog button:focus-visible,
+.membership-period-dialog input:focus-visible,
+.membership-period-dialog select:focus-visible {
+  outline: 3px solid #8db4f0;
+  outline-offset: 2px;
+}
+.membership-period-panel {
+  display: flex;
+  flex-direction: column;
+}
+.membership-period__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 18px;
+  border-bottom: 1px solid #edf0f5;
+}
+.membership-period__heading h2 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 5px;
+}
+.membership-period__heading p {
+  margin: 0;
+  font-size: 12px;
+  color: #71829a;
+}
+.membership-period__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e3e9f1;
+  background: #fff;
+  color: #4e6583;
+  border-radius: 9px;
+}
+.membership-period__icon:hover {
+  background: #f1f5fb;
+  color: #2f65ad;
+}
+.membership-period__body {
+  display: grid;
+  grid-template-columns: 164px minmax(0, 1fr);
+}
+.membership-period__presets {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 18px 12px;
+  border-right: 1px solid #edf0f5;
+  background: #f8fafd;
+}
+.membership-period__presets button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: transparent;
+  text-align: left;
+  color: #4b607c;
+  font-size: 12px;
+  font-weight: 550;
+}
+.membership-period__presets button:hover {
+  background: #edf3fc;
+}
+.membership-period__presets button[aria-pressed="true"] {
+  background: #e8f0fe;
+  border-color: #d3e2fa;
+  color: #2f61a8;
+  font-weight: 650;
+}
+.membership-period__presets > span {
+  margin: auto 10px 3px;
+  padding-top: 22px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #8492a5;
+}
+.membership-period__custom {
+  padding: 18px 22px 12px;
+  min-width: 0;
+}
+.membership-period__mode {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: #f1f4f9;
+  border-radius: 9px;
+  margin-bottom: 14px;
+  width: fit-content;
+}
+.membership-period__mode button {
+  border: 0;
+  border-radius: 7px;
+  color: #6b7e97;
+  background: transparent;
+  padding: 8px 14px;
+  font-size: 12px;
+}
+.membership-period__mode button[aria-pressed="true"] {
+  background: #fff;
+  box-shadow: 0 1px 4px #28426814;
+  color: #2b62ac;
+  font-weight: 600;
+}
+.membership-period__inputs {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+.membership-period__inputs label {
+  display: grid;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #657891;
+}
+.membership-period__inputs input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #dce4ee;
+  border-radius: 9px;
+  color: #2e4767;
+  background: #fff;
+  font-size: 13px;
+}
+.membership-period__inputs > span {
+  padding-bottom: 11px;
+  color: #8b9bb0;
+}
+.membership-calendar__navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 18px 0 4px;
+}
+.membership-calendar__navigation > div {
+  display: flex;
+  gap: 6px;
+}
+.membership-calendar__navigation select {
+  appearance: none;
+  border: 1px solid #e2e8f1;
+  border-radius: 8px;
+  color: #3e5777;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7e97' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  padding: 8px 30px 8px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.membership-calendars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.membership-calendar h3 {
+  font-size: 12px;
+  font-weight: 650;
+  margin: 10px 0 12px;
+  text-align: center;
+  color: #455c7b;
+}
+.membership-calendar__week,
+.membership-calendar__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  text-align: center;
+}
+.membership-calendar__week {
+  color: #72849c;
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+.membership-calendar__week span {
+  padding: 4px 0;
+}
+.membership-calendar__days {
+  row-gap: 3px;
+}
+.membership-calendar__days button {
+  min-width: 0;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #435b7b;
+  font-size: 11px;
+  position: relative;
+  border-radius: 7px;
+}
+.membership-calendar__days button[data-in-range="true"] {
+  background: #eaf1fd;
+  border-radius: 0;
+  color: #2c5b9e;
+}
+.membership-calendar__days button[data-edge="true"] {
+  color: #fff;
+  background: #3868b2;
+  border-radius: 7px;
+  font-weight: 650;
+}
+.membership-calendar__days button:hover {
+  box-shadow: inset 0 0 0 1px #6592d3;
+}
+.membership-calendar__days button[data-today="true"]::after {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  left: calc(50% - 1.5px);
+  bottom: 3px;
+}
+.membership-period__instruction {
+  min-height: 16px;
+  margin: 12px 0 0;
+  color: #7e8ea5;
+  font-size: 10px;
+}
+.membership-period__instruction--error {
+  color: #b34632;
+}
+.membership-period__footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 22px;
+  background: #fff;
+  border-top: 1px solid #e9eef5;
+  z-index: 1;
+}
+.membership-period__footer > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+.membership-period__footer strong {
+  font-size: 11px;
+  font-weight: 650;
+}
+.membership-period__footer span {
+  color: #8a99ac;
+  font-size: 10px;
+}
+.membership-period__footer > div:last-child {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.membership-period__cancel,
+.membership-period__apply {
+  border: 1px solid #dce4ef;
+  border-radius: 9px;
+  background: #fff;
+  color: #536986;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 11px 14px;
+}
+.membership-period__apply {
+  background: #3868b2;
+  border-color: #3868b2;
+  color: #fff;
+}
+.membership-period__apply:hover {
+  background: #28599f;
+}
+.membership-period__apply:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+@media (max-width: 650px) {
+  .membership-period__body {
+    grid-template-columns: 1fr;
+  }
+  .membership-period__presets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-right: 0;
+    border-bottom: 1px solid #edf0f5;
+    gap: 4px;
+    padding: 10px 12px;
+  }
+  .membership-period__presets button {
+    padding: 8px 5px;
+    text-align: center;
+    font-size: 10px;
+  }
+  .membership-period__presets > span {
+    display: none;
+  }
+  .membership-period__heading {
+    padding: 16px;
+  }
+  .membership-period__heading h2 {
+    font-size: 15px;
+  }
+  .membership-period__heading p {
+    font-size: 10px;
+  }
+  .membership-period__custom {
+    padding: 12px 16px;
+  }
+  .membership-calendars {
+    grid-template-columns: 1fr;
+  }
+  .membership-calendar--second {
+    display: none;
+  }
+  .membership-calendar__days button {
+    height: 38px;
+    font-size: 12px;
+  }
+  .membership-calendar__navigation {
+    margin-top: 12px;
+  }
+  .membership-period__footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .membership-period__footer > div:last-child {
+    margin-left: auto;
+  }
+  .membership-period__inputs {
+    gap: 7px;
+  }
+  .membership-period__inputs input {
+    padding: 7px;
+    font-size: 12px;
+  }
+  .membership-period__trigger {
+    max-width: 100%;
+  }
+}
