@@ -1,4 +1,8 @@
 "use client";
+import {
+  exactCurrency,
+  advertisingReturnDetail,
+} from "../lib/marketing-amount";
 
 import { MarketingIcon, type MarketingIconName } from "./marketing-icon";
 import { useState } from "react";
@@ -20,6 +24,7 @@ import {
 import type { CampaignPerformanceData } from "./campaign-performance-page";
 import {
   bookingRateFor,
+  advertisingReturns,
   channelRoas,
   performanceSeries,
   rowCategory,
@@ -60,7 +65,8 @@ export function MarketingOverview({
   const [sort, setSort] = useState<ChannelSort>("completedRevenue");
   const coverage = spendCoverage(data);
   const complete = coverage.status === "complete";
-  const roas = complete ? data.actual.roas : coverage.coveredRoas;
+  const advertising = advertisingReturns(data.rows, "completedRevenue");
+  const roas = advertising.returnOnSpend;
   const cpl = complete ? data.actual.costPerLead : coverage.coveredCostPerLead;
   const cpb = complete
     ? data.actual.costPerBookedJob
@@ -124,9 +130,12 @@ export function MarketingOverview({
         <strong className="marketing-revenue-total">
           {money(data.actual.completedRevenue)}
         </strong>
-        <div className="marketing-roas">
+        <div
+          className="marketing-roas"
+          title={advertisingReturnDetail(advertising)}
+        >
           <b>{multiple(roas)}</b>{" "}
-          {complete ? "ROAS" : "ROAS · covered channels"}
+          {advertising.missing.length ? "ROAS · covered channels" : "ROAS"}
         </div>
         <div className="marketing-departments">
           <h4>Revenue by department</h4>
@@ -305,7 +314,10 @@ export function MarketingOverview({
             <h3>Marketing Spend</h3>
             <span className="marketing-period-tag">MTD</span>
           </div>
-          <strong className="marketing-spend-total">
+          <strong
+            className="marketing-spend-total"
+            title={exactCurrency(data.actual.spend)}
+          >
             {money(data.actual.spend)}
           </strong>
           <p>
@@ -343,7 +355,9 @@ export function MarketingOverview({
                 : ""}
             </span>
           </div>
-          <small>
+          <small
+            title={`Commissions: ${exactCurrency(totalCommissionCost(data))}`}
+          >
             {money(totalCommissionCost(data))} commissions tracked separately.
           </small>
           {!complete ? (
@@ -563,7 +577,13 @@ export function MarketingOverview({
                   </td>
                   <td>{money(row.actual.completedRevenue)}</td>
                   <td>{money(row.actual.soldAmount)}</td>
-                  <td>{multiple(channelRoas(row))}</td>
+                  <td
+                    title={advertisingReturnDetail(
+                      advertisingReturns([row], "completedRevenue"),
+                    )}
+                  >
+                    {multiple(channelRoas(row))}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -573,8 +593,9 @@ export function MarketingOverview({
           <p className="marketing-empty">No channel data for this period.</p>
         ) : null}
         <small>
-          ROAS uses media spend + commissions. A dash means cost data is
-          unavailable or no cost is recorded.
+          ROAS = attributed paid revenue ÷ paid media spend. Commissions are
+          separate. A dash means cost data is unavailable or no cost is
+          recorded.
         </small>
       </section>
     </div>

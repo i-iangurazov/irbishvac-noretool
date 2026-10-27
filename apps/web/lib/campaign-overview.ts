@@ -162,10 +162,37 @@ export function bookingRateFor(rows: CampaignRow[]) {
     : null;
 }
 
+// One media-only definition for every Marketing view. Legacy snapshot `roas`
+// and coverage `coveredRoas` remain all-in fields for existing consumers.
+export function missingAdvertisingSpend(row: CampaignRow) {
+  return (
+    rowCategory(row) === "paid" &&
+    row.actual.spend <= 0 &&
+    (row.actual.qualifiedLeads > 0 ||
+      row.actual.bookedJobs > 0 ||
+      row.actual.soldJobs > 0 ||
+      row.actual.soldAmount !== 0 ||
+      row.actual.completedRevenue !== 0)
+  );
+}
+export function advertisingReturns(
+  rows: CampaignRow[],
+  metric: "completedRevenue" | "soldAmount",
+) {
+  const paid = rows.filter((row) => rowCategory(row) === "paid");
+  const covered = paid.filter((row) => row.actual.spend > 0);
+  const spend = covered.reduce((sum, row) => sum + row.actual.spend, 0);
+  const income = covered.reduce((sum, row) => sum + row.actual[metric], 0);
+  return {
+    spend,
+    income,
+    missing: paid.filter(missingAdvertisingSpend).map((row) => row.channel),
+    returnOnSpend: spend > 0 ? income / spend : null,
+    expenseRatio: spend > 0 && income > 0 ? spend / income : null,
+  };
+}
 export function channelRoas(row: CampaignRow) {
-  if (missingPaidSpend(row)) return null;
-  const cost = rowTotalCost(row);
-  return cost > 0 ? row.actual.completedRevenue / cost : null;
+  return advertisingReturns([row], "completedRevenue").returnOnSpend;
 }
 
 export function topChannels(

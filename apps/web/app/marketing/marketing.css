@@ -1567,3 +1567,4 @@ body:has(.campaign-performance) .campaign-performance__intro p {
  .revenue-channel-table td[data-label] { font-size:12px; }
  .revenue-channel-table td[data-label]::before { font-size:10px; }
 }
+.revenue-efficiency .revenue-return-basis { margin: 7px 0 10px; font-size: 11px; color: var(--marketing-muted); }
