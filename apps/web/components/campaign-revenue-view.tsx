@@ -5,6 +5,7 @@ import {
   advertisingReturnDetail,
 } from "../lib/marketing-amount";
 import { useState } from "react";
+import { MarketingTooltip } from "./marketing-tooltip";
 import {
   Bar,
   BarChart,
@@ -368,42 +369,45 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
               <option value="ratio">{expenseLabel}</option>
             </select>
           </label>
-          <strong
-            title={
+          <MarketingTooltip
+            content={
               efficiency === "return"
                 ? advertisingReturnDetail(returns, metric)
                 : `${exactCurrency(spend.total)} ÷ ${exactCurrency(total)}`
             }
+            as="strong"
           >
             {efficiency === "return"
               ? multiple(returns.returnOnSpend)
               : rate(spend.ratio)}
-          </strong>
+          </MarketingTooltip>
           <p>
             {efficiency === "return"
               ? "Paid media · covered channels"
               : "Recorded marketing spend / total"}
           </p>
           {efficiency === "return" && returns.returnOnSpend != null ? (
-            <small
+            <MarketingTooltip
+              content={advertisingReturnDetail(returns, metric)}
+              as="small"
               className="revenue-return-basis"
-              title={advertisingReturnDetail(returns, metric)}
             >
               {money(returns.income)} ÷ {money(returns.spend)}
-            </small>
+            </MarketingTooltip>
           ) : null}
-          <span
-            title={
+          <MarketingTooltip
+            content={
               returns.missing.length
                 ? `Excluded from ${returnLabel}: ${returns.missing.join(", ")}. Spend is not tracked for these channels.`
                 : "All active paid channels have recorded spend."
             }
+            as="span"
             className={`revenue-coverage${returns.missing.length ? " revenue-coverage--partial" : ""}`}
           >
             {returns.missing.length
               ? "Partial spend coverage"
               : "Recorded spend"}
-          </span>
+          </MarketingTooltip>
         </section>
       </div>
       <section
@@ -412,18 +416,18 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
       >
         <div className="revenue-spend-heading">
           <h3>Marketing Spend</h3>
-          <strong title={exactCurrency(spend.total)}>
+          <MarketingTooltip content={exactCurrency(spend.total)} as="strong">
             {money(spend.total)}
-          </strong>
+          </MarketingTooltip>
           <small>Recorded media spend · MTD</small>
         </div>
         <div className="revenue-spend-item">
           <i />
           <div>
             <span>Performance Marketing</span>
-            <strong title={exactCurrency(spend.paid)}>
+            <MarketingTooltip content={exactCurrency(spend.paid)} as="strong">
               {money(spend.paid)}
-            </strong>
+            </MarketingTooltip>
             <small>Paid channels</small>
           </div>
         </div>
@@ -431,9 +435,12 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
           <i />
           <div>
             <span>Branding / ATL</span>
-            <strong title={exactCurrency(spend.branding)}>
+            <MarketingTooltip
+              content={exactCurrency(spend.branding)}
+              as="strong"
+            >
               {money(spend.branding)}
-            </strong>
+            </MarketingTooltip>
             <small>Billboards, TV & radio</small>
           </div>
         </div>
@@ -442,18 +449,24 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
             <i />
             <div>
               <span>Other / reconciliation</span>
-              <strong title={exactCurrency(spend.other)}>
+              <MarketingTooltip
+                content={exactCurrency(spend.other)}
+                as="strong"
+              >
                 {money(spend.other)}
-              </strong>
+              </MarketingTooltip>
               <small>Other recorded media spend</small>
             </div>
           </div>
         ) : null}
         <div className="revenue-spend-commission">
           <span>Commissions</span>
-          <strong title={exactCurrency(spend.commission)}>
+          <MarketingTooltip
+            content={exactCurrency(spend.commission)}
+            as="strong"
+          >
             {money(spend.commission)}
-          </strong>
+          </MarketingTooltip>
           <small>Shown separately from media spend</small>
         </div>
       </section>
@@ -530,12 +543,13 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
                         <td data-label="Share">
                           {rate(total > 0 ? row.actual[metric] / total : null)}
                         </td>
-                        <td
+                        <MarketingTooltip
+                          content={advertisingReturnDetail(result, metric)}
+                          as="td"
                           data-label={returnLabel}
-                          title={advertisingReturnDetail(result, metric)}
                         >
                           {multiple(result.returnOnSpend)}
-                        </td>
+                        </MarketingTooltip>
                         <td data-label="Expense ratio">
                           {rate(result.expenseRatio)}
                         </td>

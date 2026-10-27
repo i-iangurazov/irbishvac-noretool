@@ -46,4 +46,6 @@ Previously the Channels/Overview labels reused all-in snapshot returns while Rev
 
 Hovering over an abbreviated media or commission amount in the channel table shows the full dollar amount to cents. Hovering the commission/total cell shows commission, total acquisition cost, CPL and cost per booked job; untracked media costs are identified as missing instead of precise $0.00. Spend totals in Overview and Revenue & Sales have the same precise hover details. The ROAS card also shows its numerator/denominator, with the full calculation and excluded channels in hover text.
 
-Follow-up validation: 214 web tests, full Next.js build, web typecheck and changed-file ESLint passed. Browser checks compared Overview, Revenue & Sales and Channels at 390/1440 px using the same read-only snapshot; ROAS matched and exact native hover titles contained cents, with no page overflow or JavaScript errors.
+Financial details use an in-page tooltip, opened by pointer hover, keyboard focus or tap/click. Escape, blur or an outside tap dismisses it. The popup is rendered outside scrolling tables and clamped to the viewport, so full cents and formula text remain readable on narrow screens.
+
+Follow-up validation: 216 web tests, full Next.js build (including type checks) and changed-file ESLint passed. The full local Marketing route was checked against the same read-only snapshot: Overview, Revenue & Sales and Channels show the same formula; Revenue and Channels tooltips fit at 390 and 1710 px without page overflow. Actual open tooltips were captured in browser screenshots.
