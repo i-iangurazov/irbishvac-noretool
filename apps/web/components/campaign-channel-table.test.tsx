@@ -1,5 +1,5 @@
-import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import React, { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, it, expect, vi } from "vitest";
 import { ChannelTable, type CampaignRow } from "./campaign-performance-page";
 import snapshot from "../data/campaign-performance-august.json";
@@ -7,8 +7,23 @@ vi.mock("@irbis/ui", () => ({ DashboardShell: () => null }));
 vi.mock("./marketing-icon", () => ({ MarketingIcon: () => null }));
 vi.mock("./marketing-overview", () => ({ MarketingOverview: () => null }));
 vi.mock("../lib/api", () => ({ navItems: [] }));
-beforeEach(() => vi.stubGlobal("React", React));
-afterEach(() => vi.unstubAllGlobals());
+let container: HTMLDivElement, root: Root;
+beforeEach(() => {
+  vi.stubGlobal("React", React);
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  container = document.createElement("div");
+  document.body.append(container);
+  root = createRoot(container);
+});
+afterEach(() => {
+  act(() => root.unmount());
+  container.remove();
+  vi.unstubAllGlobals();
+});
+const focus = (selector: string) => {
+  act(() => container.querySelector<HTMLElement>(selector)!.focus());
+  return document.querySelector('[role="tooltip"]')!.textContent;
+};
 const workfuel: CampaignRow = {
   ...(snapshot.rows[0] as CampaignRow),
   channel: "Workfuel",
@@ -22,33 +37,29 @@ const workfuel: CampaignRow = {
     roas: 7.104563827,
   },
 };
-it("uses media ROAS and exposes full expenses in clipped channel cells", () => {
-  const container = document.createElement("div");
-  container.innerHTML = renderToStaticMarkup(
-    <ChannelTable rows={[workfuel]} />,
-  );
+it("uses media ROAS and shows full expenses outside clipped channel cells", () => {
+  act(() => root.render(<ChannelTable rows={[workfuel]} />));
   expect(container.textContent).toContain("ROAS 10.3x");
   expect(container.textContent).not.toContain("ROAS 7.1x");
-  const titles = [...container.querySelectorAll("[title]")].map((e) =>
-    e.getAttribute("title"),
+  expect(focus("tbody td:nth-child(5) strong")).toBe("Media spend: $6,772.50");
+  const total = focus("tbody td:nth-child(6)");
+  expect(total).toContain("Commission: $3,000.00");
+  expect(total).toContain("Total acquisition cost: $9,772.50");
+  expect(focus("tbody td:nth-child(8) span")).toContain(
+    "$69,429.35 ÷ $6,772.50",
   );
-  expect(titles).toContain("$6,772.50");
-  expect(titles).toContain("$3,000.00");
-  expect(
-    titles.some((t) => t?.includes("Total acquisition cost: $9,772.50")),
-  ).toBe(true);
 });
 it("does not present an untracked media cost as a precise zero cost", () => {
-  const container = document.createElement("div");
-  container.innerHTML = renderToStaticMarkup(
-    <ChannelTable
-      rows={[{ ...workfuel, actual: { ...workfuel.actual, spend: 0 } }]}
-    />,
+  act(() =>
+    root.render(
+      <ChannelTable
+        rows={[{ ...workfuel, actual: { ...workfuel.actual, spend: 0 } }]}
+      />,
+    ),
   );
-  expect(
-    container
-      .querySelector(".campaign-cost-missing strong")
-      ?.getAttribute("title"),
-  ).toContain("not tracked");
+  expect(focus(".campaign-cost-missing strong")).toContain("not tracked");
+  expect(focus("tbody td:nth-child(6)")).toContain(
+    "Incomplete — media spend missing",
+  );
   expect(container.textContent).toContain("ROAS -");
 });

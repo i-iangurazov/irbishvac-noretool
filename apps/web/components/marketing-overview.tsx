@@ -6,6 +6,7 @@ import {
 
 import { MarketingIcon, type MarketingIconName } from "./marketing-icon";
 import { useState } from "react";
+import { MarketingTooltip } from "./marketing-tooltip";
 import {
   Bar,
   BarChart,
@@ -130,13 +131,14 @@ export function MarketingOverview({
         <strong className="marketing-revenue-total">
           {money(data.actual.completedRevenue)}
         </strong>
-        <div
+        <MarketingTooltip
+          content={advertisingReturnDetail(advertising)}
+          as="div"
           className="marketing-roas"
-          title={advertisingReturnDetail(advertising)}
         >
           <b>{multiple(roas)}</b>{" "}
           {advertising.missing.length ? "ROAS · covered channels" : "ROAS"}
-        </div>
+        </MarketingTooltip>
         <div className="marketing-departments">
           <h4>Revenue by department</h4>
           {departments.length ? (
@@ -314,12 +316,13 @@ export function MarketingOverview({
             <h3>Marketing Spend</h3>
             <span className="marketing-period-tag">MTD</span>
           </div>
-          <strong
+          <MarketingTooltip
+            content={exactCurrency(data.actual.spend)}
+            as="strong"
             className="marketing-spend-total"
-            title={exactCurrency(data.actual.spend)}
           >
             {money(data.actual.spend)}
-          </strong>
+          </MarketingTooltip>
           <p>
             {budgetApproved ? "Monthly limit" : "Model monthly limit"}{" "}
             <b>{budget > 0 ? money(budget) : "Not set"}</b>
@@ -355,11 +358,12 @@ export function MarketingOverview({
                 : ""}
             </span>
           </div>
-          <small
-            title={`Commissions: ${exactCurrency(totalCommissionCost(data))}`}
+          <MarketingTooltip
+            content={`Commissions: ${exactCurrency(totalCommissionCost(data))}`}
+            as="small"
           >
             {money(totalCommissionCost(data))} commissions tracked separately.
-          </small>
+          </MarketingTooltip>
           {!complete ? (
             <p className="marketing-coverage">
               Spend coverage: {coverage.trackedPaidChannels}/
@@ -577,13 +581,14 @@ export function MarketingOverview({
                   </td>
                   <td>{money(row.actual.completedRevenue)}</td>
                   <td>{money(row.actual.soldAmount)}</td>
-                  <td
-                    title={advertisingReturnDetail(
+                  <MarketingTooltip
+                    content={advertisingReturnDetail(
                       advertisingReturns([row], "completedRevenue"),
                     )}
+                    as="td"
                   >
                     {multiple(channelRoas(row))}
-                  </td>
+                  </MarketingTooltip>
                 </tr>
               ))}
             </tbody>

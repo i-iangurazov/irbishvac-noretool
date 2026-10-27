@@ -1568,3 +1568,29 @@ body:has(.campaign-performance) .campaign-performance__intro p {
  .revenue-channel-table td[data-label]::before { font-size:10px; }
 }
 .revenue-efficiency .revenue-return-basis { margin: 7px 0 10px; font-size: 11px; color: var(--marketing-muted); }
+
+.marketing-tooltip-trigger { cursor: help; }
+.marketing-tooltip-trigger:focus-visible { outline: 2px solid #315b44; outline-offset: 4px; border-radius: 3px; }
+.marketing-tooltip {
+  position: fixed;
+  z-index: 10000;
+  width: max-content;
+  max-width: min(390px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 14px 16px;
+  border: 1px solid #41634d;
+  border-radius: 10px;
+  background: #23392d;
+  color: #fff;
+  box-shadow: 0 8px 24px #23392d30;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.marketing-tooltip p { margin: 0; }
+.marketing-tooltip p:first-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+.marketing-tooltip p + p { margin-top: 8px; }
+@media print { .marketing-tooltip { display: none; } }
