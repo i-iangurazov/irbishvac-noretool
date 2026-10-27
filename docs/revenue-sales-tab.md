@@ -16,7 +16,7 @@ Implements [Emil's Revenue & Sales Tab task](https://app.notion.com/p/400c710dca
 ## Metric definitions
 
 - Revenue uses `actual.completedRevenue`; Sales uses `actual.soldAmount`, the sold-estimate amount, not collected cash. Existing attribution, dates, cutoff, plans, costs and source joins remain intact.
-- ROAS = covered paid-channel completed revenue / covered paid media spend. SOAS = the same covered channels' sold-estimate value / paid media spend. This follows the [advertising return definition](https://business.google.com/ca-en/accelerate/resources/articles/glossary/) and is separate from ROI or the existing all-in return metrics elsewhere in the dashboard.
+- ROAS = covered paid-channel completed revenue / covered paid media spend. SOAS = the same covered channels' sold-estimate value / paid media spend. This follows the [advertising return definition](https://business.google.com/ca-en/accelerate/resources/articles/glossary/) and is separate from ROI. Every ROAS label in Marketing (Overview, Revenue & Sales, Channels and the read API overview) uses the same shared media-only calculation. Legacy snapshot `actual.roas` / `spendCoverage.coveredRoas` remain unchanged all-in values; the API exposes the old overview value as `overview.allInRoas`.
 - A paid channel with financial/lead/job activity but no positive recorded spend is excluded from both sides of ROAS/SOAS. The interface marks partial coverage and names missing channels in Metric definitions & data coverage. Spend-only paid channels remain in the denominator. Zero income gives 0×; zero cost gives unavailable, never infinity.
 - **Marketing Efficiency expense ratio** = all recorded marketing media spend, including Branding/ATL and other tracked spend, / total selected Revenue or Sales. Missing recorded costs may understate it; the partial-coverage indicator and explanation remain visible.
 - **Channel expense ratio** = that paid channel's media spend / its selected Revenue or Sales. Undefined denominators and nonpaid advertising returns display — and sort last. Commissions do not silently enter media spend.
@@ -37,3 +37,13 @@ Read-only verification used the October snapshot generated on 2026-10-25 with cu
 - Web suite was run with two workers and a 15-second test timeout to avoid CPU-contention timeouts in the existing 24-hour TV-recovery simulation. No product timeout changed.
 
 No production database/report writes, refresh requests or direct production deployment were performed.
+
+## ROAS consistency and precise spend details
+
+The snapshot generated 2026-10-26T07:22:43.938Z (cutoff 2026-10-26) contains $460,691.36 covered paid revenue and $62,191.137469 recorded paid media spend: ROAS = 7.4076689823×, displayed as 7.4×. Website, Refer Pro and Direct Mail are excluded from both sides because media spend is not recorded. The entire Paid Channels revenue card includes these channels, so it is not the numerator for a partial-coverage ROAS.
+
+Previously the Channels/Overview labels reused all-in snapshot returns while Revenue & Sales used media-only advertising returns. Marketing now shares one definition. For example Workfuel's $69,429.35 revenue / $6,772.50 media spend = 10.2517× (10.3×), whereas dividing by $9,772.50 including $3,000 commission gave 7.1046×. Underlying snapshot and cost data are unchanged.
+
+Hovering over an abbreviated media or commission amount in the channel table shows the full dollar amount to cents. Hovering the commission/total cell shows commission, total acquisition cost, CPL and cost per booked job; untracked media costs are identified as missing instead of precise $0.00. Spend totals in Overview and Revenue & Sales have the same precise hover details. The ROAS card also shows its numerator/denominator, with the full calculation and excluded channels in hover text.
+
+Follow-up validation: 214 web tests, full Next.js build, web typecheck and changed-file ESLint passed. Browser checks compared Overview, Revenue & Sales and Channels at 390/1440 px using the same read-only snapshot; ROAS matched and exact native hover titles contained cents, with no page overflow or JavaScript errors.

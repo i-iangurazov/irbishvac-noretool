@@ -2,7 +2,11 @@ import type {
   CampaignPerformanceData,
   CampaignRow,
 } from "../components/campaign-performance-page";
-import { rowCategory, totalCommissionCost } from "./campaign-overview";
+import {
+  rowCategory,
+  totalCommissionCost,
+  advertisingReturns,
+} from "./campaign-overview";
 
 export type RevenueMetric = "completedRevenue" | "soldAmount";
 export type RevenueFilter = "all" | "paid" | "organic";
@@ -24,32 +28,10 @@ export function revenueGroup(row: CampaignRow) {
 export function filterRevenueRows(rows: CampaignRow[], filter: RevenueFilter) {
   return rows.filter((row) => filter === "all" || revenueGroup(row) === filter);
 }
-export function missingRevenueSpend(row: CampaignRow) {
-  return (
-    revenueGroup(row) === "paid" &&
-    row.actual.spend <= 0 &&
-    (row.actual.qualifiedLeads > 0 ||
-      row.actual.bookedJobs > 0 ||
-      row.actual.soldJobs > 0 ||
-      row.actual.soldAmount !== 0 ||
-      row.actual.completedRevenue !== 0)
-  );
-}
-// Advertising returns use media spend only, never the precomputed all-in ROAS.
-// Missing spend excludes the same channels from numerator and denominator.
-export function advertisingReturns(rows: CampaignRow[], metric: RevenueMetric) {
-  const paid = rows.filter((row) => revenueGroup(row) === "paid");
-  const covered = paid.filter((row) => row.actual.spend > 0);
-  const spend = covered.reduce((sum, row) => sum + row.actual.spend, 0);
-  const income = covered.reduce((sum, row) => sum + row.actual[metric], 0);
-  return {
-    spend,
-    income,
-    missing: paid.filter(missingRevenueSpend).map((row) => row.channel),
-    returnOnSpend: spend > 0 ? income / spend : null,
-    expenseRatio: spend > 0 && income > 0 ? spend / income : null,
-  };
-}
+export {
+  advertisingReturns,
+  missingAdvertisingSpend as missingRevenueSpend,
+} from "./campaign-overview";
 export function marketingExpenses(
   data: CampaignPerformanceData,
   metric: RevenueMetric,

@@ -1,7 +1,8 @@
+import { exactCurrency, advertisingReturnDetail } from "../lib/marketing-amount";
 import { RevenueView } from "./campaign-revenue-view";
 import { MarketingIcon, type MarketingIconName } from "./marketing-icon";
 import { MarketingOverview } from "./marketing-overview";
-import { rowCategory, missingPaidSpend, rowCommissionCost, rowTotalCost, totalCommissionCost, totalAcquisitionCost } from "../lib/campaign-overview";
+import { rowCategory, missingAdvertisingSpend, rowCommissionCost, rowTotalCost, totalCommissionCost, totalAcquisitionCost, advertisingReturns } from "../lib/campaign-overview";
 import { DashboardShell } from "@irbis/ui";
 import { formatCompactCurrency, formatNumber, formatPercent } from "@irbis/utils";
 import { getBrandLogoUrl } from "../lib/assets";
@@ -270,7 +271,7 @@ function CampaignGauge({
   );
 }
 
-function ChannelTable({
+export function ChannelTable({
   rows,
   mode = "actual",
   emptyMessage = "No channel activity or plan is recorded for this month.",
@@ -301,17 +302,18 @@ function ChannelTable({
           ) : null}
           {rows.map((row) => {
             const target = effectiveTargets(row);
-            const costMissing = missingPaidSpend(row);
+            const costMissing = missingAdvertisingSpend(row);
+            const advertising = advertisingReturns([row], "completedRevenue");
             return mode === "actual" ? (
               <tr key={row.channel}>
                 <td><strong>{row.channel}</strong><span>{CATEGORY_LABEL[rowCategory(row)]} · {row.actual.calls} calls · {row.actual.forms} forms</span></td>
                 <td><strong>{formatNumber(row.actual.bookedJobs)} / {target.bookedJobs ?? "-"}</strong><CampaignGauge label={`${row.channel} opportunity target attainment ${formatMaybePercent(row.opportunityAttainment)}`} size="mini" value={row.opportunityAttainment} valueLabel={formatMaybePercent(row.opportunityAttainment)} /></td>
                 <td><strong>{formatMaybePercent(row.pace)}</strong><span>working-day pace</span></td>
                 <td><strong>{formatNumber(row.actual.qualifiedLeads)} / {target.qualifiedLeads || "-"}</strong><span>{formatMaybePercent(row.actual.bookingRate)} booked</span></td>
-                <td className={costMissing ? "campaign-cost-missing" : undefined}><strong>{costMissing ? "Not tracked" : formatCompactCurrency(row.actual.spend)}</strong><span>{costMissing ? "Billing/API cost required" : "Media spend after adjustments"}</span></td>
-                <td><strong>{formatCompactCurrency(rowCommissionCost(row))}</strong><span>Total {formatCompactCurrency(rowTotalCost(row))} · CPL {row.actual.costPerLead == null ? "-" : formatCompactCurrency(row.actual.costPerLead)} · CPB {row.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(row.actual.costPerBookedJob)}</span></td>
+                <td className={costMissing ? "campaign-cost-missing" : undefined}><strong title={costMissing ? "Media spend is not tracked; zero is not assumed." : exactCurrency(row.actual.spend)}>{costMissing ? "Not tracked" : formatCompactCurrency(row.actual.spend)}</strong><span>{costMissing ? "Billing/API cost required" : "Media spend after adjustments"}</span></td>
+                <td title={`Commission: ${exactCurrency(rowCommissionCost(row))}\nTotal acquisition cost: ${costMissing ? "Incomplete — media spend missing" : exactCurrency(rowTotalCost(row))}\nCPL: ${row.actual.costPerLead == null ? "Unavailable" : exactCurrency(row.actual.costPerLead)}\nCost per booked job: ${row.actual.costPerBookedJob == null ? "Unavailable" : exactCurrency(row.actual.costPerBookedJob)}`}><strong title={exactCurrency(rowCommissionCost(row))}>{formatCompactCurrency(rowCommissionCost(row))}</strong><span>Total {formatCompactCurrency(rowTotalCost(row))} · CPL {row.actual.costPerLead == null ? "-" : formatCompactCurrency(row.actual.costPerLead)} · CPB {row.actual.costPerBookedJob == null ? "-" : formatCompactCurrency(row.actual.costPerBookedJob)}</span></td>
                 <td><strong>{formatNumber(row.actual.soldJobs)}</strong><span>{formatCompactCurrency(row.actual.soldAmount)}</span></td>
-                <td><strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong><span>ROAS {row.actual.roas == null ? "-" : `${row.actual.roas.toFixed(1)}x`}</span></td>
+                <td><strong>{formatCompactCurrency(row.actual.completedRevenue)}</strong><span title={advertisingReturnDetail(advertising)}>ROAS {advertising.returnOnSpend == null ? "-" : `${advertising.returnOnSpend.toFixed(1)}x`}</span></td>
                 <td><span className={`campaign-status campaign-status--${row.status}`}>{STATUS_LABEL[row.status]}</span></td>
               </tr>
             ) : (

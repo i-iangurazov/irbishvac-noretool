@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  exactCurrency,
+  advertisingReturnDetail,
+} from "../lib/marketing-amount";
 import { useState } from "react";
 import {
   Bar,
@@ -364,7 +368,13 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
               <option value="ratio">{expenseLabel}</option>
             </select>
           </label>
-          <strong>
+          <strong
+            title={
+              efficiency === "return"
+                ? advertisingReturnDetail(returns, metric)
+                : `${exactCurrency(spend.total)} ÷ ${exactCurrency(total)}`
+            }
+          >
             {efficiency === "return"
               ? multiple(returns.returnOnSpend)
               : rate(spend.ratio)}
@@ -374,7 +384,20 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
               ? "Paid media · covered channels"
               : "Recorded marketing spend / total"}
           </p>
+          {efficiency === "return" && returns.returnOnSpend != null ? (
+            <small
+              className="revenue-return-basis"
+              title={advertisingReturnDetail(returns, metric)}
+            >
+              {money(returns.income)} ÷ {money(returns.spend)}
+            </small>
+          ) : null}
           <span
+            title={
+              returns.missing.length
+                ? `Excluded from ${returnLabel}: ${returns.missing.join(", ")}. Spend is not tracked for these channels.`
+                : "All active paid channels have recorded spend."
+            }
             className={`revenue-coverage${returns.missing.length ? " revenue-coverage--partial" : ""}`}
           >
             {returns.missing.length
@@ -389,14 +412,18 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
       >
         <div className="revenue-spend-heading">
           <h3>Marketing Spend</h3>
-          <strong>{money(spend.total)}</strong>
+          <strong title={exactCurrency(spend.total)}>
+            {money(spend.total)}
+          </strong>
           <small>Recorded media spend · MTD</small>
         </div>
         <div className="revenue-spend-item">
           <i />
           <div>
             <span>Performance Marketing</span>
-            <strong>{money(spend.paid)}</strong>
+            <strong title={exactCurrency(spend.paid)}>
+              {money(spend.paid)}
+            </strong>
             <small>Paid channels</small>
           </div>
         </div>
@@ -404,7 +431,9 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
           <i />
           <div>
             <span>Branding / ATL</span>
-            <strong>{money(spend.branding)}</strong>
+            <strong title={exactCurrency(spend.branding)}>
+              {money(spend.branding)}
+            </strong>
             <small>Billboards, TV & radio</small>
           </div>
         </div>
@@ -413,14 +442,18 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
             <i />
             <div>
               <span>Other / reconciliation</span>
-              <strong>{money(spend.other)}</strong>
+              <strong title={exactCurrency(spend.other)}>
+                {money(spend.other)}
+              </strong>
               <small>Other recorded media spend</small>
             </div>
           </div>
         ) : null}
         <div className="revenue-spend-commission">
           <span>Commissions</span>
-          <strong>{money(spend.commission)}</strong>
+          <strong title={exactCurrency(spend.commission)}>
+            {money(spend.commission)}
+          </strong>
           <small>Shown separately from media spend</small>
         </div>
       </section>
@@ -497,7 +530,10 @@ export function RevenueView({ data }: { data: CampaignPerformanceData }) {
                         <td data-label="Share">
                           {rate(total > 0 ? row.actual[metric] / total : null)}
                         </td>
-                        <td data-label={returnLabel}>
+                        <td
+                          data-label={returnLabel}
+                          title={advertisingReturnDetail(result, metric)}
+                        >
                           {multiple(result.returnOnSpend)}
                         </td>
                         <td data-label="Expense ratio">

@@ -66,6 +66,9 @@ describe("Campaigns integration boundary", () => {
     expect(response.status).toBe(200); expect(response.headers.get("cache-control")).toContain("no-store");
     expect(body.data.overview.bookedJobs).toBe(snapshot.actual.bookedJobs);
     expect(body.data.rows).toHaveLength(snapshot.rows.length);
+    expect(body.data.overview.roasCalculation.basis).toBe("paid-media");
+    expect(body.data.overview.roas).toBe(body.data.overview.roasCalculation.revenue / body.data.overview.roasCalculation.spend);
+    expect(body.data.overview).toHaveProperty("allInRoas");
     expect(body.data.sources.every((source: object) => !("reportId" in source))).toBe(true);
     expect(JSON.stringify(body)).not.toContain("internal-only-secret");
     const [url, init] = fetchMock.mock.calls[0]!;

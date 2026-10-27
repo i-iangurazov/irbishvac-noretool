@@ -1,5 +1,5 @@
 import type { CampaignPerformanceData, CampaignRow } from "../components/campaign-performance-page";
-import { bookingRateFor, rowCategory, spendCoverage, topChannels, type ChannelSort } from "./campaign-overview";
+import { advertisingReturns, bookingRateFor, rowCategory, spendCoverage, topChannels, type ChannelSort } from "./campaign-overview";
 
 function publicRow(row: CampaignRow) {
   return {
@@ -15,6 +15,7 @@ function publicRow(row: CampaignRow) {
 export function campaignIntegrationReport(data: CampaignPerformanceData) {
   const coverage = spendCoverage(data);
   const complete = coverage.status === "complete";
+  const advertising = advertisingReturns(data.rows, "completedRevenue");
   const leadsAvailable = data.leadDataStatus !== "unavailable";
   const rankings = Object.fromEntries((["completedRevenue", "soldAmount", "roas"] as ChannelSort[]).map((sort) => [sort, {
     paid: topChannels(data.rows, "paid", sort).map(publicRow),
@@ -39,7 +40,9 @@ export function campaignIntegrationReport(data: CampaignPerformanceData) {
         paid: leadsAvailable ? bookingRateFor(data.rows.filter((row) => rowCategory(row) === "paid")) : null,
         organic: leadsAvailable ? bookingRateFor(data.rows.filter((row) => rowCategory(row) === "organic")) : null,
       },
-      roas: (complete ? data.actual.roas : coverage.coveredRoas) ?? null,
+      roas: advertising.returnOnSpend,
+      roasCalculation: {basis:"paid-media",revenue:advertising.income,spend:advertising.spend,missingChannels:advertising.missing},
+      allInRoas: (complete ? data.actual.roas : coverage.coveredRoas) ?? null,
       costPerLead: (complete ? data.actual.costPerLead : coverage.coveredCostPerLead) ?? null,
       costPerBookedAppointment: (complete ? data.actual.costPerBookedJob : coverage.coveredCostPerBookedJob) ?? null,
       marketingSpend: data.actual.spend, marketingBudget: data.plan.marketingBudgetGoal,

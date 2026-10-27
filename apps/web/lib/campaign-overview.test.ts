@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bookingRateFor,
+  advertisingReturns,
   campaignMonthIds,
   channelRoas,
   performanceSeries,
@@ -110,5 +111,39 @@ describe("marketing overview", () => {
     expect(campaignMonthIds("2026-09", "2027-01", ["2026-07"])).not.toContain(
       "2027-01",
     );
+  });
+});
+
+describe("consistent paid-media ROAS", () => {
+  it("ignores legacy all-in return fields and commissions for both aggregate and channel returns", () => {
+    const paid = {
+      ...row("Workfuel", "paid", 69429.35, 110163.51, 6772.5),
+      actual: {
+        ...row("Workfuel", "paid", 69429.35, 110163.51, 6772.5).actual,
+        commissionCost: 3000,
+        totalCost: 9772.5,
+        roas: 7.10456,
+      },
+    };
+    expect(channelRoas(paid)).toBeCloseTo(69429.35 / 6772.5);
+    expect(advertisingReturns([paid], "completedRevenue").returnOnSpend).toBe(
+      channelRoas(paid),
+    );
+    expect(paid.actual.roas).toBe(7.10456);
+  });
+  it("uses summed values rather than averages and never treats unpaid media as paid ROAS", () => {
+    const rows = [
+      row("A", "paid", 900, 1000, 100),
+      row("B", "paid", 100, 200, 50),
+      row("Missing", "paid", 5000, 6000, 0),
+      row("Organic", "organic", 9999, 9999, 10),
+    ];
+    expect(advertisingReturns(rows, "completedRevenue")).toMatchObject({
+      income: 1000,
+      spend: 150,
+      missing: ["Missing"],
+    });
+    expect(channelRoas(rows[3]!)).toBeNull();
+    expect(advertisingReturns(rows, "soldAmount").returnOnSpend).toBe(8);
   });
 });
