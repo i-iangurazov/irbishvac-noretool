@@ -41,6 +41,11 @@ import {
   isPreparedStaffPortrait,
   staffPortraitUrl,
 } from "../lib/staff-portrait-url";
+import { KitchenReleaseMonitor } from "./kitchen-release-monitor";
+import {
+  readKitchenPlayback,
+  saveKitchenPlayback,
+} from "../lib/kitchen-playback";
 export { buildKitchenSlides } from "../lib/kitchen-layout";
 export const nextKitchenSlide = (slides: KitchenSlide[], current: number) =>
   slides.length ? (current + 1) % slides.length : 0;
@@ -523,11 +528,13 @@ export function KitchenBoard({
   autoplay,
   initialData,
   brandLogoUrl,
+  clientVersion,
 }: {
   tvMode: boolean;
   autoplay: boolean;
   initialData?: KitchenBoardData;
   brandLogoUrl?: string | null;
+  clientVersion?: string | null;
 }) {
   const [data, setData] = useState<KitchenBoardData | null>(
       initialData ?? null,
@@ -576,7 +583,7 @@ export function KitchenBoard({
       controller = new AbortController();
       const timeout = window.setTimeout(() => controller?.abort(), 15_000);
       try {
-        const response = await fetch("/api/dashboard/kitchen", {
+        const response = await fetch("/api/dashboard/kitchen?presentation=2", {
           cache: "no-store",
           signal: controller.signal,
         });
@@ -667,7 +674,9 @@ export function KitchenBoard({
     return () => window.clearTimeout(timer);
   }, [running, index, slides.length, duration]);
   useEffect(() => {
-    setIndex(0);
+    const saved = readKitchenPlayback();
+    setIndex(saved?.index ?? 0);
+    if (saved) setRunning(saved.running);
   }, [monthKey]);
   const date = kitchenBusinessDate(now, timezone),
     month = new Intl.DateTimeFormat("en-US", {
@@ -711,6 +720,10 @@ export function KitchenBoard({
     <div
       className={`kitchen-experience ${tvMode ? "kitchen-experience--tv" : ""}`}
     >
+      <KitchenReleaseMonitor
+        currentVersion={clientVersion ?? null}
+        beforeReload={() => saveKitchenPlayback({ index, running })}
+      />
       <div className="kitchen-viewport" ref={viewport}>
         <div
           className="kitchen-canvas"

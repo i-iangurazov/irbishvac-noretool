@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { DashboardAutoRefreshRuntime } from "@irbis/ui";
 import { requestDashboardRecovery } from "../../../packages/ui/src/components/dashboard-recovery";
@@ -9,6 +9,7 @@ export function DashboardTvRuntime() {
   const query = useSearchParams();
   const router = useRouter();
   const tv = query.get("tv") === "1";
+  const kitchen = usePathname() === "/kitchen";
   const { getToken, isLoaded, isSignedIn } = useAuth();
   useEffect(() => {
     if (!tv) return;
@@ -24,8 +25,10 @@ export function DashboardTvRuntime() {
   }, [tv, router]);
   return (
     <DashboardAutoRefreshRuntime
-      enabled={tv}
+      enabled={tv || kitchen}
       beforeRefresh={async () => {
+        if (kitchen)
+          window.dispatchEvent(new Event("irbis:kitchen:before-reload"));
         if (isLoaded && isSignedIn) await getToken({ skipCache: true });
       }}
     />

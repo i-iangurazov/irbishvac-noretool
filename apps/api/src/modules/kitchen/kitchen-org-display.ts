@@ -24,6 +24,10 @@ export function applyKitchenOrgDisplay(
   const tim = employees.find(
     (person) => person.name.trim().toLowerCase() === "tim alagushov",
   );
+  for (const person of employees) {
+    if (/plumbing.*service.*technician/i.test(person.title))
+      person.orgDepartmentLabel = "Plumbing Service";
+  }
   for (const contact of CONTACTS) {
     const existing = employees.find(
       (person) =>
@@ -49,4 +53,27 @@ export function applyKitchenOrgDisplay(
     });
   }
   return { ...directory, employees };
+}
+
+/** Old TV documents predate the second department row. Keep their seven-column
+ * contract until they load a client that explicitly supports that presentation.
+ */
+export function kitchenPresentationDirectory(
+  directory: KitchenDirectory,
+  presentation?: string,
+): KitchenDirectory {
+  if (presentation === "2") return directory;
+  return {
+    ...directory,
+    employees: directory.employees.map((person) =>
+      person.orgSecondary
+        ? {
+            ...person,
+            managerId: null,
+            orgSecondary: false,
+            orgStandalone: true,
+          }
+        : person,
+    ),
+  };
 }

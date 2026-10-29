@@ -1,4 +1,5 @@
 import { KitchenBoard } from "../../components/kitchen-board";
+import { kitchenClientVersion } from "../../lib/kitchen-client-version";
 import "./kitchen.css";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Kitchen TV | IRBIS" };
@@ -14,6 +15,7 @@ export default async function KitchenPage({
       tvMode={tv}
       autoplay={tv && params.rotate !== "0"}
       brandLogoUrl="/kitchen/irbis-logo.png"
+      clientVersion={await kitchenClientVersion()}
     />
   );
 }

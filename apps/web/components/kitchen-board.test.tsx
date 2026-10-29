@@ -13,6 +13,7 @@ import type {
   KitchenEmployee,
 } from "../../../packages/domain/src/kitchen-board";
 import { staffPortraitUrl } from "../lib/staff-portrait-url";
+import { saveKitchenPlayback } from "../lib/kitchen-playback";
 const employee = (
   id: string,
   title: string,
@@ -64,6 +65,7 @@ const data = (): KitchenBoardData => ({
 let host: HTMLDivElement, root: Root;
 beforeEach(() => {
   vi.useFakeTimers();
+  window.sessionStorage.clear();
   vi.setSystemTime(new Date("2026-10-19T12:00:00Z"));
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.stubGlobal(
@@ -84,6 +86,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("October kitchen TV requirements", () => {
+  it("resumes the selected screen and rotation after a release reload in ordinary mode", async () => {
+    saveKitchenPlayback({ index: 4, running: true });
+    await act(async () =>
+      root.render(
+        <KitchenBoard tvMode={false} autoplay={false} initialData={data()} />,
+      ),
+    );
+    expect(host.querySelector('[data-slide-kind="news"]')).not.toBeNull();
+    expect(host.querySelector('[aria-label="Pause rotation"]')).not.toBeNull();
+    await act(async () => vi.advanceTimersByTime(45_000));
+    expect(host.querySelector('[data-slide-kind="org"]')).not.toBeNull();
+  });
   it("prefers the reviewed portrait, then falls back to Rippling and initials", async () => {
     const fixture = data();
     const ceo = fixture.directory.employees[0]!;

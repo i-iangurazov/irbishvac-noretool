@@ -3,20 +3,33 @@ import { createRoot, type Root } from "react-dom/client";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { DashboardTvRuntime } from "./dashboard-tv-runtime";
 import { DASHBOARD_RECOVERY_EVENT } from "../../../packages/ui/src/components/dashboard-recovery";
-const state = vi.hoisted(() => ({ tv: true, refresh: vi.fn() }));
+const state = vi.hoisted(() => ({
+  tv: true,
+  pathname: "/company-wide",
+  recoveryEnabled: false,
+  refresh: vi.fn(),
+}));
 const router = { refresh: state.refresh };
 vi.mock("next/navigation", () => ({
   useRouter: () => router,
   useSearchParams: () => new URLSearchParams(state.tv ? "tv=1" : ""),
+  usePathname: () => state.pathname,
 }));
 vi.mock("@clerk/nextjs", () => ({
   useAuth: () => ({ isLoaded: true, isSignedIn: true, getToken: vi.fn() }),
 }));
-vi.mock("@irbis/ui", () => ({ DashboardAutoRefreshRuntime: () => null }));
+vi.mock("@irbis/ui", () => ({
+  DashboardAutoRefreshRuntime: ({ enabled }: { enabled: boolean }) => {
+    state.recoveryEnabled = enabled;
+    return null;
+  },
+}));
 let root: Root, host: HTMLDivElement;
 beforeEach(() => {
   vi.useFakeTimers();
   state.tv = true;
+  state.pathname = "/company-wide";
+  state.recoveryEnabled = false;
   state.refresh.mockReset();
   vi.stubGlobal("React", React);
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
@@ -35,6 +48,12 @@ afterEach(() => {
 });
 const render = () => act(() => root.render(<DashboardTvRuntime />));
 describe("single-page TV data updates", () => {
+  it("enables recovery for the ordinary Kitchen page used on the physical TV", () => {
+    state.tv = false;
+    state.pathname = "/kitchen";
+    render();
+    expect(state.recoveryEnabled).toBe(true);
+  });
   it("refreshes a stationary TV view, keeping its clock across ordinary route rerenders", () => {
     render();
     act(() => vi.advanceTimersByTime(30000));

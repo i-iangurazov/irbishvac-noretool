@@ -36,6 +36,14 @@ The new additive table is defined in `packages/db/sql/kitchen-newsletter.sql` an
 
 `node scripts/prepare-kitchen-assets.mjs` copies the worker from the lockfile-pinned PDF.js package before web build/dev. Newsletter artwork stays in the authenticated database, outside the public source repository; pages are served only through protected handlers. Shared dashboard shell/header and unrelated dashboards are unchanged.
 
+## Long-running pages and release compatibility
+
+Kitchen clients that support the lower department row request `/api/dashboard/kitchen?presentation=2`. Requests without that explicit version retain the earlier seven-column presentation, with the additional department contacts outside the executive branches. Do not change the default contract to the new hierarchy: pre-existing TV documents continue polling data with their old JavaScript and CSS. Plumbing's department label is `Plumbing Service`; the full technician role remains inside the card.
+
+The Kitchen page receives the web deployment identity and checks the protected, uncached `/api/kitchen/release` endpoint every minute. Two consistent observations of a different release request a full document reload through the existing online/authentication recovery mechanism. Server/router prop refreshes do not advance the version of the already-loaded document. The selected slide and rotation state survive that reload. Recovery also runs for ordinary `/kitchen` pages with the controls visible, even without `tv=1`.
+
+Documents opened before the release monitor was installed need one initial reload to obtain the new interface and monitoring code. The compatible data response restores their readable layout on their next ordinary roster poll in the meantime. Release QA must cover an old document receiving new API data without reloading, and both ordinary and TV modes.
+
 ## Verification
 
 The October implementation is covered by 120 web tests, including screen ordering, role-driven hierarchy, 37-person crew completeness, crew overflow, celebration pagination, empty-month skipping, 20/45-second timing, milestones, authentication, shared-account write rejection, cross-origin rejection, bounded upload parsing, invalid images, and atomic validated storage. Production build and TypeScript checks pass. Browser review covers Full HD, 4K and 1280 × 720; physical TV playback still requires loading/reloading the TV URL on that device.

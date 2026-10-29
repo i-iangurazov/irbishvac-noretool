@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { normalizeKitchenDirectory } from "@irbis/domain";
-import { applyKitchenOrgDisplay } from "./kitchen-org-display";
+import {
+  applyKitchenOrgDisplay,
+  kitchenPresentationDirectory,
+} from "./kitchen-org-display";
 describe("requested kitchen org presentation", () => {
   it("adds the requested professional contacts without inventing employment dates or reporting relationships", () => {
     const source = normalizeKitchenDirectory([], [], []);
@@ -95,5 +98,25 @@ describe("requested kitchen org presentation", () => {
     expect(applyKitchenOrgDisplay(board).employees).toHaveLength(
       board.employees.length,
     );
+    const legacy = kitchenPresentationDirectory(board);
+    expect(
+      legacy.employees
+        .filter((person) => person.orgStandalone)
+        .map((person) => person.name),
+    ).toEqual(["Emil Sultanaliev", "Adele Aldyrakhmanova"]);
+    expect(
+      legacy.employees.filter((person) => person.managerId === "tim"),
+    ).toHaveLength(0);
+    expect(legacy.employees).toHaveLength(board.employees.length);
+    expect(
+      kitchenPresentationDirectory(board, "2").employees.filter(
+        (person) => person.managerId === "tim",
+      ),
+    ).toHaveLength(2);
+    expect(
+      board.employees
+        .filter((person) => person.orgSecondary)
+        .every((person) => person.managerId === "tim"),
+    ).toBe(true);
   });
 });
