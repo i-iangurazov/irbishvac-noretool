@@ -12,6 +12,8 @@ export type KitchenEmployee = {
   /** Explicit board-only department contacts, distinct from Rippling employment/reporting. */
   orgDepartmentLabel?: string;
   orgStandalone?: boolean;
+  /** A second row of departments attached to the same reporting executive. */
+  orgSecondary?: boolean;
 };
 
 export type KitchenDirectory = {

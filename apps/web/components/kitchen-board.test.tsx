@@ -146,6 +146,65 @@ describe("October kitchen TV requirements", () => {
         .map((branch) => branch.leader?.id ?? branch.label),
     ).toEqual(["hr", "installation", "HVAC Service"]);
   });
+  it("connects the lower department row to its executive while preserving the main column widths and report counts", async () => {
+    const fixture = data();
+    fixture.directory.employees.push(
+      employee("sales", "Sales Manager", "coo"),
+      {
+        ...employee("marketing", "Marketing", "coo"),
+        orgDepartmentLabel: "Marketing",
+        orgSecondary: true,
+      },
+      {
+        ...employee("customer-service", "Customer Service", "coo"),
+        orgDepartmentLabel: "Customer Service",
+        orgSecondary: true,
+      },
+    );
+    const tree = kitchenLeadership(fixture.directory.employees);
+    expect(tree.reports("coo")).toHaveLength(3);
+    expect(tree.branches.filter((branch) => branch.secondary)).toHaveLength(2);
+    await act(async () =>
+      root.render(
+        <KitchenBoard tvMode autoplay={false} initialData={fixture} />,
+      ),
+    );
+    const group = host.querySelector(
+      'aside[aria-label="Departments reporting to Person coo"]',
+    )!;
+    expect(group.querySelectorAll(".kitchen-leader")).toHaveLength(2);
+    expect(group.textContent).toContain("Marketing");
+    expect(group.textContent).toContain("Customer Service");
+    expect(
+      host.querySelector('.kitchen-secondary-connectors[data-executive="coo"]'),
+    ).not.toBeNull();
+    expect(host.querySelectorAll(".kitchen-branches > section")).toHaveLength(
+      tree.branches.filter((branch) => !branch.secondary).length,
+    );
+    expect(host.querySelector(".kitchen-independent-departments")).toBeNull();
+    fixture.directory.employees.push(
+      ...Array.from({ length: 5 }, (_, index) =>
+        employee(`advisor-${index}`, "Comfort Advisor", "sales"),
+      ),
+    );
+    const pages = buildKitchenSlides(fixture, new Date()).filter(
+      (slide) => slide.kind === "org",
+    );
+    expect(pages).toHaveLength(2);
+    expect(
+      pages.map(
+        (page) =>
+          page.branches!.find((branch) => branch.leader?.id === "sales")!.people
+            .length,
+      ),
+    ).toEqual([4, 1]);
+    expect(
+      pages.every(
+        (page) =>
+          page.branches!.filter((branch) => branch.secondary).length === 2,
+      ),
+    ).toBe(true);
+  });
   it("places all 37 crew members in five columns, including two helper columns", () => {
     const people = [
       ...Array.from({ length: 7 }, (_, i) =>

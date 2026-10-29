@@ -53,4 +53,47 @@ describe("requested kitchen org presentation", () => {
       board.employees.filter((p) => p.name === "Emil Sultanaliev"),
     ).toHaveLength(1);
   });
+  it("places Marketing and Customer Service under Tim, including a later Rippling contact, without changing the HR source", () => {
+    const source = normalizeKitchenDirectory(
+      [
+        {
+          id: "tim",
+          user_id: "t",
+          title: "Chief Operating Officer",
+          status: "ACTIVE",
+        },
+        {
+          id: "emil",
+          user_id: "e",
+          title: "Marketing Director",
+          manager_id: "another-manager",
+          status: "ACTIVE",
+        },
+      ],
+      [
+        { id: "t", display_name: "Tim Alagushov" },
+        { id: "e", display_name: "Emil Sultanaliev" },
+      ],
+      [],
+    );
+    const before = structuredClone(source);
+    const board = applyKitchenOrgDisplay(source);
+    const contacts = board.employees.filter((person) => person.orgSecondary);
+    expect(contacts.map((person) => person.name)).toEqual([
+      "Emil Sultanaliev",
+      "Adele Aldyrakhmanova",
+    ]);
+    expect(
+      contacts.every(
+        (person) => person.managerId === "tim" && !person.orgStandalone,
+      ),
+    ).toBe(true);
+    expect(contacts.find((person) => person.id === "emil")?.title).toBe(
+      "Marketing Director",
+    );
+    expect(source).toEqual(before);
+    expect(applyKitchenOrgDisplay(board).employees).toHaveLength(
+      board.employees.length,
+    );
+  });
 });

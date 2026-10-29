@@ -154,8 +154,40 @@ function Leadership({
     (branch) => branch.standalone,
   );
   const branches = (slide.branches ?? []).filter(
-    (branch) => !branch.standalone,
+    (branch) => !branch.standalone && !branch.secondary,
   );
+  const secondaryGroups = roots.flatMap((executive) => {
+    const departments = (slide.branches ?? []).filter(
+      (branch) => branch.secondary && branch.executive.id === executive.id,
+    );
+    if (!departments.length) return [];
+    const start = Math.max(
+      0,
+      branches.findIndex((branch) => branch.executive.id === executive.id),
+    );
+    const count = branches.filter(
+      (branch) => branch.executive.id === executive.id,
+    ).length;
+    const span = Math.min(3, branches.length - start);
+    const step = (1760 + 16) / Math.max(1, branches.length);
+    const width = step * span - 16;
+    return [
+      {
+        executive,
+        departments,
+        start,
+        span,
+        rootX: step * (start + count / 2) - 8,
+        routeX: step * (start + count) - 8,
+        childXs: departments.map(
+          (_, index) =>
+            step * start +
+            ((width + 16) / departments.length) * (index + 0.5) -
+            8,
+        ),
+      },
+    ];
+  });
   return (
     <div
       className="kitchen-org"
@@ -293,6 +325,44 @@ function Leadership({
           );
         })}
       </div>
+      {secondaryGroups.map((group) => (
+        <React.Fragment key={group.executive.id}>
+          <svg
+            className="kitchen-secondary-connectors"
+            viewBox="0 0 1760 890"
+            aria-hidden="true"
+            data-executive={group.executive.id}
+          >
+            <path
+              d={`M ${group.rootX} 157 H ${group.routeX} V 640 M ${group.childXs[0]} 640 H ${group.childXs.at(-1)} ${group.childXs.map((x) => `M ${x} 640 V 706`).join(" ")}`}
+            />
+          </svg>
+          <aside
+            className="kitchen-secondary-departments"
+            aria-label={`Departments reporting to ${group.executive.name}`}
+            style={
+              {
+                "--department-start": group.start,
+                "--department-span": group.span,
+                "--department-count": group.departments.length,
+              } as CSSProperties
+            }
+          >
+            <h3>Reports to {group.executive.name.split(" ")[0]}</h3>
+            <div>
+              {group.departments.map((branch) => (
+                <section key={branch.leader!.id}>
+                  <div className="kitchen-department-label">{branch.label}</div>
+                  <Leader
+                    person={branch.leader!}
+                    count={reports(branch.leader!.id).length}
+                  />
+                </section>
+              ))}
+            </div>
+          </aside>
+        </React.Fragment>
+      ))}
       {departments.length > 0 && (
         <aside
           className="kitchen-independent-departments"

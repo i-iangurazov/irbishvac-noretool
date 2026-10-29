@@ -24,6 +24,7 @@ export type OrgBranch = {
   people: KitchenEmployee[];
   installation: boolean;
   standalone?: boolean;
+  secondary?: boolean;
 };
 export type KitchenSlide = {
   id: string;
@@ -73,6 +74,7 @@ export function kitchenLeadership(employees: KitchenEmployee[]) {
         label: leader.orgDepartmentLabel ?? null,
         people: reports(leader.id),
         installation: leader.id === installationManager?.id,
+        secondary: Boolean(leader.orgSecondary),
       });
     }
     if (service.length)
@@ -208,10 +210,21 @@ export function buildKitchenSlides(
   const { branches, installationManager, reports } = kitchenLeadership(
     data.directory.employees,
   );
+  // Reserve the lower department row beneath that executive's primary team.
+  // Further reports continue on another org page instead of crossing its cards.
+  const secondaryExecutives = new Set(
+    branches
+      .filter((branch) => branch.secondary)
+      .map((branch) => branch.executive.id),
+  );
+  const pageSize = (branch: OrgBranch) =>
+    secondaryExecutives.has(branch.executive.id) && !branch.secondary ? 4 : 9;
   const orgPages = Math.max(
     1,
     ...branches.map((branch) =>
-      branch.installation ? 1 : Math.ceil(branch.people.length / 9),
+      branch.installation
+        ? 1
+        : Math.ceil(branch.people.length / pageSize(branch)),
     ),
   );
   const slides: KitchenSlide[] = Array.from(
@@ -225,7 +238,10 @@ export function buildKitchenSlides(
         ...branch,
         people: branch.installation
           ? branch.people
-          : branch.people.slice(index * 9, (index + 1) * 9),
+          : branch.people.slice(
+              index * pageSize(branch),
+              (index + 1) * pageSize(branch),
+            ),
       })),
     }),
   );
