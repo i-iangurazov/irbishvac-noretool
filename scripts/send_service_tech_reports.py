@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -11,6 +12,8 @@ from email.message import EmailMessage
 from email.utils import formatdate, make_msgid, parseaddr
 from pathlib import Path
 from typing import Any, Iterable, Optional
+from performance_reporting import assert_send_ready, verify_live_personnel
+from performance_mail import ResendMailer, transport_name
 
 
 def main() -> int:
@@ -40,6 +43,7 @@ def main() -> int:
         "--combined-plumbing-pdf",
         help="Combined Plumbing Service PDF required by the technician delivery profile.",
     )
+    parser.add_argument("--combined-electrical-pdf")
     parser.add_argument(
         "--test-recipient",
         help="Send one isolated test message to this address without changing delivery state.",
@@ -49,9 +53,9 @@ def main() -> int:
         help="Report slug for --test-recipient; defaults to the first manifest row.",
     )
     parser.add_argument(
-        "--smtp-preflight",
+        "--mail-preflight", "--smtp-preflight", dest="mail_preflight",
         action="store_true",
-        help="Authenticate and validate recipients with SMTP without sending DATA.",
+        help="Check SMTP recipients without DATA, or validate HTTPS transport configuration without sending mail.",
     )
     args = parser.parse_args()
 
@@ -61,15 +65,40 @@ def main() -> int:
     pdf_dir = Path(args.pdf_dir).resolve()
     state_dir = Path(args.state_dir).resolve()
     state_dir.mkdir(parents=True, exist_ok=True)
+    # Keep this handle alive through the complete transaction, including dry-run.
+    delivery_lock = (state_dir / ".smtp.lock").open("a+")
+    try:
+        fcntl.flock(delivery_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        delivery_lock.close()
+        print("delivery_noop=another process holds the SMTP delivery lock")
+        return 0
+    try:
+        return _deliver_package(args, env, manifest_path, snapshot_path, pdf_dir, state_dir)
+    finally:
+        delivery_lock.close()
 
+
+def _deliver_package(args, env, manifest_path, snapshot_path, pdf_dir, state_dir) -> int:
     manifest = _json(manifest_path)
     snapshot = _json(snapshot_path)
+    if args.mode == "send":
+        if snapshot.get("canonicalSource") is not True:
+            raise ValueError("Live delivery requires the shared canonical dashboard metrics and goals")
+        if snapshot.get("sourceKind") != args.delivery_profile:
+            raise ValueError("Delivery profile differs from the prepared report cycle")
+        assert_send_ready(snapshot)
+        verify_live_personnel(snapshot, args.env_file)
     reports = _validate_package(manifest, snapshot, pdf_dir)
     routing = _routing(env)
     delivery_key = str(manifest["cutoffDate"])
 
     plan = []
+    delivery_issues = []
     for report in reports:
+        if not report.get("email"):
+            delivery_issues.append({"technician": report["technician"], "reason": "ServiceTitan email missing; PDF included in management packet"})
+            continue
         to = _email(str(report["email"]), f"technician {report['technician']}")
         pdf_path = pdf_dir / str(report["fileName"])
         plan.append(
@@ -91,18 +120,18 @@ def main() -> int:
             (
                 "hvac",
                 "HVAC Service",
-                _validated_combined_pdf(args.combined_hvac_pdf),
+                args.combined_hvac_pdf,
                 [routing["hvac_manager"], routing["vadim"], routing["tim"]],
                 [
                     str(row["technician"])
                     for row in reports
-                    if not str(row["department"]).lower().startswith("plumbing")
+                    if str(row["department"]).lower().startswith("hvac")
                 ],
             ),
             (
                 "plumbing",
                 "Plumbing Service",
-                _validated_combined_pdf(args.combined_plumbing_pdf),
+                args.combined_plumbing_pdf,
                 [routing["plumbing_manager"], routing["vadim"], routing["tim"]],
                 [
                     str(row["technician"])
@@ -111,9 +140,18 @@ def main() -> int:
                 ],
             ),
         ]
+        electrical = [str(row["technician"]) for row in reports if str(row["department"]).lower().startswith("electrical")]
+        if electrical:
+            manager = _email(_required(env, "TECH_REPORT_ELECTRICAL_MANAGER_EMAIL"), "electrical manager")
+            department_packets.append(("electrical", "Electrical Service", args.combined_electrical_pdf, [manager, routing["vadim"], routing["tim"]], electrical))
+        supported = {"HVAC Service", "HVAC Maintenance", "Plumbing Service", "Electrical Service"}
+        if any(row["department"] not in supported for row in reports):
+            raise ValueError("An unsupported department needs approved management routing")
         for slug, department, combined_pdf, recipients, technicians in department_packets:
             if not technicians:
-                raise ValueError(f"{department} management packet has no technicians")
+                print(f"management_packet_skipped={department}; no active staff")
+                continue
+            combined_pdf = _validated_combined_pdf(combined_pdf)
             plan.append(
                 {
                     "slug": f"management-{slug}",
@@ -134,14 +172,8 @@ def main() -> int:
             )
     else:
         combined_pdf = _validated_combined_pdf(args.combined_pdf)
-        raymond = next(
-            (row for row in reports if str(row.get("slug")) == "raymond-porras"),
-            None,
-        )
-        if raymond is None:
-            raise ValueError("Advisor delivery requires Raymond Porras in the report roster")
         managers = [
-            ("raymond", "Raymond", _email(str(raymond["email"]), "Raymond email")),
+            ("raymond", "Raymond", _email(_required(env, "RAYMOND_EMAIL"), "Raymond manager email")),
             (
                 "vadim",
                 "Vadim",
@@ -164,11 +196,7 @@ def main() -> int:
                     "technician": recipient_name,
                     "department": "HVAC Sales",
                     "managementDepartment": "Sales Department",
-                    "includedTechnicians": [
-                        "Raymond Porras",
-                        "Rudy-Noel Zapien",
-                        "Matthew Stalcup",
-                    ],
+                    "includedTechnicians": [row["technician"] for row in reports],
                     "to": [address],
                     "cc": [],
                     "attachment": str(combined_pdf),
@@ -186,6 +214,7 @@ def main() -> int:
             "deliveryKey": delivery_key,
             "mode": args.mode,
             "deliveryProfile": args.delivery_profile,
+            "deliveryIssues": delivery_issues,
             "emailFrom": routing["from"],
             "reports": plan,
         },
@@ -193,10 +222,10 @@ def main() -> int:
     print(f"validated_reports={len(plan)}")
     print(f"delivery_plan={plan_path}")
 
-    if args.smtp_preflight:
+    if args.mail_preflight:
         recipients = [address for row in plan for address in row["to"] + row["cc"]]
-        _smtp_preflight(env, routing["from"], _unique_emails(recipients))
-        print(f"smtp_preflight_recipients={len(_unique_emails(recipients))}")
+        _mail_preflight(env, routing["from"], _unique_emails(recipients))
+        print(f"mail_preflight_recipients={len(_unique_emails(recipients))}")
 
     if args.mode == "dry-run":
         print("emails_sent=0")
@@ -223,7 +252,7 @@ def main() -> int:
             idstring=f"performance-report-test-{source['slug']}",
             domain=parseaddr(routing["from"])[1].split("@", 1)[1],
         )
-        with _smtp(env) as smtp:
+        with _mailer(env, before_attempt=lambda: assert_send_ready(snapshot)) as smtp:
             smtp.send_message(
                 _message(test_row, routing["from"], manifest["cutoffDate"], message_id)
             )
@@ -235,8 +264,9 @@ def main() -> int:
     state = _load_state(state_path, delivery_key, manifest)
     sent = 0
     skipped = 0
-    with _smtp(env) as smtp:
+    with _mailer(env, before_attempt=lambda: assert_send_ready(snapshot)) as smtp:
         for row in plan:
+            assert_send_ready(snapshot)
             prior = state["reports"].get(row["slug"])
             if prior and prior.get("status") == "sent":
                 if prior.get("attachmentSha256") != row["attachmentSha256"]:
@@ -254,10 +284,13 @@ def main() -> int:
                 idstring=f"performance-report-{delivery_key}-{row['slug']}",
                 domain=parseaddr(routing["from"])[1].split("@", 1)[1],
             )
+            idempotency_key = hashlib.sha256(f"{args.delivery_profile}:{delivery_key}:{row['slug']}".encode()).hexdigest()
             state["reports"][row["slug"]] = {
                 "status": "sending",
                 "startedAt": _utc_now(),
                 "messageId": message_id,
+                "idempotencyKey": idempotency_key,
+                "provider": transport_name(env),
                 "attachmentSha256": row["attachmentSha256"],
                 "to": row["to"],
                 "cc": row["cc"],
@@ -265,10 +298,16 @@ def main() -> int:
             _atomic_json(state_path, state)
 
             message = _message(row, routing["from"], manifest["cutoffDate"], message_id)
-            smtp.send_message(message)
+            message["X-IRBIS-Delivery-Key"] = idempotency_key
+            refused = smtp.send_message(message)
+            if refused:
+                raise RuntimeError("SMTP rejected one or more recipients; delivery requires reconciliation")
             state["reports"][row["slug"]].update(
                 {"status": "sent", "sentAt": _utc_now()}
             )
+            receipt = getattr(smtp, "last_receipt", None)
+            if isinstance(receipt, dict):
+                state["reports"][row["slug"]].update(receipt)
             _atomic_json(state_path, state)
             sent += 1
             print(f"sent={row['slug']}")
@@ -287,6 +326,8 @@ def _validate_package(
             raise ValueError(f"Manifest is missing {key}")
     if manifest["cutoffDate"] != snapshot.get("cutoffDate"):
         raise ValueError("Manifest and snapshot cutoff dates do not match")
+    if manifest["periodFrom"] != snapshot.get("periodFrom"):
+        raise ValueError("Manifest and snapshot start dates do not match")
     if manifest.get("reportVersion") != snapshot.get("reportVersion"):
         raise ValueError("Manifest and snapshot report versions do not match")
 
@@ -314,8 +355,13 @@ def _validate_package(
         raise ValueError(f"Reports failed visual QA: {', '.join(sorted(failed))}")
 
     cutoff = str(manifest["cutoffDate"])
+    staff_by_slug = {row["slug"]: row for row in technicians}
     for report in reports:
-        for key in ("slug", "technician", "department", "email", "fileName"):
+        expected = staff_by_slug[report["slug"]]
+        for key in ("technician", "department", "email"):
+            if report.get(key) != expected.get(key):
+                raise ValueError(f"Manifest {key} differs from the prepared snapshot for {report['slug']}")
+        for key in ("slug", "technician", "department", "fileName"):
             if not report.get(key):
                 raise ValueError(f"Report row is missing {key}: {report}")
         if cutoff not in str(report["fileName"]):
@@ -439,6 +485,22 @@ def _smtp(env: dict[str, str]) -> smtplib.SMTP:
     smtp.ehlo()
     smtp.login(_required(env, "SMTP_USER"), _required(env, "SMTP_PASS"))
     return smtp
+
+
+def _mailer(env: dict[str, str], before_attempt=None):
+    return ResendMailer(env, before_attempt) if transport_name(env) == "resend" else _smtp(env)
+
+
+def _mail_preflight(env: dict[str, str], sender: str, recipients: list[str]) -> None:
+    _email(sender, "sender")
+    for recipient in recipients:
+        _email(recipient, "recipient")
+    if transport_name(env) == "resend":
+        ResendMailer(env)
+        print("mail_preflight_scope=HTTPS configuration and address format only; no provider authentication or delivery claimed")
+    else:
+        _smtp_preflight(env, sender, recipients)
+        print("mail_preflight_scope=SMTP authentication and RCPT validation; no DATA sent")
 
 
 def _smtp_preflight(env: dict[str, str], sender: str, recipients: list[str]) -> None:

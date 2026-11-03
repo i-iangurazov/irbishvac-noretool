@@ -1,0 +1,33 @@
+FROM node:22-bookworm-slim
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH PLAYWRIGHT_BROWSERS_PATH=/ms-playwright PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv poppler-utils ca-certificates fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@10.6.0 --activate
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY apps/worker/package.json ./apps/worker/
+COPY packages/config/package.json ./packages/config/
+COPY packages/db/package.json ./packages/db/
+COPY packages/domain/package.json ./packages/domain/
+COPY packages/integrations/package.json ./packages/integrations/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/utils/package.json ./packages/utils/
+RUN pnpm install --frozen-lockfile
+COPY scripts/requirements-reporting.txt ./scripts/
+RUN python3 -m venv /opt/reporting && /opt/reporting/bin/pip install --no-cache-dir -r scripts/requirements-reporting.txt
+ENV PATH=/opt/reporting/bin:$PATH
+RUN pnpm --filter @irbis/web exec playwright install --with-deps chromium && rm -rf /var/lib/apt/lists/*
+COPY apps ./apps
+COPY packages ./packages
+COPY scripts ./scripts
+COPY python ./python
+COPY deploy ./deploy
+COPY tsconfig.base.json tsconfig.reporting.json turbo.json ./
+RUN pnpm db:generate
+# Build-time values are placeholders only. Secrets arrive at runtime from Railway.
+# Clerk is bypassed solely for private, token-authenticated loopback report routes.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_TELEMETRY_DISABLED=1 PERFORMANCE_REPORT_USE_BUILT_WEB=true
+RUN DATABASE_URL=postgresql://build:build@localhost:5432/build REDIS_URL=redis://localhost:6379 AUTH_COOKIE_SECRET=build-only AUTH_DEFAULT_ADMIN_EMAIL=build@irbishvac.com AUTH_DEFAULT_ADMIN_PASSWORD=build-only-password NEXT_PUBLIC_APP_NAME=IRBIS SERVICETITAN_CLIENT_ID=build SERVICETITAN_CLIENT_SECRET=build SERVICETITAN_TENANT_ID=build ST_REPORT_TECHNICIANS=1 ST_REPORT_INSTALLERS=2 ST_REPORT_ADVISORS=3 ST_REPORT_CALL_CENTER_SOURCE=4 ST_REPORT_CALL_CENTER_PERFORMANCE=5 ST_REPORT_LEADS=6 ST_REPORT_CAMPAIGNS=7 ST_REPORT_BOOKING_RATE=8 ST_REPORT_TRENDING=9 ST_REPORT_SALES=10 ST_REPORT_REVENUE_MONTHLY_PACE=11 ST_BU_INSTALLERS= ST_BU_ADVISORS= ST_BU_COMPANY= pnpm --filter @irbis/web build
+CMD ["sh", "deploy/report-entrypoint.sh"]

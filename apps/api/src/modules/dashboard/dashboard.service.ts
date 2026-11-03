@@ -1,3 +1,4 @@
+import { PersonnelService } from "../personnel/personnel.service";
 import { Inject, Injectable, Optional } from "@nestjs/common";
 import {
   DashboardFamily,
@@ -7,8 +8,6 @@ import {
 } from "@irbis/db";
 import {
   buildAdvisorDashboard,
-  mergeAdvisorRoster,
-  type AdvisorRosterMember,
   buildBookingRateSummary,
   buildCsrPerformanceDashboard,
   buildCampaignDashboard,
@@ -97,6 +96,8 @@ export class DashboardService {
     @Optional()
     @Inject(DashboardRefreshService)
     private readonly refreshService?: DashboardRefreshService,
+    @Inject(PersonnelService)
+    private readonly personnelService: PersonnelService = new PersonnelService(),
   ) {}
 
   private async safeQuery<T>(
@@ -303,14 +304,17 @@ export class DashboardService {
       );
     }
 
+    // Staff figures must match the resolved period, including default MTD.
+    // An unscoped latest export can belong to another month or cutoff.
+    if (["technicians", "advisors", "installers"].includes(reportFamily)) {
+      this.queueRefresh(reportFamily, context);
+      return this.attachSnapshotTime(build({}), null);
+    }
+
     if (this.hasExplicitScope(context)) {
       this.queueRefresh(reportFamily, context);
 
-      // Sales annual and monthly scopes must never borrow one another's figures.
-      if (
-        reportFamily === "advisors" ||
-        !this.canUseLatestSnapshotFallback(context)
-      ) {
+      if (!this.canUseLatestSnapshotFallback(context)) {
         return this.attachSnapshotTime(build({}), null);
       }
 
@@ -373,13 +377,19 @@ export class DashboardService {
     return filterTechnicianDashboardByDepartment(dashboard, department);
   }
 
+  private performanceGoalMonth(family: ReportFamilyKey, context?: DashboardRequestContext) {
+    const { from, to } = this.resolveRequest(family, context).range;
+    return from.slice(0, 7) === to.slice(0, 7) ? to.slice(0, 7) : null;
+  }
+
   async getPerformanceTechnicians(context?: DashboardRequestContext) {
-    return this.resolveMetricFamily(
+    const dashboard = await this.resolveMetricFamily(
       DashboardFamily.TECHNICIANS,
       "technicians",
       (payload) => buildTechnicianDashboard(payload),
       context,
     );
+    return this.personnelService.technicians(dashboard, this.performanceGoalMonth("technicians", context));
   }
 
   async getTechnicians(context?: DashboardRequestContext) {
@@ -426,39 +436,11 @@ export class DashboardService {
       context,
     );
 
-    return filterInstallerDashboardByDepartment(dashboard, department);
+    return filterInstallerDashboardByDepartment(await this.personnelService.installers(dashboard, this.performanceGoalMonth("installers", context)), department);
   }
 
   async getAdvisors(context?: DashboardRequestContext) {
-    const dashboard = await this.getPerformanceAdvisors(context);
-    const sales = filterAdvisorDashboardByDepartment(
-      dashboard,
-      "hvac-comfort-advisor",
-    );
-    if (!sales.snapshotTime) return sales; // Missing figures are unknown, not zero-activity staff.
-    // Independent of the selected report period, including hires with no activity yet.
-    try {
-      const saved = await prisma.dashboardReadModel.findUnique({
-        where: {
-          family_scopeKey: {
-            family: DashboardFamily.ADVISORS,
-            scopeKey: "staff-roster:v1",
-          },
-        },
-      });
-      if (
-        saved?.snapshotTime &&
-        Date.now() - saved.snapshotTime.getTime() < 24 * 3_600_000 &&
-        Array.isArray(saved.payloadJson)
-      )
-        return mergeAdvisorRoster(
-          sales,
-          saved.payloadJson as unknown as AdvisorRosterMember[],
-        );
-    } catch {
-      /* A roster outage must not hide the report's existing salespeople. */
-    }
-    return sales;
+    return filterAdvisorDashboardByDepartment(await this.getPerformanceAdvisors(context), "hvac-comfort-advisor");
   }
 
   async getPerformanceAdvisors(context?: DashboardRequestContext) {
@@ -469,7 +451,7 @@ export class DashboardService {
       context,
     );
 
-    return dashboard;
+    return this.personnelService.advisors(dashboard, this.performanceGoalMonth("advisors", context));
   }
 
   async getPerformanceFieldPro(context?: DashboardRequestContext) {

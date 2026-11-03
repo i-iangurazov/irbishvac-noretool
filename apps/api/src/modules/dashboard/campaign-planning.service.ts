@@ -4,7 +4,7 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { getConfig, resolveMonthlySpreadsheetId } from "@irbis/config";
+import { getConfig } from "@irbis/config";
 import { GoogleSheetsClient } from "@irbis/integrations";
 
 type CapacityInput = {
@@ -175,11 +175,7 @@ export class CampaignPlanningService {
   private readonly writeToken = this.config.auth.cookieSecret;
 
   private spreadsheetId(month: string) {
-    return resolveMonthlySpreadsheetId(
-      this.config.campaignPerformance.google.spreadsheetId,
-      this.config.campaignPerformance.google.spreadsheetIdsByMonth,
-      month,
-    );
+    return this.sheets.resolveMonthlySpreadsheetId(month);
   }
 
   assertAuthorized(token: string | undefined) {
@@ -197,7 +193,7 @@ export class CampaignPlanningService {
 
     const type = raw?.type;
     const month = requireMonth(raw?.month);
-    const spreadsheetId = this.spreadsheetId(month);
+    const spreadsheetId = await this.spreadsheetId(month);
     const updatedBy = requireText(raw?.updatedBy, "Updated by");
     const updatedAt = new Date().toISOString();
 
@@ -323,7 +319,7 @@ export class CampaignPlanningService {
       };
     }
     try {
-      const spreadsheetId = month ? this.spreadsheetId(requireMonth(month)) : undefined;
+      const spreadsheetId = month ? await this.spreadsheetId(requireMonth(month)) : undefined;
       return await this.sheets.verifyWriteAccess(spreadsheetId);
     } catch {
       return {

@@ -11,6 +11,7 @@ const defaultChromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google
 const chromePath = process.env.PLAYWRIGHT_CHROME_PATH ??
   (existsSync(defaultChromePath) ? defaultChromePath : null);
 const snapshot = JSON.parse(await readFile(snapshotPath, "utf8"));
+const reportRenderToken = process.env.PERFORMANCE_REPORT_RENDER_TOKEN;
 const cutoffDate = snapshot.cutoffDate ?? new Date().toISOString().slice(0, 10);
 const reportVersion = String(snapshot.reportVersion ?? "V2").toLowerCase();
 const outputDir = process.env.PERFORMANCE_PDF_OUTPUT_DIR ??
@@ -23,6 +24,11 @@ const browser = await chromium.launch({
   headless: true,
 });
 const page = await browser.newPage({ viewport: { width: 1365, height: 1200 }, deviceScaleFactor: 1 });
+if (reportRenderToken) {
+  await page.setExtraHTTPHeaders({
+    "x-irbis-report-render-token": reportRenderToken,
+  });
+}
 const results = [];
 
 try {
@@ -43,6 +49,21 @@ try {
     const measurements = await report.evaluate((element) => {
       const reportRect = element.getBoundingClientRect();
       const descendants = Array.from(element.querySelectorAll("*"));
+      const footerRect = element.querySelector(".coaching-report__footer")?.getBoundingClientRect();
+      const footerOverlaps = footerRect
+        ? Array.from(element.querySelectorAll(
+            ".coaching-block--previous, .coaching-block--previous *, .coaching-block--focus, .coaching-block--focus *",
+          ))
+            .map((node) => {
+              const rect = node.getBoundingClientRect();
+              return {
+                selector: node.className || node.tagName,
+                blockBottom: rect.bottom,
+                footerTop: footerRect.top,
+              };
+            })
+            .filter((entry) => entry && entry.blockBottom > footerRect.top + 1)
+        : [{ selector: ".coaching-report__footer", reason: "missing" }];
       const outside = descendants
         .map((node) => {
           const rect = node.getBoundingClientRect();
@@ -70,6 +91,7 @@ try {
         clientWidth: element.clientWidth,
         scrollWidth: element.scrollWidth,
         outside,
+        footerOverlaps,
         brokenImages: Array.from(document.images)
           .filter((image) => !image.complete || image.naturalWidth <= 0)
           .map((image) => image.currentSrc || image.src),
@@ -83,6 +105,7 @@ try {
         measurements.scrollHeight <= measurements.clientHeight &&
         measurements.scrollWidth <= measurements.clientWidth &&
         measurements.outside.length === 0 &&
+        measurements.footerOverlaps.length === 0 &&
         measurements.brokenImages.length === 0,
       ...measurements,
     });

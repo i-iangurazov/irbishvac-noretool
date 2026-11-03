@@ -7,13 +7,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
-
-ADVISOR_ROSTER = {
-    "raymondporras": "raymond-porras",
-    "rudynoelzapien": "rudy-noel-zapien",
-    "matthewstalcup": "matthew-stalcup",
-}
+from performance_reporting import load_staff, lookup_by_identity, export_started, source_window_complete
 
 
 def main() -> int:
@@ -21,6 +15,7 @@ def main() -> int:
         description="Build the frozen Friday Comfort Advisor coaching snapshot."
     )
     parser.add_argument("--source-dir", required=True)
+    parser.add_argument("--roster", required=True, help="Fresh ServiceTitan personnel snapshot")
     parser.add_argument("--baseline-source-dir", required=True)
     parser.add_argument("--baseline-from-date", required=True)
     parser.add_argument("--baseline-to-date", required=True)
@@ -33,6 +28,11 @@ def main() -> int:
     args = parser.parse_args()
 
     source = Path(args.source_dir)
+    directory, staff = load_staff(Path(args.roster), "advisor")
+    staff_by_name = {_identity(p["technician"]): p for p in staff}
+    ADVISOR_ROSTER = {key: p["slug"] for key, p in staff_by_name.items()}
+    def _by_name(rows, name_key):
+        return lookup_by_identity(rows, staff, name_key)
     baseline_source = Path(args.baseline_source_dir)
     scorecard = _by_name(_rows(source / "comfort_advisor_performance_scorecard.csv"), "Name")
     baseline = _by_name(
@@ -63,12 +63,6 @@ def main() -> int:
         evidence_by_slug = {
             str(row.get("slug")): row for row in evidence.get("technicians", [])
         }
-
-    missing = sorted(set(ADVISOR_ROSTER) - set(scorecard))
-    if missing:
-        raise ValueError(
-            "Advisor roster is missing from the current scorecard: " + ", ".join(missing)
-        )
 
     technicians: list[dict[str, Any]] = []
     for identity, slug in ADVISOR_ROSTER.items():
@@ -106,9 +100,9 @@ def main() -> int:
                 "technician": _text(goal.get("technician")),
                 "department": "HVAC Sales",
                 "businessUnit": "HVAC - Sales",
-                "technicianId": _text(row.get("TechnicianId")) or None,
-                "email": _text(activity_row.get("Technicians_Email")) or None,
-                "actualSourceAvailable": True,
+                "technicianId": staff_by_name[identity]["technicianId"],
+                "email": staff_by_name[identity]["email"],
+                "actualSourceAvailable": bool(row),
                 "plan": {
                     "sourceMonth": _text(goal.get("month")),
                     "approvalStatus": _text(goal.get("approval_status")),
@@ -250,10 +244,15 @@ def main() -> int:
 
     missing_email = [row["technician"] for row in technicians if not row["email"]]
     if missing_email:
-        raise ValueError("Advisor email is missing: " + ", ".join(missing_email))
+        print("missing_email=" + ", ".join(missing_email) + "; individual delivery withheld; included in management packet")
 
     output = {
         "schemaVersion": 4,
+        "rosterFetchedAt": directory["fetchedAt"],
+        "rosterSource": directory["source"],
+        "sourceKind": "advisor",
+        "sourceExportStartedAt": export_started(source),
+        "dataWindowComplete": source_window_complete(source, args.cutoff_date),
         "reportVersion": args.report_version,
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "periodFrom": args.from_date,
@@ -267,7 +266,8 @@ def main() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
     print(f"advisors={len(technicians)}")
-    print("missing_email=none")
+    if not missing_email:
+        print("missing_email=none")
     print(f"wrote={output_path}")
     return 0
 
@@ -300,19 +300,20 @@ def _audit(timing: dict[str, Any], from_date: str, cutoff_date: str) -> dict[str
 
 
 def _validate_goal(goal: dict[str, str], name: str, cutoff_date: str) -> None:
-    if _text(goal.get("approval_status")) != "ACTIVE":
-        raise ValueError(f"{name} advisor goal must be ACTIVE")
+    status = _text(goal.get("approval_status"))
+    if status not in {"ACTIVE", "UPDATED_GOAL_PENDING"}:
+        raise ValueError(
+            f"{name} advisor goal status must be ACTIVE or UPDATED_GOAL_PENDING"
+        )
     if _text(goal.get("month")) != cutoff_date[:7]:
         raise ValueError(f"{name} advisor goal month must be {cutoff_date[:7]}")
+    if status == "UPDATED_GOAL_PENDING":
+        return
     required = (
         "monthly_sales_goal",
         "target_opportunities_monthly",
-        "daily_opportunity_goal",
         "target_rate",
         "target_average",
-        "membership_monthly_goal",
-        "review_monthly_goal",
-        "working_days",
     )
     missing = [field for field in required if _number(goal.get(field)) is None]
     if missing:

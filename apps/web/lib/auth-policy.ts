@@ -45,3 +45,17 @@ export function resolvePublicRequestUrl(
 
   return new URL(`${request.pathname}${request.search}`, origin).toString();
 }
+
+// Renderer runs in a private container, listens only on loopback, and rotates this
+// token for every frozen package. This grants access only to report pages.
+export function isLocalReportRenderRequest(
+  requestUrl: string, token: string | null,
+  env: Record<string, string | undefined>,
+) {
+  const url = new URL(requestUrl);
+  const expected = env.PERFORMANCE_REPORT_RENDER_TOKEN;
+  return env.PERFORMANCE_REPORT_RENDER_MODE === "true" &&
+    Boolean(expected && expected.length >= 32 && token === expected) &&
+    ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) &&
+    (url.pathname === "/performance" || url.pathname.startsWith("/performance/"));
+}

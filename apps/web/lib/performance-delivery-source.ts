@@ -1,7 +1,6 @@
 import "server-only";
 
 import { readFile } from "node:fs/promises";
-import path from "node:path";
 import type { FieldProTechnicianActual, PerformanceActual } from "./performance-data";
 
 export type PerformanceAuditAlert = {
@@ -91,6 +90,7 @@ export type ServiceTechDeliveryRow = {
 };
 
 export type ServiceTechDeliverySnapshot = {
+  sourceKind?: "advisor" | "technician";
   schemaVersion: number;
   reportVersion?: string;
   generatedAt: string;
@@ -103,9 +103,8 @@ export type ServiceTechDeliverySnapshot = {
 };
 
 export async function loadServiceTechDeliverySnapshot(): Promise<ServiceTechDeliverySnapshot | null> {
-  const filePath =
-    process.env.PERFORMANCE_DELIVERY_SNAPSHOT_PATH ??
-    path.resolve(process.cwd(), "../../generated/service-tech-mtd-delivery.tmp.json");
+  const filePath = process.env.PERFORMANCE_DELIVERY_SNAPSHOT_PATH;
+  if (!filePath) return null;
 
   try {
     return JSON.parse(await readFile(filePath, "utf8")) as ServiceTechDeliverySnapshot;

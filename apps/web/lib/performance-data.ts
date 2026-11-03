@@ -13,6 +13,7 @@ export type PerformanceStatus =
   | "missing-goal";
 
 export type PerformancePlan = {
+  technicianId?: string | null;
   slug: string;
   month: string;
   approvalStatus: PerformancePlanStatus;
@@ -33,6 +34,7 @@ export type PerformancePlan = {
 };
 
 export type PerformanceActual = {
+  sourceAvailable?: boolean;
   name: string;
   sourceKind: PerformanceSourceKind;
   technicianId: string | null;
@@ -88,310 +90,6 @@ export type CoachingFocus = {
   impact: number | null;
   impactFormula: string | null;
 };
-
-export const PERFORMANCE_PLAN_MONTH = "2026-07";
-
-export const PERFORMANCE_PLANS: PerformancePlan[] = [
-  {
-    slug: "raymond-porras",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Sales",
-    technician: "Raymond Porras",
-    aliases: [],
-    sourceKind: "advisor",
-    monthlySalesGoal: 575000,
-    targetOpportunitiesMonthly: 87,
-    targetRate: 0.32,
-    targetRateType: "close",
-    targetAverage: 20700,
-    turnoverQuota: null,
-    membershipMonthlyGoal: 8,
-    reviewNote: "Confirm approved rounding"
-  },
-  {
-    slug: "rudy-noel-zapien",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Sales",
-    technician: "Rudy-Noel Zapien",
-    aliases: ["Rudy Noel Zapien"],
-    sourceKind: "advisor",
-    monthlySalesGoal: 500000,
-    targetOpportunitiesMonthly: 81,
-    targetRate: 0.3,
-    targetRateType: "close",
-    targetAverage: 20600,
-    turnoverQuota: null,
-    membershipMonthlyGoal: 8,
-    reviewNote: "Confirm approved rounding"
-  },
-  {
-    slug: "matthew-stalcup",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Sales",
-    technician: "Matthew Stalcup",
-    aliases: [],
-    sourceKind: "advisor",
-    monthlySalesGoal: 380000,
-    targetOpportunitiesMonthly: 78,
-    targetRate: 0.28,
-    targetRateType: "close",
-    targetAverage: 17400,
-    turnoverQuota: null,
-    membershipMonthlyGoal: 8
-  },
-  {
-    slug: "kenneth-cox",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "Commercial HVAC",
-    technician: "Kenneth Cox",
-    aliases: [],
-    sourceKind: "advisor",
-    monthlySalesGoal: 70000,
-    targetOpportunitiesMonthly: 12,
-    targetRate: 0.3,
-    targetRateType: "close",
-    targetAverage: 19500,
-    turnoverQuota: null,
-    membershipMonthlyGoal: 5,
-    reviewNote: "Confirm canonical department label"
-  },
-  {
-    slug: "jonathan-camargo",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Service",
-    technician: "Jonathan Camargo",
-    aliases: [],
-    sourceKind: "technician",
-    monthlySalesGoal: 36000,
-    targetOpportunitiesMonthly: 26,
-    targetRate: 0.65,
-    targetRateType: "conversion",
-    targetAverage: 2130,
-    turnoverQuota: 5,
-    membershipMonthlyGoal: 10
-  },
-  {
-    slug: "ivan-avila",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Service",
-    technician: "Ivan Avila",
-    aliases: ["Ivan Avila Oliveira"],
-    sourceKind: "technician",
-    monthlySalesGoal: 34000,
-    targetOpportunitiesMonthly: 30,
-    targetRate: 0.78,
-    targetRateType: "conversion",
-    targetAverage: 1450,
-    turnoverQuota: 6,
-    membershipMonthlyGoal: 10,
-    reviewNote: "Confirm canonical name and ServiceTitan technician ID"
-  },
-  {
-    slug: "eduardo-loera-gaeta",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Service",
-    technician: "Eduardo Loera-Gaeta",
-    aliases: ["Eduardo Loera Gaeta"],
-    sourceKind: "technician",
-    monthlySalesGoal: 35000,
-    targetOpportunitiesMonthly: 45,
-    targetRate: 0.62,
-    targetRateType: "conversion",
-    targetAverage: 1250,
-    turnoverQuota: 6,
-    membershipMonthlyGoal: 10
-  },
-  {
-    slug: "christian-lopez",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Service",
-    technician: "Christian Lopez",
-    aliases: [],
-    sourceKind: "technician",
-    monthlySalesGoal: 30000,
-    targetOpportunitiesMonthly: 35,
-    targetRate: 0.56,
-    targetRateType: "conversion",
-    targetAverage: 1530,
-    turnoverQuota: 5,
-    membershipMonthlyGoal: 10
-  },
-  {
-    slug: "almaz-shamsharbek",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Service",
-    technician: "Almaz Shamsharbek",
-    aliases: [],
-    sourceKind: "technician",
-    monthlySalesGoal: 24000,
-    targetOpportunitiesMonthly: 26,
-    targetRate: 0.58,
-    targetRateType: "conversion",
-    targetAverage: 1590,
-    turnoverQuota: 4,
-    membershipMonthlyGoal: 10,
-    reviewNote: "Department conflict: HVAC Service versus HVAC Maintenance"
-  },
-  {
-    slug: "winston-reyes",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "HVAC Service",
-    technician: "Winston Reyes",
-    aliases: [],
-    sourceKind: "technician",
-    monthlySalesGoal: 16000,
-    targetOpportunitiesMonthly: 12,
-    targetRate: 0.6,
-    targetRateType: "conversion",
-    targetAverage: 2200,
-    turnoverQuota: 2,
-    membershipMonthlyGoal: 5,
-    reviewNote: "Department conflict: HVAC Service versus Recalls/Warranty"
-  },
-  {
-    slug: "bahruz-brian-rasulov",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "MISSING_SALES_GOAL",
-    department: "HVAC Service",
-    technician: "Bahruz Brian Rasulov",
-    aliases: ["Bahruz Rasulov", "Bahruz (Brian) Rasulov"],
-    sourceKind: "technician",
-    monthlySalesGoal: null,
-    targetOpportunitiesMonthly: null,
-    targetRate: null,
-    targetRateType: "conversion",
-    targetAverage: null,
-    turnoverQuota: null,
-    membershipMonthlyGoal: 5,
-    reviewNote: "Present in membership workbook but absent from PDF goal seed"
-  },
-  {
-    slug: "ethan-peters",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "MISSING_SALES_GOAL",
-    department: "HVAC Maintenance",
-    technician: "Ethan Peters",
-    aliases: [],
-    sourceKind: "technician",
-    monthlySalesGoal: null,
-    targetOpportunitiesMonthly: null,
-    targetRate: null,
-    targetRateType: "conversion",
-    targetAverage: null,
-    turnoverQuota: null,
-    membershipMonthlyGoal: 5,
-    reviewNote: "Present in membership workbook but absent from PDF goal seed"
-  },
-  {
-    slug: "shaislam-shabiev",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "Plumbing Sales",
-    technician: "Shaislam Shabiev",
-    aliases: ["Shaiislam Shabiev", "Islam Shabiev"],
-    sourceKind: "advisor",
-    monthlySalesGoal: 130000,
-    targetOpportunitiesMonthly: 55,
-    targetRate: 0.23,
-    targetRateType: "close",
-    targetAverage: 10300,
-    turnoverQuota: null,
-    membershipMonthlyGoal: 6,
-    reviewNote: "Confirm approved rounding"
-  },
-  {
-    slug: "azat-akynov",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "Plumbing Service",
-    technician: "Azat Akynov",
-    aliases: [],
-    sourceKind: "technician",
-    monthlySalesGoal: 90000,
-    targetOpportunitiesMonthly: 38,
-    targetRate: 0.48,
-    targetRateType: "conversion",
-    targetAverage: 3050,
-    turnoverQuota: 4,
-    membershipMonthlyGoal: 10,
-    reviewNote: "CRITICAL: stated goal differs from opportunities × rate × average by $34,368"
-  },
-  {
-    slug: "bekbol-kenzheev",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "Plumbing Service",
-    technician: "Bekbol Kenzheev",
-    aliases: [],
-    sourceKind: "technician",
-    monthlySalesGoal: 34000,
-    targetOpportunitiesMonthly: 43,
-    targetRate: 0.53,
-    targetRateType: "conversion",
-    targetAverage: 1490,
-    turnoverQuota: 4,
-    membershipMonthlyGoal: 10
-  },
-  {
-    slug: "christian-vasquez",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "Plumbing Service",
-    technician: "Christian Vasquez",
-    aliases: ["Christian Vazquez"],
-    sourceKind: "technician",
-    monthlySalesGoal: 32000,
-    targetOpportunitiesMonthly: 28,
-    targetRate: 0.54,
-    targetRateType: "conversion",
-    targetAverage: 2120,
-    turnoverQuota: 4,
-    membershipMonthlyGoal: 10
-  },
-  {
-    slug: "brian-mota",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "DRAFT",
-    department: "Plumbing Service",
-    technician: "Brian Mota",
-    aliases: [],
-    sourceKind: "technician",
-    monthlySalesGoal: 14000,
-    targetOpportunitiesMonthly: 15,
-    targetRate: 0.4,
-    targetRateType: "conversion",
-    targetAverage: 2330,
-    turnoverQuota: 1,
-    membershipMonthlyGoal: 10
-  },
-  {
-    slug: "le-jhavani-de-la-cruz-robello",
-    month: PERFORMANCE_PLAN_MONTH,
-    approvalStatus: "MISSING_SALES_GOAL",
-    department: "Plumbing Service",
-    technician: "Le'Jhavani De La Cruz-Robello",
-    aliases: ["LeJhavani De La Cruz-Robello", "Le’Jhavani De La Cruz-Robello"],
-    sourceKind: "technician",
-    monthlySalesGoal: null,
-    targetOpportunitiesMonthly: null,
-    targetRate: null,
-    targetRateType: "conversion",
-    targetAverage: null,
-    turnoverQuota: null,
-    membershipMonthlyGoal: 5,
-    reviewNote: "Present in membership workbook but absent from PDF goal seed"
-  }
-];
 
 export function normalizePerformanceIdentity(value: string) {
   return value
@@ -455,12 +153,18 @@ function elapsedWorkingMonthRatio(
 }
 
 function findActual(plan: PerformancePlan, actuals: PerformanceActual[]) {
+  actuals = actuals.filter(actual => actual.sourceAvailable !== false);
   const acceptedNames = [plan.technician, ...plan.aliases].map(normalizePerformanceIdentity);
 
+  if (plan.technicianId) {
+    const byId = actuals.find(actual => actual.sourceKind === plan.sourceKind && actual.technicianId === plan.technicianId);
+    if (byId) return byId;
+  }
   return (
     actuals.find(
       (actual) =>
         actual.sourceKind === plan.sourceKind &&
+        (!plan.technicianId || !actual.technicianId || actual.technicianId === plan.technicianId) &&
         acceptedNames.includes(normalizePerformanceIdentity(actual.name)),
     ) ?? null
   );
@@ -469,7 +173,7 @@ function findActual(plan: PerformancePlan, actuals: PerformanceActual[]) {
 export function buildPerformanceRoster(
   actuals: PerformanceActual[],
   cutoffDate: string,
-  plans: PerformancePlan[] = PERFORMANCE_PLANS,
+  plans: PerformancePlan[],
 ): PerformanceRosterRow[] {
   return plans.map((plan) => {
     const actual = findActual(plan, actuals);
@@ -558,10 +262,6 @@ export function mergeFieldProIntoRoster(
       fieldPro
     };
   });
-}
-
-export function getPerformancePlan(slug: string) {
-  return PERFORMANCE_PLANS.find((plan) => plan.slug === slug) ?? null;
 }
 
 export function buildCoachingFocus(row: PerformanceRosterRow): CoachingFocus {

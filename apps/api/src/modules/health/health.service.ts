@@ -106,21 +106,23 @@ export class HealthService {
   }
 
   async getReadiness() {
-    const [database, redis, snapshots] = await Promise.all([
+    const [database, redis, snapshots, personnel] = await Promise.all([
       this.checkDatabase(),
       this.checkRedis(),
-      this.checkSnapshots()
+      this.checkSnapshots(),
+      this.checkPersonnel()
     ]);
 
     const dependenciesOk = database.ok && redis.ok;
     const payload = {
       ok: dependenciesOk,
-      degraded: dependenciesOk && !snapshots.ok,
+      degraded: dependenciesOk && (!snapshots.ok || !personnel.ok),
       timestamp: new Date().toISOString(),
       checks: {
         database,
         redis,
-        snapshots
+        snapshots,
+        personnel
       }
     };
 
@@ -129,5 +131,17 @@ export class HealthService {
     }
 
     return payload;
+  }
+
+  async checkPersonnel() {
+    const staleThresholdMinutes = this.config.personnel.maxAgeMinutes;
+    try {
+      const latest = await prisma.performancePersonnelSnapshot.findFirst({ orderBy: { fetchedAt: "desc" }, select: { fetchedAt: true } });
+      const age = latest ? Date.now() - latest.fetchedAt.getTime() : Number.POSITIVE_INFINITY;
+      return { ok: Number.isFinite(age) && age >= -300_000 && age <= staleThresholdMinutes * 60_000,
+        latestSnapshotTime: latest?.fetchedAt.toISOString() ?? null, staleThresholdMinutes };
+    } catch {
+      return { ok: false, latestSnapshotTime: null, staleThresholdMinutes };
+    }
   }
 }

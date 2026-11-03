@@ -6,6 +6,7 @@ import {
 } from "next/server";
 import {
   isCampaignIntegrationPath,
+  isLocalReportRenderRequest,
   isPublicAuthPath,
   resolvePublicRequestUrl,
 } from "./lib/auth-policy";
@@ -58,6 +59,8 @@ export default function middleware(
   request: NextRequest,
   event: NextFetchEvent,
 ) {
+  if (isLocalReportRenderRequest(request.url, request.headers.get("x-irbis-report-render-token"), process.env))
+    return NextResponse.next();
   if (request.nextUrl.pathname === "/healthz") return NextResponse.next();
   if (isCampaignIntegrationPath(request.nextUrl.pathname))
     return NextResponse.next();

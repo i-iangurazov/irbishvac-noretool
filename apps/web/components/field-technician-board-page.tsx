@@ -1,8 +1,10 @@
+import type { PerformanceGoal } from "@irbis/domain";
 import { formatNumber } from "@irbis/utils";
 import { compactMoney, LeaderboardPage, money, ratio } from "./leaderboard-page";
 import { fetchApi } from "../lib/api";
 import { resolveDashboardFilters, type DashboardSearchParams } from "../lib/dashboard-filters";
 import { getTvPerformanceGoal } from "../lib/performance-goals";
+import { staffMetricValue, staffTotalsAvailable } from "../lib/staff-metric-display";
 
 type FieldTechnicianBoardPageProps = {
   searchParams?: DashboardSearchParams | undefined;
@@ -31,6 +33,8 @@ export async function FieldTechnicianBoardPage({
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;
+      actualSourceAvailable?: boolean;
+      goal?: PerformanceGoal | null;
       businessUnit: string;
       department: string | null;
       position: string | null;
@@ -53,6 +57,8 @@ export async function FieldTechnicianBoardPage({
     };
     snapshotTime: string | null;
   }>(`/dashboard/${apiPath}?${filters.apiQueryString}`);
+  const total = (value: number, format: (value: number) => string) =>
+    staffMetricValue(value, format, staffTotalsAvailable(data.rowsRanked, data.snapshotTime));
 
   return (
     <LeaderboardPage
@@ -66,31 +72,33 @@ export async function FieldTechnicianBoardPage({
       showcaseColumns={4}
       useHeadshots={true}
       kpis={[
-        { label: "Influenced Revenue", value: money(data.totals.totalInfluencedRevenue) },
-        { label: "Completed Revenue", value: money(data.totals.completedRevenue) },
-        { label: "Average Close Rate", value: ratio(Number(data.totals.avgCloseRate)) },
-        { label: "Membership Conversion", value: ratio(Number(data.totals.avgMembershipConv)) }
+        { label: "Influenced Revenue", value: total(data.totals.totalInfluencedRevenue, money) },
+        { label: "Completed Revenue", value: total(data.totals.completedRevenue, money) },
+        { label: "Average Close Rate", value: total(Number(data.totals.avgCloseRate), ratio) },
+        { label: "Membership Conversion", value: total(Number(data.totals.avgMembershipConv), ratio) }
       ]}
       items={data.rowsRanked.map((row) => {
-        const goal = getTvPerformanceGoal(row.name);
+        const goal = getTvPerformanceGoal(row.goal);
+        const actual = (value: number, format: (value: number) => string) =>
+          staffMetricValue(value, format, row.actualSourceAvailable);
         const goalValue = (value: string, target: string | null) =>
-          target ? `${value} / ${target}` : goal?.status === "UPDATED_GOAL_PENDING" ? `${value} / Pending` : value;
+          target ? `${value} / ${target}` : goal ? `${value} / Pending` : value;
 
         return {
           title: row.name,
           subtitle: row.position ?? row.businessUnit,
           imageUrl: row.photoUrl,
-          valueLabel: "Total Revenue",
-          value: compactMoney(row.totalInfluencedRevenue),
+          valueLabel: row.actualSourceAvailable === false ? "Data unavailable" : "Total Revenue",
+          value: row.actualSourceAvailable === false ? "—" : compactMoney(row.totalInfluencedRevenue),
           stats: [
-            { label: "Completed Revenue", value: money(row.completedRevenue) },
-            { label: "Close / Goal", value: goalValue(ratio(row.closeRate), goal?.targetRate != null ? ratio(goal.targetRate) : null) },
-            { label: "Rev / Opp / Goal", value: goalValue(money(row.avgSaleFromOpps), goal?.targetAverage != null ? money(goal.targetAverage) : null) },
-            { label: "Opps / Goal", value: goalValue(count(row.salesOpportunity), goal?.targetOpportunitiesMonthly != null ? count(goal.targetOpportunitiesMonthly) : null) },
-            { label: "Memberships Sold", value: count(row.membershipsSold) },
-            { label: "Lead Conv.", value: ratio(row.replacementLeadConvRate) },
-            { label: "Tech Lead Sales", value: money(row.totalTechLeadSales) },
-            { label: "Sales / Goal", value: goalValue(compactMoney(row.totalSales), goal?.monthlySalesGoal != null ? compactMoney(goal.monthlySalesGoal) : null) }
+            { label: "Completed Revenue", value: actual(row.completedRevenue, money) },
+            { label: "Close / Goal", value: goalValue(actual(row.closeRate, ratio), goal?.targetRate != null ? ratio(goal.targetRate) : null) },
+            { label: "Rev / Opp / Goal", value: goalValue(actual(row.avgSaleFromOpps, money), goal?.targetAverage != null ? money(goal.targetAverage) : null) },
+            { label: "Opps / Goal", value: goalValue(actual(row.salesOpportunity, count), goal?.targetOpportunitiesMonthly != null ? count(goal.targetOpportunitiesMonthly) : null) },
+            { label: "Memberships Sold", value: actual(row.membershipsSold, count) },
+            { label: "Lead Conv.", value: actual(row.replacementLeadConvRate, ratio) },
+            { label: "Tech Lead Sales", value: actual(row.totalTechLeadSales, money) },
+            { label: "Sales / Goal", value: goalValue(actual(row.totalSales, compactMoney), goal?.monthlySalesGoal != null ? compactMoney(goal.monthlySalesGoal) : null) }
           ]
         };
       })}

@@ -1,3 +1,4 @@
+import { loadPersonnelPlans } from "./performance-personnel";
 import "server-only";
 
 import { toBusinessDateString } from "@irbis/utils";
@@ -16,11 +17,13 @@ type TechnicianDashboardPayload = {
     businessUnit: string;
     technicianId: string | null;
     totalInfluencedRevenue: number;
+    totalSales: number;
     salesOpportunity: number;
     closedOpportunities: number;
     closeRate: number;
     avgSaleFromOpps: number;
     membershipsSold: number;
+    actualSourceAvailable?: boolean;
   }>;
   snapshotTime: string | null;
 };
@@ -35,6 +38,7 @@ type AdvisorDashboardPayload = {
     closedOpportunitiesCount: number;
     closeRateRolling: number;
     closedAverageSale: number;
+    actualSourceAvailable?: boolean;
   }>;
   snapshotTime: string | null;
 };
@@ -101,10 +105,11 @@ export async function loadPerformanceActuals(range?: PerformanceRange) {
   const actuals: PerformanceActual[] = [
     ...technicians.rowsRanked.map((row) => ({
         name: row.name,
+        sourceAvailable: row.actualSourceAvailable !== false,
         sourceKind: "technician" as const,
         technicianId: row.technicianId,
         businessUnit: row.businessUnit,
-        revenue: row.totalInfluencedRevenue,
+        revenue: row.totalSales,
         opportunities: row.salesOpportunity,
         closedOpportunities: row.closedOpportunities,
         rate: row.closeRate,
@@ -114,6 +119,7 @@ export async function loadPerformanceActuals(range?: PerformanceRange) {
       })),
     ...advisors.rowsRanked.map((row) => ({
       name: row.name,
+      sourceAvailable: row.actualSourceAvailable !== false,
       sourceKind: "advisor" as const,
       technicianId: row.technicianId,
       businessUnit: row.businessUnit,
@@ -149,11 +155,11 @@ export async function loadPerformanceRoster(
   cutoffDate = toBusinessDateString(new Date(), "America/Los_Angeles"),
 ): Promise<PerformanceRosterRow[]> {
   const [actuals, fieldPro] = await Promise.all([
-    loadPerformanceActuals(),
-    loadFieldProActuals(getLastCompletedWeek())
+    loadPerformanceActuals({ from: `${cutoffDate.slice(0, 7)}-01`, to: cutoffDate }),
+    loadFieldProActuals({ from: `${cutoffDate.slice(0, 7)}-01`, to: cutoffDate })
   ]);
   return mergeFieldProIntoRoster(
-    buildPerformanceRoster(actuals, cutoffDate),
+    buildPerformanceRoster(actuals, cutoffDate, await loadPersonnelPlans(cutoffDate.slice(0, 7))),
     fieldPro,
   );
 }

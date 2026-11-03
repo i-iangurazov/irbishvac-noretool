@@ -21,3 +21,7 @@ reports/service-tech-mtd-*/
 apps/web/public/kitchen/pdf.worker.min.mjs
 
 .kitchen-qa/
+
+generated/performance-personnel.json
+__pycache__/
+*.pyc

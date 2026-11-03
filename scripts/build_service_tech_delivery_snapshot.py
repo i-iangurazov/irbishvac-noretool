@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
+from performance_reporting import load_staff, lookup_by_identity, match_row, export_started, source_window_complete
 
 
 SERVICE_BUSINESS_UNITS = {
@@ -16,54 +17,12 @@ SERVICE_BUSINESS_UNITS = {
     "Plumbing - Service",
 }
 
-# Current dispatch roster confirmed by Marketing on 2026-07-27. Bahruz Brian
-# Rasulov and Le'Jhavani De La Cruz-Robello were explicitly marked as exclusions.
-DELIVERY_ROSTER = {
-    "christianlopez": "HVAC Service",
-    "eduardoloeragaeta": "HVAC Service",
-    "jonathancamargo": "HVAC Service",
-    "ivanavila": "HVAC Service",
-    "ethanpeters": "HVAC Maintenance",
-    "almazshamsharbek": "HVAC Maintenance",
-    "kennethcox": "Commercial Service / Sales",
-    "christianvasquez": "Plumbing Service",
-    "azatakynov": "Plumbing Service",
-    "bekbolkenzheev": "Plumbing Service",
-}
-
-DELIVERY_BUSINESS_UNITS = {
-    "HVAC Service": "HVAC - Service",
-    "HVAC Maintenance": "HVAC - Maintenance",
-    "Commercial Service / Sales": "HVAC - Service",
-    "Plumbing Service": "Plumbing - Service",
-}
-
-DELIVERY_EMAIL_FALLBACKS = {
-    "bekbolkenzheev": "bekbol@irbishvac.com",
-}
-
-SLUGS = {
-    "almazshamsharbek": "almaz-shamsharbek",
-    "azatakynov": "azat-akynov",
-    "bahruzbrianrasulov": "bahruz-brian-rasulov",
-    "bekbolkenzheev": "bekbol-kenzheev",
-    "christianlopez": "christian-lopez",
-    "christianvasquez": "christian-vasquez",
-    "christianvazquez": "christian-vasquez",
-    "eduardoloeragaeta": "eduardo-loera-gaeta",
-    "ethanpeters": "ethan-peters",
-    "ivanavila": "ivan-avila",
-    "jonathancamargo": "jonathan-camargo",
-    "kennethcox": "kenneth-cox",
-    "lejhavanidelacruzrobello": "le-jhavani-de-la-cruz-robello",
-}
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build a frozen MTD delivery snapshot for HVAC and Plumbing service reports."
     )
     parser.add_argument("--source-dir", required=True)
+    parser.add_argument("--roster", required=True, help="Fresh ServiceTitan personnel snapshot")
     parser.add_argument("--baseline-source-dir")
     parser.add_argument("--baseline-from-date")
     parser.add_argument("--baseline-to-date")
@@ -79,8 +38,16 @@ def main() -> int:
     args = parser.parse_args()
 
     source_dir = Path(args.source_dir)
+    directory, staff = load_staff(Path(args.roster), "technician")
+    staff_by_name = {_identity(p["technician"]): p for p in staff}
+    DELIVERY_ROSTER = {key: p["department"] for key, p in staff_by_name.items()}
+    SLUGS = {key: p["slug"] for key, p in staff_by_name.items()}
+    def _by_name(rows, name_key):
+        return lookup_by_identity(rows, staff, name_key)
     goals = _rows(Path(args.goals))
-    board = _rows(source_dir / "technician_performance_board.csv")
+    source_board = _rows(source_dir / "technician_performance_board.csv")
+    current_board_identities = {_identity(p["technician"]) for p in staff if match_row(source_board, p)}
+    board = [{**match_row(source_board, p), "Name": p["technician"], "TechnicianBusinessUnit": p["businessUnit"], "TechnicianId": p["technicianId"]} for p in staff]
     productivity = _by_name(_rows(source_dir / "technician_dashboard_productivity.csv"), "Name")
     activity = _by_name(_rows(source_dir / "fieldpro_technician_recording_activity.csv"), "Technicians_Name")
     recordings = _by_name(_rows(source_dir / "fieldpro_recordings_per_technician.csv"), "Technician_Name")
@@ -89,8 +56,6 @@ def main() -> int:
     vadim_scorecard = _by_name(
         _rows(source_dir / "technician_performance_scorecard_vadim.csv"), "Name"
     )
-    for lookup in (productivity, activity, recordings, operations, conversion, vadim_scorecard):
-        lookup["christianvasquez"] = lookup.get("christianvasquez") or lookup.get("christianvazquez", {})
     baseline_by_name: dict[str, dict[str, str]] = {}
     if args.baseline_source_dir:
         baseline_dir = Path(args.baseline_source_dir)
@@ -104,7 +69,6 @@ def main() -> int:
             _rows(baseline_source),
             "Name",
         )
-        baseline_by_name["christianvasquez"] = baseline_by_name.get("christianvazquez", {})
     coaching_evidence_by_slug: dict[str, dict[str, Any]] = {}
     coaching_evidence_generated_at: str | None = None
     if args.coaching_evidence:
@@ -114,28 +78,6 @@ def main() -> int:
             row["slug"]: row for row in coaching_evidence.get("technicians", [])
         }
     goals_by_name = {_identity(row.get("technician")): row for row in goals}
-    goals_by_name["christianvazquez"] = goals_by_name["christianvasquez"]
-    current_board_identities = {
-        "christianvasquez" if _identity(row.get("Name")) == "christianvazquez" else _identity(row.get("Name"))
-        for row in board
-    }
-    for identity, department in DELIVERY_ROSTER.items():
-        if identity in current_board_identities:
-            continue
-        goal = goals_by_name.get(identity)
-        baseline_row = baseline_by_name.get(identity, {})
-        if not goal:
-            continue
-        board.append(
-            {
-                "Name": _text(goal.get("technician")),
-                "TechnicianBusinessUnit": _text(
-                    baseline_row.get("TechnicianBusinessUnit")
-                )
-                or DELIVERY_BUSINESS_UNITS[department],
-                "TechnicianId": _text(baseline_row.get("TechnicianId")),
-            }
-        )
 
     dashboard: dict[str, Any] = {"rowsRanked": [], "snapshotTime": None}
     if not args.skip_api:
@@ -150,8 +92,6 @@ def main() -> int:
             continue
 
         identity = _identity(board_row.get("Name"))
-        if identity == "christianvazquez":
-            identity = "christianvasquez"
         if identity not in DELIVERY_ROSTER:
             continue
         goal = goals_by_name.get(identity)
@@ -173,6 +113,7 @@ def main() -> int:
         timing_evidence = coaching_evidence_row.get("timing", {})
         hhr_evidence = coaching_evidence_row.get("homeHealthReport", {})
         review_evidence = coaching_evidence_row.get("reviews", {})
+        goals_pending = _text(goal.get("approval_status")) == "UPDATED_GOAL_PENDING"
         dashboard_row = actuals_by_name.get(identity)
         current_source_available = identity in current_board_identities
 
@@ -262,10 +203,7 @@ def main() -> int:
                 "department": department,
                 "businessUnit": business_unit,
                 "technicianId": _text(board_row.get("TechnicianId")) or None,
-                "email": _text(activity_row.get("Technicians_Email"))
-                or _text(conversion_row.get("Email"))
-                or DELIVERY_EMAIL_FALLBACKS.get(identity)
-                or None,
+                "email": staff_by_name[identity]["email"],
                 "actualSourceAvailable": current_source_available,
                 "plan": {
                     "sourceMonth": _text(goal.get("month")),
@@ -325,11 +263,15 @@ def main() -> int:
                         goal.get("target_opportunities_monthly")
                     ),
                     "dailyOpportunityGoal": _number(goal.get("daily_opportunity_goal")),
-                    "targetRate": _number(goal.get("target_rate"))
+                    "targetRate": None
+                    if goals_pending
+                    else _number(goal.get("target_rate"))
                     if _number(goal.get("target_rate")) is not None
                     else _personalized_rate_target(baseline_rate),
                     "targetRateType": _text(goal.get("target_rate_type")) or "close",
-                    "targetAverage": _number(goal.get("target_average"))
+                    "targetAverage": None
+                    if goals_pending
+                    else _number(goal.get("target_average"))
                     if _number(goal.get("target_average")) is not None
                     else (round(baseline_average * 1.10) if baseline_average is not None else None),
                     "rateBenchmark": 0.70,
@@ -360,6 +302,11 @@ def main() -> int:
 
     output = {
         "schemaVersion": 4,
+        "rosterFetchedAt": directory["fetchedAt"],
+        "rosterSource": directory["source"],
+        "sourceKind": "technician",
+        "sourceExportStartedAt": export_started(source_dir),
+        "dataWindowComplete": source_window_complete(source_dir, args.cutoff_date),
         "reportVersion": args.report_version,
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "periodFrom": args.from_date,
@@ -381,9 +328,10 @@ def main() -> int:
             "Delivery roster is missing from the generated snapshot: " + ", ".join(missing_roster)
         )
     if missing_email:
-        raise ValueError("Technician email is missing: " + ", ".join(missing_email))
+        print("missing_email=" + ", ".join(missing_email) + "; individual delivery withheld; included in management packet")
     print(f"technicians={len(technicians)}")
-    print("missing_email=none")
+    if not missing_email:
+        print("missing_email=none")
     print(f"wrote={output_path}")
     return 0
 
@@ -478,25 +426,11 @@ def _validate_active_goal(goal: dict[str, str], technician: str, cutoff_date: st
         raise ValueError(
             f"{technician} goal month must be {expected_month}, found {_text(goal.get('month')) or 'blank'}"
         )
-
-    common_positive_fields = (
-        "review_monthly_goal",
-        "working_days",
-    )
-    missing_common = [field for field in common_positive_fields if _number(goal.get(field)) is None]
-    if missing_common:
-        raise ValueError(f"{technician} goal is missing: {', '.join(missing_common)}")
     if status == "UPDATED_GOAL_PENDING":
         return
 
     positive_fields = (
-        "monthly_sales_goal",
-        "target_opportunities_monthly",
-        "daily_opportunity_goal",
-        "target_rate",
-        "target_average",
-        "membership_conversion_goal",
-        "install_sales_goal",
+        "monthly_sales_goal", "target_opportunities_monthly", "target_rate", "target_average",
     )
     missing = [field for field in positive_fields if _number(goal.get(field)) is None]
     if missing:

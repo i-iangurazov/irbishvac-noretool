@@ -1,3 +1,10 @@
+vi.mock("../personnel/personnel.service", () => ({
+  PersonnelService: class {
+    async technicians<T>(dashboard: T) { return dashboard; }
+    async advisors<T>(dashboard: T) { return dashboard; }
+    async installers<T>(dashboard: T) { return dashboard; }
+  }
+}));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findFirst = vi.fn();
@@ -188,46 +195,15 @@ describe("DashboardService", () => {
     ]);
   });
 
-  it("adds active sales-BU staff to a cached selected period without altering its metrics", async () => {
+  it("uses the reconciled performance roster for the advisor dashboard", async () => {
     const { DashboardService } = await import("./dashboard.service");
     const { buildAdvisorDashboard } = await import("@irbis/domain");
     const service = new DashboardService();
-    const report = buildAdvisorDashboard([
-      {
-        Name: "Historical Seller",
-        TechnicianId: 1,
-        TechnicianBusinessUnit: "HVAC - Sales",
-        TotalSales: 250,
-        ClosedAverageSale: 125,
-        SalesOpportunity: 4,
-      },
-    ]);
-    report.snapshotTime = new Date().toISOString();
+    const report = buildAdvisorDashboard([{ Name: "Current seller", TechnicianId: "1", TechnicianBusinessUnit: "HVAC - Sales", TotalSales: 250 }]);
     vi.spyOn(service, "getPerformanceAdvisors").mockResolvedValue(report);
-    findUnique.mockResolvedValue({
-      snapshotTime: new Date(),
-      payloadJson: [
-        {
-          technicianId: "2",
-          name: "Future Hire",
-          businessUnit: "HVAC - Sales",
-        },
-      ],
-    });
-    const result = await service.getAdvisors({
-      from: "2026-09-01",
-      to: "2026-09-30",
-    });
-    expect(result.rows.map((row) => row.name)).toEqual([
-      "Historical Seller",
-      "Future Hire",
-    ]);
-    expect(result.totals).toEqual(report.totals);
-    expect(
-      result.rows.find((row) => row.name === "Future Hire")?.totalSales,
-    ).toBe(0);
-    findUnique.mockRejectedValueOnce(new Error("roster unavailable"));
-    expect((await service.getAdvisors()).rows).toEqual(report.rows);
+    const result = await service.getAdvisors({ from: "2026-09-01", to: "2026-09-30" });
+    expect(result.rows.map(row => row.name)).toEqual(["Current seller"]);
+    expect(findUnique).not.toHaveBeenCalled();
   });
 
   it("does not substitute monthly Sales figures for a missing annual scope", async () => {
@@ -256,6 +232,20 @@ describe("DashboardService", () => {
     expect(result.snapshotTime).toBeNull();
     expect(enqueue).toHaveBeenCalledOnce();
     expect(findFirst).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["getPerformanceTechnicians", "getPerformanceAdvisors", "getInstallers"] as const)("does not borrow an unrelated latest export for the default staff scope: %s", async (method) => {
+    findUnique.mockResolvedValueOnce(null).mockResolvedValue({payloadJson:{rows:[],rowsRanked:[{name:"Unrelated staff"}]}});
+    findFirst.mockImplementation(async query => query.where.requestHash ? null : {payloadJson:{fields:[{name:"Name"}],data:[["Unrelated staff"]]}});
+    const enqueue=vi.fn();
+    const {DashboardService}=await import("./dashboard.service");
+    const service=new DashboardService({ensureRefreshEnqueued:enqueue} as never);
+    const result=await service[method]();
+    expect(result.rowsRanked).toEqual([]);
+    expect(result.snapshotTime).toBeNull();
+    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledOnce();
   });
 
   it("keeps unavailable Sales figures distinct from zero-activity staff", async () => {
@@ -368,7 +358,7 @@ describe("DashboardService", () => {
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it("uses the latest cached read model while an MTD refresh is queued", async () => {
+  it("does not borrow an unscoped staff read model while an MTD refresh is queued", async () => {
     findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({
       payloadJson: {
         rowsRanked: [{ name: "Cached technician" }],
@@ -388,16 +378,15 @@ describe("DashboardService", () => {
       to: "2026-03-22",
     });
 
-    expect(result.rowsRanked).toEqual([
-      expect.objectContaining({ name: "Cached technician" }),
-    ]);
-    expect(result.snapshotTime).toBe("2026-03-21T12:00:00.000Z");
+    expect(result.rowsRanked).toEqual([]);
+    expect(result.snapshotTime).toBeNull();
+    expect(findUnique).toHaveBeenCalledTimes(1);
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it("prefers a newer raw snapshot over the latest read model during MTD refresh", async () => {
+  it("uses a raw snapshot matching the requested MTD scope", async () => {
     findUnique.mockResolvedValue(null);
-    findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+    findFirst.mockResolvedValueOnce({
       payloadJson: {
         fields: [{ name: "Name" }, { name: "TechnicianBusinessUnit" }],
         data: [["Fresh technician", "HVAC Service"]],
@@ -419,7 +408,8 @@ describe("DashboardService", () => {
 
     expect(result.rowsRanked[0]?.name).toBe("Fresh technician");
     expect(findUnique).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(findFirst).toHaveBeenCalledTimes(1);
   });
 
   it("does not fall back to a different cached date for a custom range", async () => {

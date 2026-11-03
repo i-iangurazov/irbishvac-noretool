@@ -8,6 +8,7 @@ import signal
 import socket
 import sys
 import time as time_module
+import urllib.error
 from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -16,11 +17,11 @@ from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 
 
-MARKETING_REPO = Path(__file__).resolve().parents[2] / "irbishvac-marketing"
+MARKETING_REPO = Path(__file__).resolve().parents[1] / "python"
 sys.path.insert(0, str(MARKETING_REPO))
 
-from marketing_os_agent.clients.servicetitan import ServiceTitanClient
-from marketing_os_agent.clients.http import HttpClient
+from marketing_os_agent.clients.servicetitan import ServiceTitanClient, _filter_records_for_params
+from marketing_os_agent.clients.http import HttpClient, _retry_delay
 from marketing_os_agent.config import Settings
 
 
@@ -42,6 +43,7 @@ class ReportHttpClient(HttpClient):
             raise TimeoutError("ServiceTitan response exceeded the wall-clock deadline")
 
         for attempt in range(3):
+            delay = 1.5 * (2**attempt)
             try:
                 signal.signal(signal.SIGALRM, deadline_handler)
                 signal.setitimer(signal.ITIMER_REAL, 35)
@@ -49,11 +51,61 @@ class ReportHttpClient(HttpClient):
             except (TimeoutError, socket.timeout):
                 if attempt == 2:
                     raise
-                time_module.sleep(1.5 * (2**attempt))
+            except RuntimeError as error:
+                # The base client has no internal retries for this subclass:
+                # sleeping under its 35-second alarm would interrupt the 65+
+                # seconds required by ServiceTitan after a rate limit.
+                cause = error.__cause__
+                if isinstance(cause, urllib.error.HTTPError) and (cause.code == 429 or cause.code >= 500):
+                    delay = _retry_delay(cause, "", attempt)
+                elif not isinstance(cause, (urllib.error.URLError, TimeoutError)):
+                    raise
+                if attempt == 2:
+                    raise
             finally:
                 signal.setitimer(signal.ITIMER_REAL, 0)
                 signal.signal(signal.SIGALRM, previous_handler)
+            print(f"coaching_request_retry attempt={attempt + 1} retry_seconds={delay}", flush=True)
+            time_module.sleep(delay)
         raise RuntimeError("ServiceTitan report request retry loop exhausted")
+
+
+def _complete_pages(client: ServiceTitanClient, path: str, params: dict[str, str], max_pages: int = 100) -> list[dict[str, Any]]:
+    """Read a complete resource collection or fail; never turn truncation into zeros."""
+    records: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    expected_total: int | None = None
+    for page in range(1, max_pages + 1):
+        # Forms returns totalCount=0 when the count was not requested, even
+        # with 52 real rows. Explicitly request it instead of treating that
+        # placeholder as evidence of truncation or ignoring actual totals.
+        payload = client._get(path, {**params, "includeTotal": "true", "page": str(page)})
+        rows = payload.get("data") if isinstance(payload, dict) else None
+        more = payload.get("hasMore") if isinstance(payload, dict) else None
+        if not isinstance(rows, list) or not isinstance(more, bool) or any(not isinstance(row, dict) for row in rows):
+            raise ValueError("Incomplete coaching source: invalid collection page")
+        total = payload.get("totalCount")
+        if type(total) is not int or total < 0 or (expected_total is not None and total != expected_total):
+            raise ValueError("Incomplete coaching source: missing or inconsistent requested total count")
+        expected_total = total
+        if more and not rows:
+            raise ValueError("Incomplete coaching source: empty intermediate page")
+        for row in rows:
+            identity = str(row.get("id") or "")
+            if not identity or identity in seen_ids:
+                raise ValueError("Incomplete coaching source: missing or repeated record ID")
+            seen_ids.add(identity)
+        records.extend(rows)
+        if not more:
+            if expected_total is not None and len(records) != expected_total:
+                raise ValueError(f"Incomplete coaching source: total count differs for {path} (received {len(records)}, expected {expected_total})")
+            return _filter_records_for_params(records, params)
+    raise ValueError("Incomplete coaching source: pagination limit reached")
+
+
+class CoachingServiceTitanClient(ServiceTitanClient):
+    def _get_paginated(self, path: str, params: dict[str, str], **_kwargs: Any) -> list[dict[str, Any]]:
+        return _complete_pages(self, path, params)
 
 
 def main() -> int:
@@ -80,7 +132,7 @@ def main() -> int:
     if not roster:
         raise ValueError("The delivery snapshot does not contain technician IDs")
 
-    client = ServiceTitanClient(
+    client = CoachingServiceTitanClient(
         Settings.from_env(),
         http=ReportHttpClient(timeout_seconds=30, retries=0),
     )
@@ -413,42 +465,31 @@ def _fetch_recent_form_submissions(
     seen: set[str] = set()
     pages_scanned = 0
     for job_batch in _chunks(job_ids, 5):
-        page = 1
-        while page <= 20:
-            params = {
-                "status": "Completed",
-                "formIds": ",".join(form_ids),
-                "ownerType": "Job",
-                "submittedOnOrAfter": _iso(from_datetime),
-                "submittedBefore": _iso(before_datetime),
-                "sort": "-SubmittedOn",
-                "page": str(page),
-                "pageSize": "5",
-                "includeTotal": "false",
-            }
-            for index, job_id in enumerate(job_batch):
-                params[f"owners[{index}].type"] = "Job"
-                params[f"owners[{index}].id"] = job_id
-            payload = client._get(path, params)
-            pages_scanned += 1
-            page_records = [
-                row for row in payload.get("data", []) if isinstance(row, dict)
-            ]
-            if not page_records:
-                break
-            for row in page_records:
-                submitted_on = _datetime_value(row.get("submittedOn"))
-                record_id = str(row.get("id") or "")
-                if (
-                    submitted_on is not None
-                    and from_datetime <= submitted_on < before_datetime
-                    and record_id not in seen
-                ):
-                    seen.add(record_id)
-                    records.append(row)
-            if not payload.get("hasMore"):
-                break
-            page += 1
+        params = {
+            "status": "Completed",
+            "formIds": ",".join(form_ids),
+            "ownerType": "Job",
+            "submittedOnOrAfter": _iso(from_datetime),
+            "submittedBefore": _iso(before_datetime),
+            "sort": "-SubmittedOn",
+            "pageSize": "5",
+            "includeTotal": "false",
+        }
+        for index, job_id in enumerate(job_batch):
+            params[f"owners[{index}].type"] = "Job"
+            params[f"owners[{index}].id"] = job_id
+        page_records = _complete_pages(client, path, params, max_pages=20)
+        pages_scanned += max(1, (len(page_records) + 4) // 5)
+        for row in page_records:
+            submitted_on = _datetime_value(row.get("submittedOn"))
+            record_id = str(row.get("id") or "")
+            if (
+                submitted_on is not None
+                and from_datetime <= submitted_on < before_datetime
+                and record_id not in seen
+            ):
+                seen.add(record_id)
+                records.append(row)
         print(
             f"hhr form submissions jobs {job_batch[0]}..{job_batch[-1]}: "
             f"{len(records)} unique total",

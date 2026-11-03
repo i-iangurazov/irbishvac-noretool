@@ -35,7 +35,10 @@ def main() -> int:
     parser.add_argument("export_args", nargs=argparse.REMAINDER)
     args = parser.parse_args()
 
-    selected = _selected_env(Path(args.env_file))
+    selected = {key: value for key, value in os.environ.items() if key in SERVICE_TITAN_ENV_KEYS}
+    env_path = Path(args.env_file)
+    if env_path.is_file():
+        selected = {**_selected_env(env_path), **selected}
     missing = sorted(key for key in REQUIRED_KEYS if not selected.get(key))
     if missing:
         raise ValueError(f"Missing required ServiceTitan settings: {', '.join(missing)}")

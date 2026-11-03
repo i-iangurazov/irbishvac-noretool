@@ -1,3 +1,4 @@
+import { PERFORMANCE_PLANS } from "./test-fixtures/performance-plans";
 import { describe, expect, it } from "vitest";
 import {
   buildCoachingFocus,
@@ -25,8 +26,20 @@ function actual(overrides: Partial<PerformanceActual> = {}): PerformanceActual {
 }
 
 describe("performance data", () => {
+  it("keeps missing frozen scorecards distinct from a verified zero-sales result", () => {
+    const plan = PERFORMANCE_PLANS.find(plan => plan.slug === "ivan-avila")!;
+    const [missing] = buildPerformanceRoster([actual({revenue:0,sourceAvailable:false})], "2026-07-21", [plan]);
+    expect(missing?.status).toBe("missing-data");
+    expect(missing?.actual).toBeNull();
+    expect(missing?.pace).toBeNull();
+    expect(missing?.paceGap).toBeNull();
+    expect(missing?.expectedRevenue).toBeGreaterThan(0);
+    const [zero] = buildPerformanceRoster([actual({revenue:0,sourceAvailable:true})], "2026-07-21", [plan]);
+    expect(zero?.pace).toBe(0);
+    expect(zero?.status).toBe("off-track");
+  });
   it("matches approved aliases instead of relying on exact display names", () => {
-    const roster = buildPerformanceRoster([actual()], "2026-07-21");
+    const roster = buildPerformanceRoster([actual()], "2026-07-21", PERFORMANCE_PLANS);
     const ivan = roster.find((row) => row.slug === "ivan-avila");
 
     expect(ivan?.actual?.technicianId).toBe("st-123");
@@ -36,7 +49,7 @@ describe("performance data", () => {
   });
 
   it("keeps missing goals distinct from zero and sorts them into the review queue", () => {
-    const roster = buildPerformanceRoster([], "2026-07-21");
+    const roster = buildPerformanceRoster([], "2026-07-21", PERFORMANCE_PLANS);
     const bahruz = roster.find((row) => row.slug === "bahruz-brian-rasulov");
 
     expect(bahruz?.monthlySalesGoal).toBeNull();
@@ -54,6 +67,7 @@ describe("performance data", () => {
         })
       ],
       "2026-07-31",
+      PERFORMANCE_PLANS,
     );
     const jonathan = roster.find((row) => row.slug === "jonathan-camargo");
 

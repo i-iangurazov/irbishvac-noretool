@@ -210,3 +210,24 @@ model StaffPortrait {
   sourceName  String
   uploadedAt  DateTime @default(now())
 }
+
+// Immutable complete exports; history survives personnel changes and source outages.
+model PerformancePersonnelSnapshot {
+  id String @id @default(cuid())
+  payloadJson Json
+  fetchedAt DateTime @default(now())
+  @@index([fetchedAt(sort: Desc)])
+}
+
+// Append-only approvals, scoped to employee, month and department.
+model PerformanceGoalVersion {
+  id String @id @default(cuid())
+  sourceKey String @unique
+  technicianId String
+  month String
+  department String
+  payloadJson Json
+  approvedBy String
+  createdAt DateTime @default(now())
+  @@index([month, technicianId, department, createdAt(sort: Desc)], map: "PerformanceGoalVersion_scope_idx")
+}
