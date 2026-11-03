@@ -4,6 +4,8 @@ import { prisma } from "@irbis/db";
 import { DashboardService } from "../apps/api/src/modules/dashboard/dashboard.service";
 import { PersonnelService } from "../apps/api/src/modules/personnel/personnel.service";
 import { DashboardRefreshRunner } from "../apps/worker/src/runner";
+import {ServiceTitanClient,getServiceTitanReportDefinitions,resolveReportRequest} from "@irbis/integrations";
+import {buildFieldProJobRecordings,fieldProRecordingStaffId} from "@irbis/domain";
 
 const flag = (name: string) => { const index = process.argv.indexOf(name); return index < 0 ? undefined : process.argv[index + 1]; };
 
@@ -22,9 +24,19 @@ async function main() {
   const expected = directory.staff.filter(person => person.cycle === cycle).map(person => person.technicianId).sort();
   const actual = dashboard.rows.map(row => row.technicianId).sort();
   if (JSON.stringify(expected) !== JSON.stringify(actual)) throw new Error("Staff changed while preparing canonical metrics; regenerate");
+  let fieldProRecordings: unknown = null;
+  try {
+    const definition=getServiceTitanReportDefinitions().fieldProJobRecordings;
+    const request=resolveReportRequest(definition,{from,to});
+    const result=await new ServiceTitanClient().fetchPaginatedReport({family:"fieldProJobRecordings",category:definition.category,reportId:definition.reportId,parameters:request.parameters,correlationId:`coaching-recordings-${cycle}-${to}`});
+    const recordings=buildFieldProJobRecordings(result.payload);
+    fieldProRecordings={status:"available",fetchedAt:new Date().toISOString(),from,to,rows:recordings.rows.map(row=>({...row,technicianId:fieldProRecordingStaffId(row,directory.staff)}))};
+  } catch(error) {
+    console.warn(JSON.stringify({operation:"coaching-recordings",status:"unavailable",errorType:error instanceof Error?error.name:"Unknown"}));
+  }
   await mkdir(path.dirname(path.resolve(output)), { recursive: true });
   await writeFile(output, JSON.stringify({ schemaVersion: 1, sourceKind: cycle, periodFrom: from, cutoffDate: to,
-    generatedAt: new Date().toISOString(), directory, dashboard }, null, 2));
+    generatedAt: new Date().toISOString(), directory, dashboard, fieldProRecordings }, null, 2));
   console.log(JSON.stringify({ canonicalStaff: actual.length, periodFrom: from, cutoffDate: to }));
 }
 main().catch(error => { console.error(JSON.stringify({ operation: "canonical-performance", errorType: error.name })); process.exitCode = 1; }).finally(() => prisma.$disconnect());

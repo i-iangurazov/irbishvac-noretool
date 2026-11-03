@@ -106,6 +106,19 @@ export type FieldProJobRecordingsDashboard = {
   snapshotTime: string | null;
 };
 
+export function fieldProRecordingStaffId(recording: FieldProJobRecordingRow, staff: Array<{technicianId:string;technician:string;reportAliases?:string[]}>) {
+  const owner=normalizeIdentity(recording.technician);
+  const exact=staff.filter(person=>[person.technician,...(person.reportAliases??[])].some(name=>normalizeIdentity(name)===owner));
+  if(exact.length===1)return exact[0]!.technicianId;
+  if(exact.length>1)return null;
+  // Accept an older longer recording-profile name only with one exact job assignment.
+  const assigned=normalizeIdentity(recording.assignedTechnicians??"");
+  const words=(value:string)=>value.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const matches=staff.filter(person=>normalizeIdentity(person.technician)===assigned
+    && words(recording.technician).startsWith(`${words(person.technician)} `));
+  return matches.length===1?matches[0]!.technicianId:null;
+}
+
 export type FieldProTechnicianPerformanceRow = FieldProTechnicianActivityRow & {
   averageRecordingMinutes: number | null;
   longestRecordingMinutes: number | null;

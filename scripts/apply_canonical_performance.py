@@ -39,6 +39,15 @@ def apply_canonical(snapshot: dict, canonical: dict) -> dict:
                               reviewMonthlyGoal=goal["review_monthly_goal"], workingDaysMonthly=goal["working_days"], sourceNote=goal["source_note"])
         report.setdefault("personalizedTargets", {}).update(targetOpportunitiesMonthly=goal["target_opportunities_monthly"],
                                                             targetRate=goal["target_rate"], targetAverage=goal["target_average"])
+        recordings = canonical.get("fieldProRecordings") or {}
+        if recordings.get("status") == "available" and (recordings.get("from"), recordings.get("to")) == (snapshot["periodFrom"], snapshot["cutoffDate"]):
+            owned = [row for row in recordings.get("rows", []) if str(row.get("technicianId")) == key]
+            durations = [row["durationMinutes"] for row in owned if isinstance(row.get("durationMinutes"), (int, float)) and row["durationMinutes"] >= 0]
+            field_pro = report.setdefault("fieldPro", {})
+            field_pro["longestRecordingMinutes"] = max(durations) if durations else None
+            if field_pro.get("averageRecordingMinutes") is None and durations:
+                field_pro["averageRecordingMinutes"] = sum(durations) / len(durations)
+            field_pro["recordedJobs"] = [{name: row.get(name) for name in ("jobId", "jobNumber", "recordingTitle", "durationMinutes")} for row in owned]
     snapshot.update(canonicalSource=True, canonicalMetricBasis="total-sales", serviceTitanSnapshotTime=canonical["dashboard"]["snapshotTime"],
                     rosterFetchedAt=canonical["directory"]["fetchedAt"], sourceKind=cycle)
     return snapshot
