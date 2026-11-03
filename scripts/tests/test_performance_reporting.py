@@ -160,14 +160,18 @@ class TimingTests(unittest.TestCase):
         self.assertFalse(advisor._inside_delivery_window(datetime.fromisoformat("2026-11-06T19:45:00+06:00"), {}))
 
     def test_early_partial_day_and_late_send_blocked(self):
-        snapshot={"cutoffDate":"2026-10-29", "generatedAt":"2026-10-30T12:00:00+00:00", "sourceExportStartedAt":"2026-10-30T06:00:00+00:00"}
+        snapshot={"sourceKind":"advisor", "cutoffDate":"2026-10-29", "generatedAt":"2026-10-30T12:00:00+00:00", "sourceExportStartedAt":"2026-10-30T06:00:00+00:00"}
         with self.assertRaisesRegex(ValueError,"before"):
-            policy.assert_send_ready(snapshot, datetime.fromisoformat("2026-10-30T13:30:00+00:00"))
+            policy.assert_send_ready(snapshot, datetime.fromisoformat("2026-10-30T13:35:00+00:00"))
         snapshot["sourceExportStartedAt"]="2026-10-30T12:00:00+00:00"
-        policy.assert_send_ready(snapshot, datetime.fromisoformat("2026-10-30T13:30:00+00:00"))
+        policy.assert_send_ready(snapshot, datetime.fromisoformat("2026-10-30T13:35:00+00:00"))
         policy.assert_send_ready(snapshot, datetime.fromisoformat("2026-10-30T13:44:59+00:00"))
         with self.assertRaisesRegex(ValueError,"deadline"):
             policy.assert_send_ready(snapshot, datetime.fromisoformat("2026-10-30T13:45:00+00:00"))
+        with self.assertRaisesRegex(ValueError,"window starts"):
+            policy.assert_send_ready(snapshot, datetime.fromisoformat("2026-10-30T13:34:59+00:00"))
+        with self.assertRaisesRegex(ValueError,"weekday"):
+            policy.assert_send_ready({**snapshot,"sourceKind":"technician"}, datetime.fromisoformat("2026-10-30T13:35:00+00:00"))
 
 class AdvisorBuilderTests(unittest.TestCase):
     def test_fourth_advisor_without_metrics_or_goals_is_renderable(self):

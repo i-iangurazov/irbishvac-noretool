@@ -36,7 +36,7 @@ def main() -> int:
         cmd.extend(["--combined-hvac-pdf", str(package / f"IRBIS-HVAC-Service-MTD-Coaching-Reports-through-{cutoff}.pdf"), "--combined-plumbing-pdf", str(package / f"IRBIS-Plumbing-Service-MTD-Coaching-Reports-through-{cutoff}.pdf")])
         cmd.extend(["--combined-electrical-pdf", str(package / f"IRBIS-Electrical-Service-MTD-Coaching-Reports-through-{cutoff}.pdf")])
     if args.mode == "dry-run":
-        cmd.append("--smtp-preflight")
+        cmd.append("--mail-preflight")
     subprocess.run(cmd, cwd=repo, env=env, check=True)
     return 0
 

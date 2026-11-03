@@ -14,15 +14,38 @@ must remain set until the mail channel has been configured and verified. The
 owner chose to retain Railway Hobby and use an HTTPS mail API. Hobby blocks
 outbound SMTP, so the current SMTP preflight failure is a known rollout blocker,
 not evidence of a delivered cycle. No plan upgrade or paid mail account has been
-created. The HTTPS provider/account is still to be selected and connected.
+created. A Resend HTTPS adapter is implemented and tested but is not selected or
+connected in production; a different provider needs its own reviewed adapter.
 
-Before enabling normal operation, implement and verify the selected HTTPS
+Before enabling normal operation, connect and verify the selected HTTPS
 transport for both coaching mail and owner alerts; preserve recipient routing,
 attachment hashes and durable duplicate prevention. Use the least-permissive
 sending credential and an approved company sender. Keep credentials in Railway
 variables only. A local configuration check must not be described as SMTP RCPT
 validation or proof of delivery. Verify an owner-only connection test before
 enabling staff delivery. Then perform the legacy-scheduler cutover below.
+
+For Resend, configure `PERFORMANCE_REPORT_MAIL_TRANSPORT=resend`, `RESEND_API_KEY`
+and the approved `EMAIL_FROM` in the report service. Use a domain-restricted
+`sending_access` key, not a full-access account key. The adapter sends PDFs as
+base64 attachments to the fixed HTTPS endpoint and records the provider message
+ID. Identical in-process retries reuse exact payload bytes and an idempotency key.
+Provider keys expire after 24 hours; the persistent `sent`/`sending` records remain
+the authority and are never discarded after that expiry. Unknown results still
+require reconciliation. No automatic SMTP fallback occurs for an HTTPS failure.
+See the [sending API](https://resend.com/docs/api-reference/emails/send-email),
+[idempotency rules](https://resend.com/docs/dashboard/emails/idempotency-keys) and
+[key permissions](https://resend.com/docs/api-reference/api-keys/create-api-key).
+
+Run `python3 scripts/verify_performance_mail.py --state-dir /data/performance/mail`
+to check configuration without sending. Adding `--send-owner-test` explicitly
+sends one attachment-free message only to `PERFORMANCE_REPORT_ALERT_EMAIL`.
+Its durable state is `mail/connection-test.json`; a reserved or accepted test is
+not automatically replayed. An accepted provider response is not confirmation of
+inbox receipt: check the owner's inbox before enabling staff delivery. HTTPS
+preflight checks configuration and address format; it does not authenticate with
+the provider or claim recipient acceptance. SMTP preflight remains available for
+environments that actually permit SMTP.
 
 ## Schedule and acceptance
 

@@ -285,7 +285,7 @@ def _run_cycle(
         str(combined_pdf),
     ]
     if mode == "dry-run":
-        sender_command.append("--smtp-preflight")
+        sender_command.append("--mail-preflight")
     _run(sender_command, repo, sender_env)
     record_preparation(package, final_snapshot)
     print(f"package={package}")

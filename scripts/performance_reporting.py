@@ -27,11 +27,16 @@ def window_closed_at(cutoff: str) -> datetime:
     return day.replace(tzinfo=ZoneInfo("America/Los_Angeles")).astimezone(timezone.utc)
 
 
-def assert_send_ready(snapshot: dict, now: datetime | None = None) -> None:
+def assert_send_ready(snapshot: dict, now: datetime | None = None) -> float:
     now = now or datetime.now(timezone.utc)
     local = now.astimezone(ZoneInfo(SCHEDULE_TIMEZONE))
     if (local.hour, local.minute) >= (19, 45):
         raise ValueError("Delivery deadline passed: 19:45 Asia/Bishkek; no automatic late send")
+    if (local.hour, local.minute) < (19, 35):
+        raise ValueError("Delivery window starts at 19:35 Asia/Bishkek")
+    weekday = {"technician": 3, "advisor": 4}.get(snapshot.get("sourceKind"))
+    if weekday is None or local.weekday() != weekday:
+        raise ValueError("Delivery cycle does not match its authorized weekday")
     if not snapshot.get("sourceExportStartedAt"):
         raise ValueError("Source export timestamp is missing; regenerate a verifiable package")
     generated = datetime.fromisoformat(snapshot["sourceExportStartedAt"])
@@ -39,6 +44,7 @@ def assert_send_ready(snapshot: dict, now: datetime | None = None) -> None:
         raise ValueError("Report was prepared before the Pacific cutoff day closed; regenerate fresh data")
     if snapshot.get("cutoffDate") != (local.date() - timedelta(days=1)).isoformat():
         raise ValueError("Prepared report is not for yesterday's cutoff in Asia/Bishkek")
+    return (local.replace(hour=19, minute=45, second=0, microsecond=0) - local).total_seconds()
 
 
 def verify_live_personnel(snapshot: dict, env_files: list[str]) -> None:

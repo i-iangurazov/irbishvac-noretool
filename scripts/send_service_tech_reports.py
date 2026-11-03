@@ -13,6 +13,7 @@ from email.utils import formatdate, make_msgid, parseaddr
 from pathlib import Path
 from typing import Any, Iterable, Optional
 from performance_reporting import assert_send_ready, verify_live_personnel
+from performance_mail import ResendMailer, transport_name
 
 
 def main() -> int:
@@ -52,9 +53,9 @@ def main() -> int:
         help="Report slug for --test-recipient; defaults to the first manifest row.",
     )
     parser.add_argument(
-        "--smtp-preflight",
+        "--mail-preflight", "--smtp-preflight", dest="mail_preflight",
         action="store_true",
-        help="Authenticate and validate recipients with SMTP without sending DATA.",
+        help="Check SMTP recipients without DATA, or validate HTTPS transport configuration without sending mail.",
     )
     args = parser.parse_args()
 
@@ -69,14 +70,23 @@ def main() -> int:
     try:
         fcntl.flock(delivery_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
+        delivery_lock.close()
         print("delivery_noop=another process holds the SMTP delivery lock")
         return 0
+    try:
+        return _deliver_package(args, env, manifest_path, snapshot_path, pdf_dir, state_dir)
+    finally:
+        delivery_lock.close()
 
+
+def _deliver_package(args, env, manifest_path, snapshot_path, pdf_dir, state_dir) -> int:
     manifest = _json(manifest_path)
     snapshot = _json(snapshot_path)
     if args.mode == "send":
         if snapshot.get("canonicalSource") is not True:
             raise ValueError("Live delivery requires the shared canonical dashboard metrics and goals")
+        if snapshot.get("sourceKind") != args.delivery_profile:
+            raise ValueError("Delivery profile differs from the prepared report cycle")
         assert_send_ready(snapshot)
         verify_live_personnel(snapshot, args.env_file)
     reports = _validate_package(manifest, snapshot, pdf_dir)
@@ -212,10 +222,10 @@ def main() -> int:
     print(f"validated_reports={len(plan)}")
     print(f"delivery_plan={plan_path}")
 
-    if args.smtp_preflight:
+    if args.mail_preflight:
         recipients = [address for row in plan for address in row["to"] + row["cc"]]
-        _smtp_preflight(env, routing["from"], _unique_emails(recipients))
-        print(f"smtp_preflight_recipients={len(_unique_emails(recipients))}")
+        _mail_preflight(env, routing["from"], _unique_emails(recipients))
+        print(f"mail_preflight_recipients={len(_unique_emails(recipients))}")
 
     if args.mode == "dry-run":
         print("emails_sent=0")
@@ -242,7 +252,7 @@ def main() -> int:
             idstring=f"performance-report-test-{source['slug']}",
             domain=parseaddr(routing["from"])[1].split("@", 1)[1],
         )
-        with _smtp(env) as smtp:
+        with _mailer(env, before_attempt=lambda: assert_send_ready(snapshot)) as smtp:
             smtp.send_message(
                 _message(test_row, routing["from"], manifest["cutoffDate"], message_id)
             )
@@ -254,7 +264,7 @@ def main() -> int:
     state = _load_state(state_path, delivery_key, manifest)
     sent = 0
     skipped = 0
-    with _smtp(env) as smtp:
+    with _mailer(env, before_attempt=lambda: assert_send_ready(snapshot)) as smtp:
         for row in plan:
             assert_send_ready(snapshot)
             prior = state["reports"].get(row["slug"])
@@ -274,10 +284,13 @@ def main() -> int:
                 idstring=f"performance-report-{delivery_key}-{row['slug']}",
                 domain=parseaddr(routing["from"])[1].split("@", 1)[1],
             )
+            idempotency_key = hashlib.sha256(f"{args.delivery_profile}:{delivery_key}:{row['slug']}".encode()).hexdigest()
             state["reports"][row["slug"]] = {
                 "status": "sending",
                 "startedAt": _utc_now(),
                 "messageId": message_id,
+                "idempotencyKey": idempotency_key,
+                "provider": transport_name(env),
                 "attachmentSha256": row["attachmentSha256"],
                 "to": row["to"],
                 "cc": row["cc"],
@@ -285,12 +298,16 @@ def main() -> int:
             _atomic_json(state_path, state)
 
             message = _message(row, routing["from"], manifest["cutoffDate"], message_id)
+            message["X-IRBIS-Delivery-Key"] = idempotency_key
             refused = smtp.send_message(message)
             if refused:
                 raise RuntimeError("SMTP rejected one or more recipients; delivery requires reconciliation")
             state["reports"][row["slug"]].update(
                 {"status": "sent", "sentAt": _utc_now()}
             )
+            receipt = getattr(smtp, "last_receipt", None)
+            if isinstance(receipt, dict):
+                state["reports"][row["slug"]].update(receipt)
             _atomic_json(state_path, state)
             sent += 1
             print(f"sent={row['slug']}")
@@ -468,6 +485,22 @@ def _smtp(env: dict[str, str]) -> smtplib.SMTP:
     smtp.ehlo()
     smtp.login(_required(env, "SMTP_USER"), _required(env, "SMTP_PASS"))
     return smtp
+
+
+def _mailer(env: dict[str, str], before_attempt=None):
+    return ResendMailer(env, before_attempt) if transport_name(env) == "resend" else _smtp(env)
+
+
+def _mail_preflight(env: dict[str, str], sender: str, recipients: list[str]) -> None:
+    _email(sender, "sender")
+    for recipient in recipients:
+        _email(recipient, "recipient")
+    if transport_name(env) == "resend":
+        ResendMailer(env)
+        print("mail_preflight_scope=HTTPS configuration and address format only; no provider authentication or delivery claimed")
+    else:
+        _smtp_preflight(env, sender, recipients)
+        print("mail_preflight_scope=SMTP authentication and RCPT validation; no DATA sent")
 
 
 def _smtp_preflight(env: dict[str, str], sender: str, recipients: list[str]) -> None:

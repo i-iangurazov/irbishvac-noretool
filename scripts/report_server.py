@@ -6,6 +6,7 @@ SMTP state. This process owns durable scheduling, retries and owner alerts.
 from __future__ import annotations
 import argparse
 import fcntl
+import hashlib
 import json
 import os
 import signal
@@ -19,7 +20,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from performance_reporting import central_personnel, preparation_complete, SCHEDULE_TIMEZONE
 from run_service_tech_thursday_delivery import _load_environment
-from send_service_tech_reports import _smtp, _email, _atomic_json
+from send_service_tech_reports import _mailer, _email, _atomic_json
 
 REPO = Path(__file__).resolve().parents[1]
 STOP = threading.Event()
@@ -55,14 +56,20 @@ def alert(env: dict, state: dict, key: str, detail: str) -> None:
     try:
         owner = _email(env.get("PERFORMANCE_REPORT_ALERT_EMAIL", "it@irbishvac.com"), "report owner")
         message = EmailMessage()
-        message["From"] = _email(env.get("EMAIL_FROM") or env["SMTP_USER"], "sender")
+        message["From"] = _email(env.get("EMAIL_FROM") or env.get("SMTP_USER", ""), "sender")
         message["To"] = owner
         message["Subject"] = "IRBIS reporting requires attention: " + key
+        delivery_key = hashlib.sha256(f"owner-alert:{owner}:{key}:{detail}".encode()).hexdigest()
+        message["Message-ID"] = f"<{delivery_key}@{str(message['From']).split('@')[1]}>"
+        message["X-IRBIS-Delivery-Key"] = delivery_key
         message.set_content(detail + "\nInspect the reporting service log and persistent scheduler state.\n")
-        with _smtp(env) as smtp:
+        with _mailer(env) as smtp:
             rejected = smtp.send_message(message)
             if rejected:
                 raise RuntimeError("Owner notification rejected")
+            receipt = getattr(smtp, "last_receipt", None)
+            if isinstance(receipt, dict):
+                state["alertReceipt"] = receipt
         state["alertedKey"] = key
         state.pop("pendingAlert", None)
     except Exception as error:
