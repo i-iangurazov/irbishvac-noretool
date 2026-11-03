@@ -8,14 +8,24 @@ No process depends on a Mac, a sibling checkout or a local env file.
 
 ## Rollout state — 2026-11-03
 
-API, worker and dashboards are live. Reports remain in isolated smoke mode;
-scheduled server delivery is not enabled. `PERFORMANCE_REPORT_AUTO_SEND=false`
-must remain set until the mail channel has been configured and verified. The
-owner chose to retain Railway Hobby and use an HTTPS mail API. Hobby blocks
-outbound SMTP, so the current SMTP preflight failure is a known rollout blocker,
-not evidence of a delivered cycle. No plan upgrade or paid mail account has been
-created. A Resend HTTPS adapter is implemented and tested but is not selected or
-connected in production; a different provider needs its own reviewed adapter.
+API, worker and dashboards are live. Both isolated smoke packages for the closed
+working day November 2 generated all 9 technician and 5 advisor PDFs with no
+layout QA failures. These were non-sending runs, not scheduled delivery proof.
+The report service now runs normal scheduling with
+`PERFORMANCE_REPORT_AUTO_SEND=false`; keep this guard until the mail connection
+and legacy cutover are verified.
+
+The owner chose Railway Hobby and reuse of the existing IRBIS Resend connection
+from the marketing/recruiting service. Its existing sending-only credential has
+been copied securely into the report service; sender remains
+`marketing@irbishvac.com`, with owner checks addressed to `it@irbishvac.com`.
+No new account, credential, subscription or plan upgrade was created. The
+recruiting deployment and its sender were not changed. Resend's read API rejects
+this key as `restricted_api_key`, confirming sending-only scope; that does not
+prove a successful send or the sender domain restriction. An attachment-free owner-only server test was accepted by Resend on November 3.
+The sender was marketing@irbishvac.com and the only recipient it@irbishvac.com;
+actual inbox receipt is still awaiting owner confirmation. Hobby's blocked SMTP
+preflight is the historical blocker, not evidence of delivery.
 
 Before enabling normal operation, connect and verify the selected HTTPS
 transport for both coaching mail and owner alerts; preserve recipient routing,

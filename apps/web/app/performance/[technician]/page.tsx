@@ -365,7 +365,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               tone={dialStatus(mtdRow.actual?.rate, plan.targetRate)}
             />
             <Metric
-              label="Revenue / opportunity"
+              label={isAdvisor ? "Average ticket" : "Revenue / opportunity"}
               value={valueOrUnavailable(actualSourceAvailable ? mtdRow.actual?.averageSale : null, formatCurrency)}
               detail={targetBasis
                 ? `Target ${valueOrUnavailable(plan.targetAverage, formatCurrency)} · 3-mo ${valueOrUnavailable(targetBasis.baselineAverageSale, formatCurrency)}`
