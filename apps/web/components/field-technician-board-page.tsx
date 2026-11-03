@@ -82,7 +82,7 @@ export async function FieldTechnicianBoardPage({
         const actual = (value: number, format: (value: number) => string) =>
           staffMetricValue(value, format, row.actualSourceAvailable);
         const goalValue = (value: string, target: string | null) =>
-          target ? `${value} / ${target}` : goal ? `${value} / Pending` : value;
+          target ? `${value} / ${target}` : goal ? `${value} / Not set` : value;
 
         return {
           title: row.name,

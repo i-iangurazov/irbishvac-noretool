@@ -36,6 +36,10 @@ function valueOrUnavailable(
   return value == null ? "Data unavailable" : formatter(value);
 }
 
+function goalOrNotSet(value: number | null | undefined, formatter: (input: number) => string) {
+  return value == null ? "Not set" : formatter(value);
+}
+
 function dialStatus(actual: number | null | undefined, target: number | null) {
   if (actual == null || target == null || target <= 0) {
     return "neutral";
@@ -159,7 +163,7 @@ function buildDeliveryFocus(
     return {
       title: "Arrive within the first half of every arrival window",
       reason: `MTD first-half arrival rate is ${formatPercent(onTimeRate, 0)} across ${delivery.execution.arrivalEligibleAppointments ?? 0} measured appointments.`,
-      instruction: "Review the route before dispatch, leave enough travel buffer, and notify dispatch immediately when the first-half threshold is at risk.",
+      instruction: "Review the route, allow travel time, and alert dispatch immediately if first-half arrival is at risk.",
       target: "90%+ first-half arrival rate",
       play: [
         "Check the next appointment window before leaving the current job.",
@@ -323,13 +327,13 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               : "Monthly progress through the report cutoff"}
           />
           <div className="coaching-metrics coaching-metrics--four">
-            <Metric label="Monthly goal" value={valueOrUnavailable(plan.monthlySalesGoal, formatCurrency)} />
+            <Metric label="Monthly goal" value={goalOrNotSet(plan.monthlySalesGoal, formatCurrency)} />
             <Metric label="MTD total sales" value={valueOrUnavailable(actualSourceAvailable ? mtdRow.actual?.revenue : null, formatCurrency)} />
-            <Metric label="Expected by date" value={valueOrUnavailable(mtdRow.expectedRevenue, formatCurrency)} />
+            <Metric label="Expected by date" value={plan.monthlySalesGoal == null ? "No goal" : valueOrUnavailable(mtdRow.expectedRevenue, formatCurrency)} />
             <Metric
               label="Pace"
-              value={valueOrUnavailable(mtdRow.pace, (value) => formatPercent(value, 0))}
-              detail={mtdRow.paceGap == null ? "No matched source" : `${formatCurrency(mtdRow.paceGap)} vs expected`}
+              value={plan.monthlySalesGoal == null ? "No goal" : valueOrUnavailable(mtdRow.pace, (value) => formatPercent(value, 0))}
+              detail={mtdRow.paceGap == null ? (actualSourceAvailable ? "Monthly goal not set" : "Current actuals unavailable") : `${formatCurrency(mtdRow.paceGap)} vs expected`}
               tone={paceTone}
             />
           </div>
@@ -348,24 +352,24 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               label="Opportunities"
               value={valueOrUnavailable(actualSourceAvailable ? mtdRow.actual?.opportunities : null, formatNumber)}
               detail={targetBasis
-                ? `Target ${valueOrUnavailable(targetBasis.targetOpportunitiesMonthly, formatNumber)}${targetBasis.dailyOpportunityGoal == null ? "" : ` · ${formatNumber(targetBasis.dailyOpportunityGoal)}/day`}`
-                : `Target ${valueOrUnavailable(plan.targetOpportunitiesMonthly, formatNumber)}`}
+                ? `Target ${goalOrNotSet(targetBasis.targetOpportunitiesMonthly, formatNumber)}${targetBasis.dailyOpportunityGoal == null ? "" : ` · ${formatNumber(targetBasis.dailyOpportunityGoal)}/day`}`
+                : `Target ${goalOrNotSet(plan.targetOpportunitiesMonthly, formatNumber)}`}
               tone={dialStatus(mtdRow.actual?.opportunities, mtdRow.expectedOpportunities)}
             />
             <Metric
               label={rateName}
               value={valueOrUnavailable(actualSourceAvailable ? mtdRow.actual?.rate : null, (value) => formatPercent(value, 0))}
               detail={targetBasis
-                ? `Target ${valueOrUnavailable(plan.targetRate, (value) => formatPercent(value, 0))} · 3-mo ${valueOrUnavailable(targetBasis.baselineRate, (value) => formatPercent(value, 0))}`
-                : `Target ${valueOrUnavailable(plan.targetRate, (value) => formatPercent(value, 0))}`}
+                ? `Target ${goalOrNotSet(plan.targetRate, (value) => formatPercent(value, 0))} · 3-mo ${valueOrUnavailable(targetBasis.baselineRate, (value) => formatPercent(value, 0))}`
+                : `Target ${goalOrNotSet(plan.targetRate, (value) => formatPercent(value, 0))}`}
               tone={dialStatus(mtdRow.actual?.rate, plan.targetRate)}
             />
             <Metric
               label={isAdvisor ? "Average ticket" : "Revenue / opportunity"}
               value={valueOrUnavailable(actualSourceAvailable ? mtdRow.actual?.averageSale : null, formatCurrency)}
               detail={targetBasis
-                ? `Target ${valueOrUnavailable(plan.targetAverage, formatCurrency)} · 3-mo ${valueOrUnavailable(targetBasis.baselineAverageSale, formatCurrency)}`
-                : `Target ${valueOrUnavailable(plan.targetAverage, formatCurrency)}`}
+                ? `Target ${goalOrNotSet(plan.targetAverage, formatCurrency)} · 3-mo ${valueOrUnavailable(targetBasis.baselineAverageSale, formatCurrency)}`
+                : `Target ${goalOrNotSet(plan.targetAverage, formatCurrency)}`}
               tone={dialStatus(mtdRow.actual?.averageSale, plan.targetAverage)}
             />
           </div>
@@ -430,7 +434,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
                 <>
                   <strong>{valueOrUnavailable(actualSourceAvailable ? delivery?.actual.membershipConversionRate : null, (value) => formatPercent(value, 0))}</strong>
                   <small>
-                    Target {valueOrUnavailable(membershipConversionGoal, (value) => formatPercent(value, 0))} · {actualSourceAvailable && delivery ? `${delivery.actual.membershipsSold}/${delivery.actual.membershipOpportunities} visits` : "membership source unavailable"}
+                    Target {goalOrNotSet(membershipConversionGoal, (value) => formatPercent(value, 0))} · {actualSourceAvailable && delivery ? `${delivery.actual.membershipsSold}/${delivery.actual.membershipOpportunities} visits` : "membership source unavailable"}
                   </small>
                 </>
               )}
@@ -440,8 +444,8 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               <strong>{valueOrUnavailable(delivery?.execution.reviewsReceived, formatNumber)}</strong>
               <small>
                 {delivery?.execution.reviewsReceived == null
-                  ? `Monthly goal ${valueOrUnavailable(plan.reviewMonthlyGoal, formatNumber)} · actual unavailable`
-                  : `Monthly goal ${valueOrUnavailable(plan.reviewMonthlyGoal, formatNumber)} · ${delivery.execution.serviceTitanAssignedReviews ?? 0} assigned · ${delivery.execution.textMatchedReviews ?? 0} text-matched`}
+                  ? `Monthly goal ${goalOrNotSet(plan.reviewMonthlyGoal, formatNumber)} · actual unavailable`
+                  : `Monthly goal ${goalOrNotSet(plan.reviewMonthlyGoal, formatNumber)} · ${delivery.execution.serviceTitanAssignedReviews ?? 0} assigned · ${delivery.execution.textMatchedReviews ?? 0} text-matched`}
               </small>
             </div>
           </div>
@@ -462,7 +466,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
                   <div>
                     <span>Memberships sold</span>
                     <strong>{valueOrUnavailable(actualSourceAvailable ? delivery.actual.membershipsSold : null, formatNumber)}</strong>
-                    <small>Monthly goal {valueOrUnavailable(plan.membershipMonthlyGoal, formatNumber)}</small>
+                    <small>Monthly goal {goalOrNotSet(plan.membershipMonthlyGoal, formatNumber)}</small>
                   </div>
                 </>
               ) : (
@@ -479,7 +483,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
                   </div>
                   <div>
                     <span>Install sales</span>
-                    <strong>{valueOrUnavailable(actualSourceAvailable ? delivery.actual.installSales : null, formatCurrency)}</strong>
+                    <strong>{actualSourceAvailable && delivery.plan?.installSalesActualSource == null ? "Not defined" : valueOrUnavailable(actualSourceAvailable ? delivery.actual.installSales : null, formatCurrency)}</strong>
                     <small>
                       {installSalesGoal == null
                         ? "Updated goal not provided"
