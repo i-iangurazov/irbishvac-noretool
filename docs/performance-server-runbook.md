@@ -11,9 +11,11 @@ No process depends on a Mac, a sibling checkout or a local env file.
 API, worker and dashboards are live. Both isolated smoke packages for the closed
 working day November 2 generated all 9 technician and 5 advisor PDFs with no
 layout QA failures. These were non-sending runs, not scheduled delivery proof.
-The report service now runs normal scheduling with
-`PERFORMANCE_REPORT_AUTO_SEND=false`; keep this guard until the mail connection
-and legacy cutover are verified.
+The report service is configured for normal scheduling with
+`PERFORMANCE_REPORT_AUTO_SEND=true` after the owner confirmed the live connection
+test reached the inbox and the six legacy triggers were disabled. Verify the
+runtime flag after the activation release. First real scheduled Thursday and
+Friday delivery with the Mac off remains the final acceptance gate.
 
 The owner chose Railway Hobby and reuse of the existing IRBIS Resend connection
 from the marketing/recruiting service. Its existing sending-only credential has
@@ -24,16 +26,16 @@ recruiting deployment and its sender were not changed. Resend's read API rejects
 this key as `restricted_api_key`, confirming sending-only scope; that does not
 prove a successful send or the sender domain restriction. An attachment-free owner-only server test was accepted by Resend on November 3.
 The sender was marketing@irbishvac.com and the only recipient it@irbishvac.com;
-actual inbox receipt is still awaiting owner confirmation. Hobby's blocked SMTP
+the owner confirmed actual inbox receipt. Hobby's blocked SMTP
 preflight is the historical blocker, not evidence of delivery.
 
-Before enabling normal operation, connect and verify the selected HTTPS
-transport for both coaching mail and owner alerts; preserve recipient routing,
+For a future mail-provider change, verify the selected HTTPS transport for
+both coaching mail and owner alerts before enabling delivery; preserve recipient routing,
 attachment hashes and durable duplicate prevention. Use the least-permissive
 sending credential and an approved company sender. Keep credentials in Railway
 variables only. A local configuration check must not be described as SMTP RCPT
 validation or proof of delivery. Verify an owner-only connection test before
-enabling staff delivery. Then perform the legacy-scheduler cutover below.
+enabling staff delivery. Repeat the legacy-scheduler check below during recovery.
 
 For Resend, configure `PERFORMANCE_REPORT_MAIL_TRANSPORT=resend`, `RESEND_API_KEY`
 and the approved `EMAIL_FROM` in the report service. Use a domain-restricted
@@ -64,6 +66,28 @@ in process; after an unknown result or restart, `alertReconciliationRequired`
 blocks automatic replay permanently, including after provider idempotency keys
 expire. Reconcile the recorded Message-ID/provider key before any manual resend.
 Accepted alert records and provider receipts remain in `alertDeliveries`.
+
+## Legacy cutover — November 3, 2026
+
+The owner confirmed the server test from marketing@irbishvac.com reached
+it@irbishvac.com in the inbox. Resend accepted it at 08:23:52 UTC; provider message
+ID `01a1a081-edd9-7912-bd78-777fdef1b338`. The durable receipt is
+`/data/performance/mail/connection-test.json`; re-running the test must not resend.
+
+The exact Mac LaunchAgents `com.irbis.service-tech-reports` and
+`com.irbis.advisor-reports` were disabled in launchctl, unloaded and their plist
+files renamed with `.disabled-server-cutover-20261103`. Backups were preserved.
+Both exact jobs were verified unloaded and disabled; no other job was changed.
+The four existing Codex automations `technician-reports`, `technician-reports-2`,
+`comfort-advisor-reports` and `comfort-advisor-reports-2` were paused through the
+app and their saved status verified. Their original prompts/schedules remain
+available for rollback; no duplicate server fallback automation was created.
+
+During rollback, first set server auto-send false and verify it is applied.
+Reconcile any server `sending` or `sent` receipts before reactivating anything
+local: the old and new installations do not share delivery state. Restore only
+the required launch agent or automation after that reconciliation, never both
+independent send paths without shared duplicate prevention.
 
 ## Monthly external documents — November 2026
 
