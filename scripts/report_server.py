@@ -184,7 +184,7 @@ def audit_missed_cycles(root: Path, env: dict, now: datetime) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--smoke", choices=CYCLES, help="Prepare and validate only, in a separate non-sending output tree")
+    parser.add_argument("--smoke", choices=[*CYCLES, "both"], help="Prepare and validate only, in a separate non-sending output tree")
     args = parser.parse_args()
     env = _load_environment([REPO / ".env"])
     root = Path(env.get("PERFORMANCE_REPORT_DATA_DIR", str(REPO / "var"))).resolve()
@@ -195,15 +195,16 @@ def main() -> int:
             # The last fully closed Pacific day, not the unfinished Bishkek 'yesterday'.
             cutoff = datetime.now(ZoneInfo("America/Los_Angeles")).date() - timedelta(days=1)
             delivery_date = cutoff + timedelta(days=1)
-            output = root / "smoke" / CYCLES[args.smoke][2]
-            package = output / str(delivery_date)
-            try:
-                run_logged([sys.executable, str(REPO / "scripts" / CYCLES[args.smoke][1]), "--mode", "dry-run", "--force-schedule", "--now", f"{delivery_date}T18:30:00+06:00", "--output-root", str(output)], package, env)
-                result = {"runKind": "smoke", "status": "passed", "noLiveSend": True, "completedAt": datetime.now(timezone.utc).isoformat()}
-            except Exception as error:
-                result = {"runKind": "smoke", "status": "failed", "noLiveSend": True, "errorType": type(error).__name__, "completedAt": datetime.now(timezone.utc).isoformat()}
-            _atomic_json(package / "smoke-state.json", result)
-            print(json.dumps({"smokeCycle": args.smoke, **result}), flush=True)
+            for cycle in CYCLES if args.smoke == "both" else [args.smoke]:
+                output = root / "smoke" / CYCLES[cycle][2]
+                package = output / str(delivery_date)
+                try:
+                    run_logged([sys.executable, str(REPO / "scripts" / CYCLES[cycle][1]), "--mode", "dry-run", "--force-schedule", "--now", f"{delivery_date}T18:30:00+06:00", "--output-root", str(output)], package, env)
+                    result = {"runKind": "smoke", "status": "passed", "noLiveSend": True, "completedAt": datetime.now(timezone.utc).isoformat()}
+                except Exception as error:
+                    result = {"runKind": "smoke", "status": "failed", "noLiveSend": True, "errorType": type(error).__name__, "completedAt": datetime.now(timezone.utc).isoformat()}
+                _atomic_json(package / "smoke-state.json", result)
+                print(json.dumps({"smokeCycle": cycle, **result}), flush=True)
             # Keep the container available for the existing Railway file browser.
             # Inspection mode has no scheduled/live delivery path.
             for sig in (signal.SIGTERM, signal.SIGINT):

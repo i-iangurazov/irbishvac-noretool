@@ -330,10 +330,12 @@ def _render_and_qa(
 ) -> None:
     web = repo / "apps" / "web"
     web_env = os.environ.copy()
+    use_built_web = os.environ.get("PERFORMANCE_REPORT_USE_BUILT_WEB") == "true"
     web_env.update(
         {
             "PERFORMANCE_DELIVERY_SNAPSHOT_PATH": str(snapshot),
             "PERFORMANCE_PDF_OUTPUT_DIR": str(pdf_dir),
+            "NODE_ENV": "production" if use_built_web else "development",
         }
     )
     # Each render gets an isolated server so a previously running dev server
@@ -346,7 +348,7 @@ def _render_and_qa(
     web_env["PERFORMANCE_REPORT_RENDER_TOKEN"] = report_render_token
     server_log = (package / "renderer.log").open("ab")
     server = subprocess.Popen(
-        ["pnpm", "exec", "next", "start" if os.environ.get("PERFORMANCE_REPORT_USE_BUILT_WEB") == "true" else "dev", "--hostname", "127.0.0.1", "--port", str(port)],
+        ["pnpm", "exec", "next", "start" if use_built_web else "dev", "--hostname", "127.0.0.1", "--port", str(port)],
         cwd=web,
         env=web_env,
         stdout=server_log,
