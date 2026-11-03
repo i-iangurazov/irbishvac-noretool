@@ -34,6 +34,7 @@ export type PerformancePlan = {
 };
 
 export type PerformanceActual = {
+  sourceAvailable?: boolean;
   name: string;
   sourceKind: PerformanceSourceKind;
   technicianId: string | null;
@@ -152,6 +153,7 @@ function elapsedWorkingMonthRatio(
 }
 
 function findActual(plan: PerformancePlan, actuals: PerformanceActual[]) {
+  actuals = actuals.filter(actual => actual.sourceAvailable !== false);
   const acceptedNames = [plan.technician, ...plan.aliases].map(normalizePerformanceIdentity);
 
   if (plan.technicianId) {

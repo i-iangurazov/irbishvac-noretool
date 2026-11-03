@@ -240,6 +240,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
           technicianId: delivery.technicianId,
           businessUnit: delivery.businessUnit,
           ...delivery.actual,
+          sourceAvailable: delivery.actualSourceAvailable,
           snapshotTime: deliverySnapshot?.serviceTitanSnapshotTime ?? null
         }],
         cutoffDate,
@@ -404,7 +405,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               <span>{isAdvisor ? "Marketing lead close" : "Home Health Report Card"}</span>
               {isAdvisor ? (
                 <>
-                  <strong>{valueOrUnavailable(delivery?.actual.closeRateFromMarketingLeads, (value) => formatPercent(value, 0))}</strong>
+                  <strong>{valueOrUnavailable(actualSourceAvailable ? delivery?.actual.closeRateFromMarketingLeads : null, (value) => formatPercent(value, 0))}</strong>
                   <small>Marketing-attributed opportunities</small>
                 </>
               ) : (
@@ -426,8 +427,8 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               <span>{isAdvisor ? "TGL close" : "Membership conversion"}</span>
               {isAdvisor ? (
                 <>
-                  <strong>{valueOrUnavailable(delivery?.actual.closeRateFromTgl, (value) => formatPercent(value, 0))}</strong>
-                  <small>{delivery?.actual.techLeadJobs ?? 0} technician-generated leads</small>
+                  <strong>{valueOrUnavailable(actualSourceAvailable ? delivery?.actual.closeRateFromTgl : null, (value) => formatPercent(value, 0))}</strong>
+                  <small>{actualSourceAvailable ? `${delivery?.actual.techLeadJobs ?? 0} technician-generated leads` : "Current scorecard unavailable"}</small>
                 </>
               ) : (
                 <>
@@ -454,12 +455,12 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
                 <>
                   <div>
                     <span>Marketing sales</span>
-                    <strong>{valueOrUnavailable(delivery.actual.totalSalesFromMarketingLeads, formatCurrency)}</strong>
+                    <strong>{valueOrUnavailable(actualSourceAvailable ? delivery.actual.totalSalesFromMarketingLeads : null, formatCurrency)}</strong>
                     <small>Sales attributed to marketing leads</small>
                   </div>
                   <div>
                     <span>TGL sales</span>
-                    <strong>{valueOrUnavailable(delivery.actual.totalSalesFromTgl, formatCurrency)}</strong>
+                    <strong>{valueOrUnavailable(actualSourceAvailable ? delivery.actual.totalSalesFromTgl : null, formatCurrency)}</strong>
                     <small>Sales from technician-generated leads</small>
                   </div>
                   <div>
