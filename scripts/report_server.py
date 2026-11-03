@@ -219,6 +219,31 @@ def audit_missed_cycles(root: Path, env: dict, now: datetime) -> None:
             _atomic_json(path, state)
 
 
+def dashboard_refresh_allowed(now: datetime) -> bool:
+    local = now.astimezone(ZoneInfo(SCHEDULE_TIMEZONE))
+    # Reserve the preparation/delivery window and its lead-in for scheduled PDFs.
+    return not (local.weekday() in (3, 4) and 17 <= local.hour <= 20)
+
+
+def refresh_dashboard_sources(root: Path, env: dict) -> None:
+    """Refresh web data separately from frozen delivery packages; this path never renders or sends."""
+    while not STOP.is_set():
+        started = datetime.now(timezone.utc)
+        if dashboard_refresh_allowed(started):
+            for cycle, (_, script, _) in CYCLES.items():
+                if STOP.is_set() or not dashboard_refresh_allowed(datetime.now(timezone.utc)):
+                    break
+                output = root / "dashboard" / cycle
+                try:
+                    run_logged([sys.executable, str(REPO / "scripts" / script), "--mode", "dashboard", "--output-root", str(output)],
+                               output, {**env, "PERFORMANCE_REPORT_PROCESS_TIMEOUT_SECONDS": "1200"})
+                    print(json.dumps({"dashboardRefresh": cycle, "status": "published"}), flush=True)
+                except Exception as error:
+                    print(json.dumps({"dashboardRefresh": cycle, "status": "failed", "errorType": type(error).__name__}), flush=True)
+        delay = max(60, 1800 - (datetime.now(timezone.utc) - started).total_seconds())
+        STOP.wait(delay)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--smoke", choices=[*CYCLES, "both"], help="Prepare and validate only, in a separate non-sending output tree")
@@ -251,6 +276,7 @@ def main() -> int:
             return 0
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda *_: STOP.set())
+        threading.Thread(target=refresh_dashboard_sources, args=(root, env), daemon=True).start()
         monitor_path = root / "scheduler/personnel-health.json"
         monitor = json.loads(monitor_path.read_text()) if monitor_path.exists() else {}
         next_check = datetime.min.replace(tzinfo=timezone.utc)

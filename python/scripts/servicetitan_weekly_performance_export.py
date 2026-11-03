@@ -29,6 +29,8 @@ class ReportSpec:
 
 
 REPORTS = [
+    ReportSpec("marketing", 102440855, "Reviews", "reviews"),
+    ReportSpec("marketing", 67020808, "Review", "review"),
     ReportSpec("operations", 125008030, "Field Pro Recordings Per Technician", "fieldpro_recordings_per_technician"),
     ReportSpec("operations", 125005789, "Field Pro Recordings Overview", "fieldpro_recordings_overview"),
     ReportSpec("operations", 125959497, "Field Pro Technician Recording Activity", "fieldpro_technician_recording_activity"),

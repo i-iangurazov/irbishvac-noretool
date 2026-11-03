@@ -334,7 +334,7 @@ def refresh_personnel_if_due(repo: Path, marketing_env: Path, env: dict, run) ->
 
 
 def report_export_options(cycle: str) -> list[str]:
-    slugs = ["fieldpro_recordings_per_technician", "fieldpro_technician_recording_activity", "technician_dashboard_productivity", "technician_performance_board", "technician_performance_scorecard_vadim", "field_conversion_report", "operations_performance"]
+    slugs = ["reviews", "review", "fieldpro_recordings_per_technician", "fieldpro_technician_recording_activity", "technician_dashboard_productivity", "technician_performance_board", "technician_performance_scorecard_vadim", "field_conversion_report", "operations_performance"]
     if cycle == "advisor":
         slugs.append("comfort_advisor_performance_scorecard")
     return ["--skip-catalog", "--fail-on-missing-selected", "--timeout-seconds", "300", *[arg for slug in slugs for arg in ("--report-slug", slug)]]

@@ -565,6 +565,18 @@ def _review_evidence(reviews_dir: Path, roster: list[dict[str, Any]]) -> dict[st
     summary_rows = _csv_rows(reviews_dir / "reviews.csv")
     detail_rows = _csv_rows(reviews_dir / "review.csv")
     source_available = bool(summary_rows or detail_rows)
+    # A verified empty export is a real zero, unlike a hand-created header-only CSV.
+    complete_exports = []
+    for filename, required in (("reviews.json", {"TechnicianName", "TotalReviews"}), ("review.json", {"PublishDate", "Review", "TechnicianFullName"})):
+        path = reviews_dir / filename
+        try:
+            report = json.loads(path.read_text())
+            complete_exports.append(report.get("hasMore") is False and isinstance(report.get("data"), list)
+                and report.get("totalCount") == len(report["data"])
+                and required.issubset({field.get("name") for field in report.get("fields", [])}))
+        except (OSError, ValueError, TypeError, AttributeError):
+            complete_exports.append(False)
+    source_available = source_available or all(complete_exports)
     summary_by_name = {_identity(row.get("TechnicianName")): row for row in summary_rows}
     roster_first_names: dict[str, int] = defaultdict(int)
     for row in roster:
@@ -606,7 +618,7 @@ def _review_evidence(reviews_dir: Path, roster: list[dict[str, Any]]) -> dict[st
             "sourceAvailable": source_available,
             "serviceTitanAssignedReviews": int(_float(summary.get("TotalReviews")) or assigned_count),
             "textMatchedReviews": inferred_count,
-            "totalEvidenceReviews": len(matched),
+            "totalEvidenceReviews": max(int(_float(summary.get("TotalReviews")) or 0), assigned_count) + inferred_count,
             "eligibleJobs": _integer(summary.get("TotalJobs")),
             "serviceTitanReviewRate": _float(summary.get("ReviewRate")),
             "averageRating": _float(summary.get("AverageRating"))

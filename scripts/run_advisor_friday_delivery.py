@@ -29,7 +29,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Regenerate, QA, and deliver Friday Comfort Advisor reports."
     )
-    parser.add_argument("--mode", choices=("dry-run", "send"), default="dry-run")
+    parser.add_argument("--mode", choices=("dry-run", "send", "dashboard"), default="dry-run")
     parser.add_argument("--force-schedule", action="store_true")
     parser.add_argument("--reuse-source-exports", action="store_true")
     parser.add_argument("--now", help="ISO timestamp used for deterministic schedule tests")
@@ -58,7 +58,7 @@ def main() -> int:
         env.get("ADVISOR_REPORT_ALLOW_FORCE_SEND")
     ):
         raise ValueError("Forced live advisor delivery is disabled")
-    if not args.force_schedule and not _inside_delivery_window(now, env):
+    if args.mode != "dashboard" and not args.force_schedule and not _inside_delivery_window(now, env):
         refresh_personnel_if_due(repo, marketing_env, env, _run)
         print(f"schedule_noop={now.isoformat()}")
         return 0
@@ -99,7 +99,7 @@ def _run_cycle(
     reuse_source_exports: bool,
 ) -> int:
     delivery_date = now.date()
-    cutoff_date = delivery_date - timedelta(days=1)
+    cutoff_date = now.astimezone(ZoneInfo("America/Los_Angeles")).date() if mode == "dashboard" else delivery_date - timedelta(days=1)
     period_from = cutoff_date.replace(day=1)
     baseline_to = period_from - timedelta(days=1)
     baseline_from = _shift_month(period_from, -3)
@@ -147,6 +147,9 @@ def _run_cycle(
             (period_from, cutoff_date, mtd_source),
             (baseline_from, baseline_to, baseline_source),
         ):
+            if mode == "dashboard" and output == baseline_source and (output / "export-manifest.json").exists():
+                _require_source_exports(output, "dashboard baseline", baseline_from.isoformat(), baseline_to.isoformat())
+                continue
             _run(
                 [
                     sys.executable,
@@ -194,14 +197,8 @@ def _run_cycle(
     _run(common + ["--output", str(provisional)], repo)
 
     reviews_source.mkdir(parents=True, exist_ok=True)
-    (reviews_source / "review.csv").write_text(
-        "PublishDate,AuthorName,Rating,TechnicianFullName,Review\n",
-        encoding="utf-8",
-    )
-    (reviews_source / "reviews.csv").write_text(
-        "TechnicianName,TotalReviews,TotalJobs,ReviewRate,AverageRating\n",
-        encoding="utf-8",
-    )
+    for filename in ("review.csv", "reviews.csv", "review.json", "reviews.json"):
+        shutil.copy2(mtd_source / filename, reviews_source / filename)
     coaching_export = repo / "scripts" / "export_servicetitan_coaching_evidence.py"
     _run(
         [
@@ -241,8 +238,12 @@ def _run_cycle(
     canonical = source / "canonical-performance.json"
     _run(["pnpm", "exec", "tsx", "--tsconfig", "tsconfig.reporting.json", "scripts/build-canonical-performance.ts",
           "--cycle", "advisor", "--from-date", period_from.isoformat(), "--cutoff-date", cutoff_date.isoformat(),
-          "--output", str(canonical)], repo, env)
+          "--output", str(canonical), *(["--use-current"] if mode == "dashboard" else [])], repo, env)
     _run([sys.executable, str(repo / "scripts/apply_canonical_performance.py"), "--snapshot", str(final_snapshot), "--canonical", str(canonical)], repo)
+
+    if mode == "dashboard":
+        _run(["pnpm", "exec", "tsx", "--tsconfig", "tsconfig.reporting.json", "scripts/publish-coaching-snapshot.ts", "--snapshot", str(final_snapshot)], repo, env)
+        return 0
 
     generated = repo / "generated" / "advisor-mtd-delivery.tmp.json"
     generated.parent.mkdir(parents=True, exist_ok=True)

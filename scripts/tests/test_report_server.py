@@ -6,9 +6,14 @@ import tempfile
 import json
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from report_server import phase, tick, audit_missed_cycles
+from report_server import phase, tick, audit_missed_cycles, dashboard_refresh_allowed
 
 class SchedulerTests(unittest.TestCase):
+    def test_web_refresh_reserves_the_live_delivery_window(self):
+        self.assertFalse(dashboard_refresh_allowed(datetime.fromisoformat("2026-11-05T17:00:00+06:00")))
+        self.assertFalse(dashboard_refresh_allowed(datetime.fromisoformat("2026-11-06T19:35:00+06:00")))
+        self.assertTrue(dashboard_refresh_allowed(datetime.fromisoformat("2026-11-03T19:35:00+06:00")))
+        self.assertTrue(dashboard_refresh_allowed(datetime.fromisoformat("2026-11-05T21:00:00+06:00")))
     def at(self, value, state=None, cycle="technician"):
         return phase(datetime.fromisoformat(value + "+06:00"), cycle, state or {})
     def test_cycles_and_windows(self):

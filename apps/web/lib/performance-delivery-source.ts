@@ -1,6 +1,7 @@
 import "server-only";
 
 import { readFile } from "node:fs/promises";
+import { fetchApi } from "./api";
 import type { FieldProTechnicianActual, PerformanceActual } from "./performance-data";
 
 export type PerformanceAuditAlert = {
@@ -102,9 +103,13 @@ export type ServiceTechDeliverySnapshot = {
   technicians: ServiceTechDeliveryRow[];
 };
 
-export async function loadServiceTechDeliverySnapshot(): Promise<ServiceTechDeliverySnapshot | null> {
+export async function loadServiceTechDeliverySnapshot(staff?: string): Promise<ServiceTechDeliverySnapshot | null> {
   const filePath = process.env.PERFORMANCE_DELIVERY_SNAPSHOT_PATH;
-  if (!filePath) return null;
+  if (!filePath) {
+    if (!staff) return null;
+    try { return await fetchApi<ServiceTechDeliverySnapshot | null>(`/dashboard/performance/coaching?staff=${encodeURIComponent(staff)}`); }
+    catch { return null; }
+  }
 
   try {
     return JSON.parse(await readFile(filePath, "utf8")) as ServiceTechDeliverySnapshot;
