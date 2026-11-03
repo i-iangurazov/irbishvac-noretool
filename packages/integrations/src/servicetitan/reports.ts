@@ -197,6 +197,11 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.trending.reportId,
       legacyTableName: "st_trending",
       defaultPreset: "ytd",
+      // The board compares calendar months in two years, including while MTD is selected.
+      rangeResolver: ({ referenceDate, timeZone }) => ({
+        from: `${getDateParts(referenceDate, timeZone).year - 1}-01-01`,
+        to: toBusinessDateString(referenceDate, timeZone),
+      }),
       extraParameters: [{ name: "Period", value: "Month" }],
     },
     marketing: {

@@ -12,12 +12,15 @@ describe("buildReportParameters", () => {
     vi.stubEnv("AUTH_DEFAULT_ADMIN_EMAIL", "test@example.com");
     vi.stubEnv("AUTH_DEFAULT_ADMIN_PASSWORD", "synthetic-password");
     for (const key of ["ST_BU_INSTALLERS", "ST_BU_ADVISORS", "ST_BU_COMPANY"]) vi.stubEnv(key, "");
-    const definition=getServiceTitanReportDefinitions().bookingRate;
+    const definitions=getServiceTitanReportDefinitions();
+    const definition=definitions.bookingRate;
     vi.unstubAllEnvs();
     const context={timezone:"America/Los_Angeles",referenceDate:new Date("2026-11-03T18:00:00Z")};
     expect(resolveReportRequest(definition,{...context,preset:"mtd"}).range).toEqual({from:"2026-11-01",to:"2026-11-03"});
     expect(resolveReportRequest(definition,context).range).toEqual({from:"2026-11-03",to:"2026-11-03"});
     expect(resolveReportRequest(definition,{...context,from:"2026-10-15",to:"2026-11-03"}).range).toEqual({from:"2026-10-15",to:"2026-11-03"});
+    expect(resolveReportRequest(definitions.trending,{...context,preset:"mtd"}).range).toEqual({from:"2025-01-01",to:"2026-11-03"});
+    expect(resolveReportRequest(definitions.trending,{...context,to:"2025-10-31",preset:"ytd"}).range).toEqual({from:"2024-01-01",to:"2025-10-31"});
   });
   it("uses the advisor report's declared BU parameter and keeps its request scope distinct from an unfiltered legacy request", () => {
     const source = {
