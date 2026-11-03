@@ -1,3 +1,4 @@
+import type { PerformanceGoal } from "../performance-goals";
 import {
   BUSINESS_UNIT_FIELD_KEYS,
   classifyFieldStaffDepartment,
@@ -16,6 +17,8 @@ import {
 } from "../shared/report";
 
 export type AdvisorMetricRow = {
+  goal?: PerformanceGoal | null;
+  actualSourceAvailable?: boolean;
   name: string;
   businessUnit: string | null;
   department: FieldStaffDepartment | null;
@@ -30,6 +33,7 @@ export type AdvisorMetricRow = {
 };
 
 export type AdvisorDashboard = {
+  personnelFetchedAt?: string;
   rows: AdvisorMetricRow[];
   rowsRanked: AdvisorMetricRow[];
   totals: {
@@ -275,4 +279,9 @@ export function filterAdvisorDashboardByDepartment(
     rowsRanked: rankAdvisorRows(rows),
     totals: calculateAdvisorTotals(rows),
   };
+}
+
+export function withAdvisorRows(dashboard: AdvisorDashboard, rows: AdvisorMetricRow[]): AdvisorDashboard {
+  const rowsRanked = rankAdvisorRows(rows);
+  return { ...dashboard, rows, rowsRanked, totals: calculateAdvisorTotals(rows) };
 }

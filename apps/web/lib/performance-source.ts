@@ -1,3 +1,4 @@
+import { loadPersonnelPlans } from "./performance-personnel";
 import "server-only";
 
 import { toBusinessDateString } from "@irbis/utils";
@@ -16,6 +17,7 @@ type TechnicianDashboardPayload = {
     businessUnit: string;
     technicianId: string | null;
     totalInfluencedRevenue: number;
+    totalSales: number;
     salesOpportunity: number;
     closedOpportunities: number;
     closeRate: number;
@@ -104,7 +106,7 @@ export async function loadPerformanceActuals(range?: PerformanceRange) {
         sourceKind: "technician" as const,
         technicianId: row.technicianId,
         businessUnit: row.businessUnit,
-        revenue: row.totalInfluencedRevenue,
+        revenue: row.totalSales,
         opportunities: row.salesOpportunity,
         closedOpportunities: row.closedOpportunities,
         rate: row.closeRate,
@@ -153,7 +155,7 @@ export async function loadPerformanceRoster(
     loadFieldProActuals(getLastCompletedWeek())
   ]);
   return mergeFieldProIntoRoster(
-    buildPerformanceRoster(actuals, cutoffDate),
+    buildPerformanceRoster(actuals, cutoffDate, await loadPersonnelPlans(cutoffDate.slice(0, 7))),
     fieldPro,
   );
 }

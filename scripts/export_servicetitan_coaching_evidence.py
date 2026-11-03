@@ -16,7 +16,7 @@ from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 
 
-MARKETING_REPO = Path(__file__).resolve().parents[2] / "irbishvac-marketing"
+MARKETING_REPO = Path(__file__).resolve().parents[1] / "python"
 sys.path.insert(0, str(MARKETING_REPO))
 
 from marketing_os_agent.clients.servicetitan import ServiceTitanClient

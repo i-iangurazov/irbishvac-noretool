@@ -18,10 +18,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const reportRenderMode = process.env.PERFORMANCE_REPORT_RENDER_MODE === "true";
   return (
     <html lang="en">
       <body data-vw-app="true">
-        <ClerkProvider dynamic>
+        {reportRenderMode ? children : <ClerkProvider dynamic>
           <Suspense fallback={null}>
             <DashboardTvRuntime />
           </Suspense>
@@ -34,7 +35,7 @@ export default function RootLayout({
             </div>
           </Show>
           {children}
-        </ClerkProvider>
+        </ClerkProvider>}
       </body>
     </html>
   );

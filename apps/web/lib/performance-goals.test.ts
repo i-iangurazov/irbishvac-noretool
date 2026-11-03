@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { getTvPerformanceGoal } from "./performance-goals";
-
-describe("getTvPerformanceGoal", () => {
-  it("uses Vadim's latest explicit August target for Ivan Avila", () => {
-    expect(getTvPerformanceGoal("Ivan Avila")).toMatchObject({
-      monthlySalesGoal: 44_880,
-      targetOpportunitiesMonthly: 40,
-      targetRate: 0.87,
-      targetAverage: 1_122,
-    });
+describe("server performance goals", () => {
+  it("does not substitute a historical employee target for missing goals", () => {
+    expect(getTvPerformanceGoal(null)).toBeNull();
+  });
+  it("keeps known November opportunities and other pending fields separate", () => {
+    expect(getTvPerformanceGoal({ approval_status: "UPDATED_GOAL_PENDING", monthly_sales_goal: null,
+      target_opportunities_monthly: 75, target_rate: null, target_average: null,
+      membership_monthly_goal: null, review_monthly_goal: null,
+    })).toMatchObject({ targetOpportunitiesMonthly: 75, monthlySalesGoal: null, status: "UPDATED_GOAL_PENDING" });
   });
 });

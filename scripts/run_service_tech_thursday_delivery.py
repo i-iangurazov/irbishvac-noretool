@@ -4,6 +4,7 @@ import argparse
 import fcntl
 import json
 import os
+import secrets
 import shutil
 import socket
 import subprocess
@@ -12,13 +13,14 @@ import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
+from performance_reporting import SCHEDULE_TIMEZONE, prepare_personnel, report_export_options, preparation_complete, record_preparation, refresh_personnel_if_due, run_automatic_delivery
 
 
 def main() -> int:
     repo = Path(__file__).resolve().parents[1]
-    marketing_repo = repo.parent / "irbishvac-marketing"
+    marketing_repo = repo / "python"
     parser = argparse.ArgumentParser(
         description="Regenerate, QA, and deliver Thursday technician coaching reports."
     )
@@ -43,7 +45,12 @@ def main() -> int:
     if not business_timezone:
         raise ValueError("TIMEZONE or APP_TIMEZONE is required")
     zone = ZoneInfo(business_timezone)
-    now = _business_now(args.now, zone)
+    now = _business_now(args.now, ZoneInfo(env.get("PERFORMANCE_REPORT_SCHEDULE_TIMEZONE", SCHEDULE_TIMEZONE)))
+    if args.mode == "send" and not args.force_schedule:
+        if run_automatic_delivery(repo, Path(args.output_root).resolve(), now, env, "technician", _run):
+            return 0
+        args.mode = "dry-run"
+        print("automatic_delivery=prepare_only outside the authorized 19:40 send slot")
 
     if args.force_schedule and args.mode == "send" and not _truthy(
         env.get("TECH_REPORT_ALLOW_FORCE_SEND")
@@ -52,10 +59,14 @@ def main() -> int:
             "Forced live delivery is disabled; set TECH_REPORT_ALLOW_FORCE_SEND=true for an intentional override"
         )
     if not args.force_schedule and not _inside_delivery_window(now, env):
+        refresh_personnel_if_due(repo, marketing_env, env, _run)
         print(f"schedule_noop={now.isoformat()}")
         return 0
 
     output_root = Path(args.output_root).resolve()
+    if args.mode == "dry-run" and not args.force_schedule and preparation_complete(output_root / now.date().isoformat() / "preparation-state.json"):
+        print("preparation_noop=already ready for today's cycle")
+        return 0
     output_root.mkdir(parents=True, exist_ok=True)
     lock_path = output_root / ".delivery.lock"
     with lock_path.open("a+") as lock_handle:
@@ -115,14 +126,15 @@ def _run_cycle(
     print(f"delivery_date={delivery_date.isoformat()}")
     print(f"period={period_from.isoformat()}..{cutoff_date.isoformat()}")
     print(f"timezone={now.tzinfo}")
+    roster = prepare_personnel(repo, marketing_env, env, source, cutoff_date.strftime("%Y-%m"), "technician", _run)
 
     export_wrapper = repo / "scripts" / "run_servicetitan_performance_export.py"
     performance_export = (
         marketing_repo / "scripts" / "servicetitan_weekly_performance_export.py"
     )
     if reuse_source_exports:
-        _require_source_exports(mtd_source, "MTD")
-        _require_source_exports(baseline_source, "baseline")
+        _require_source_exports(mtd_source, "MTD", period_from.isoformat(), cutoff_date.isoformat())
+        _require_source_exports(baseline_source, "baseline", baseline_from.isoformat(), baseline_to.isoformat())
         print("source_exports=reused")
     else:
         _run(
@@ -134,6 +146,7 @@ def _run_cycle(
                 "--export-script",
                 str(performance_export),
                 "--",
+                *report_export_options("technician"),
                 "--from-date",
                 period_from.isoformat(),
                 "--to-date",
@@ -152,6 +165,7 @@ def _run_cycle(
                 "--export-script",
                 str(performance_export),
                 "--",
+                *report_export_options("technician"),
                 "--from-date",
                 baseline_from.isoformat(),
                 "--to-date",
@@ -162,18 +176,14 @@ def _run_cycle(
             repo,
         )
 
-    goals = Path(
-        env.get(
-            "TECH_REPORT_GOALS_FILE",
-            str(repo / "docs" / "august-2026-performance-goals.csv"),
-        )
-    ).resolve()
-    shutil.copy2(goals, source / "performance-goals.csv")
+    goals = source / "performance-goals.csv"
     report_version = env.get("TECH_REPORT_VERSION", "V7")
     build_snapshot = repo / "scripts" / "build_service_tech_delivery_snapshot.py"
     snapshot_common = [
         sys.executable,
         str(build_snapshot),
+        "--roster",
+        str(roster),
         "--source-dir",
         str(mtd_source),
         "--baseline-source-dir",
@@ -239,6 +249,12 @@ def _run_cycle(
         repo,
     )
 
+    canonical = source / "canonical-performance.json"
+    _run(["pnpm", "exec", "tsx", "--tsconfig", "tsconfig.reporting.json", "scripts/build-canonical-performance.ts",
+          "--cycle", "technician", "--from-date", period_from.isoformat(), "--cutoff-date", cutoff_date.isoformat(),
+          "--output", str(canonical)], repo, env)
+    _run([sys.executable, str(repo / "scripts/apply_canonical_performance.py"), "--snapshot", str(final_snapshot), "--canonical", str(canonical)], repo)
+
     generated_snapshot = repo / "generated" / "service-tech-mtd-delivery.tmp.json"
     generated_snapshot.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(final_snapshot, generated_snapshot)
@@ -251,6 +267,8 @@ def _run_cycle(
     )
     _merge_department_pdfs(pdf_dir, hvac_combined_pdf, plumbing=False)
     _merge_department_pdfs(pdf_dir, plumbing_combined_pdf, plumbing=True)
+    electrical_combined_pdf = package / f"IRBIS-Electrical-Service-MTD-Coaching-Reports-through-{cutoff_date.isoformat()}.pdf"
+    _merge_department_pdfs(pdf_dir, electrical_combined_pdf, plumbing=False, department_prefix="electrical")
 
     sender = repo / "scripts" / "send_service_tech_reports.py"
     sender_command = [
@@ -274,34 +292,32 @@ def _run_cycle(
         str(hvac_combined_pdf),
         "--combined-plumbing-pdf",
         str(plumbing_combined_pdf),
+        "--combined-electrical-pdf", str(electrical_combined_pdf),
     ]
     if mode == "dry-run":
         sender_command.append("--smtp-preflight")
     _run(sender_command, repo)
+    record_preparation(package, final_snapshot)
     print(f"package={package}")
     return 0
 
 
-def _merge_department_pdfs(pdf_dir: Path, output: Path, plumbing: bool) -> None:
+def _merge_department_pdfs(pdf_dir: Path, output: Path, plumbing: bool, department_prefix: str | None = None) -> None:
     manifest = json.loads((pdf_dir / "manifest.json").read_text(encoding="utf-8"))
     reports = manifest.get("reports", [])
     selected = []
     for row in reports:
-        is_plumbing = str(row.get("department", "")).lower().startswith("plumbing")
-        if is_plumbing == plumbing:
+        prefix = department_prefix or ("plumbing" if plumbing else "hvac")
+        if str(row.get("department", "")).lower().startswith(prefix):
             selected.append(row)
     if not selected:
         label = "Plumbing Service" if plumbing else "HVAC Service"
-        raise ValueError(f"No reports available for the {label} management packet")
+        print(f"management_packet_skipped={label}; no active staff")
+        return
     inputs = [pdf_dir / str(row["fileName"]) for row in selected]
-    join = Path(
-        "/System/Library/Automator/Combine PDF Pages.action/Contents/MacOS/join"
-    )
-    if not join.is_file():
-        raise FileNotFoundError("macOS PDF join utility is unavailable")
-    if output.exists():
-        output.unlink()
-    _run([str(join), "--output", str(output), *(str(path) for path in inputs)], pdf_dir)
+    pdf_python = _load_environment([Path(__file__).resolve().parents[2] / "irbishvac-marketing/.env"]).get("REPORT_PDF_PYTHON", sys.executable)
+    join = Path(__file__).with_name("merge_performance_pdfs.py")
+    _run([pdf_python, str(join), "--output", str(output), *(str(path) for path in inputs)], pdf_dir)
     if not output.is_file() or output.stat().st_size < 10_000:
         raise ValueError(f"Combined department PDF was not created correctly: {output}")
     if output.read_bytes()[:5] != b"%PDF-":
@@ -325,16 +341,26 @@ def _render_and_qa(
     port = _free_port()
     base_url = f"http://127.0.0.1:{port}"
     web_env["PERFORMANCE_WEB_BASE_URL"] = base_url
+    report_render_token = secrets.token_urlsafe(32)
+    web_env["PERFORMANCE_REPORT_RENDER_MODE"] = "true"
+    web_env["PERFORMANCE_REPORT_RENDER_TOKEN"] = report_render_token
     server_log = (package / "renderer.log").open("ab")
     server = subprocess.Popen(
-        ["pnpm", "exec", "next", "dev", "--hostname", "127.0.0.1", "--port", str(port)],
+        ["pnpm", "exec", "next", "start" if os.environ.get("PERFORMANCE_REPORT_USE_BUILT_WEB") == "true" else "dev", "--hostname", "127.0.0.1", "--port", str(port)],
         cwd=web,
         env=web_env,
         stdout=server_log,
         stderr=subprocess.STDOUT,
     )
     try:
-        _wait_for_url(f"{base_url}/performance", server)
+        snapshot_payload = json.loads(snapshot.read_text(encoding="utf-8"))
+        report_rows = snapshot_payload.get("technicians", [])
+        if not report_rows or not report_rows[0].get("slug"):
+            raise ValueError("Report snapshot does not contain a renderable technician")
+        readiness_url = f"{base_url}/performance/{report_rows[0]['slug']}"
+        _wait_for_url(
+            readiness_url, server, report_render_token
+        )
         _run(["node", "scripts/generate-service-tech-pdfs.mjs"], web, web_env)
         _run(["node", "scripts/qa-service-tech-reports.mjs"], web, web_env)
     finally:
@@ -349,16 +375,17 @@ def _render_and_qa(
 
 
 def _inside_delivery_window(now: datetime, env: dict[str, str]) -> bool:
+    now = now.astimezone(ZoneInfo(env.get("PERFORMANCE_REPORT_SCHEDULE_TIMEZONE", SCHEDULE_TIMEZONE)))
     weekday = env.get("TECH_REPORT_SEND_WEEKDAY", "THU").strip().upper()
     weekday_index = {"MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5, "SUN": 6}
     if weekday not in weekday_index:
         raise ValueError(f"Unsupported TECH_REPORT_SEND_WEEKDAY: {weekday}")
     if now.weekday() != weekday_index[weekday]:
         return False
-    target = int(env.get("TECH_REPORT_SEND_HOUR", "6")) * 60 + int(
+    target = int(env.get("TECH_REPORT_SEND_HOUR", "18")) * 60 + int(
         env.get("TECH_REPORT_SEND_MINUTE", "30")
     )
-    window = int(env.get("TECH_REPORT_SEND_WINDOW_MINUTES", "20"))
+    window = int(env.get("TECH_REPORT_SEND_WINDOW_MINUTES", "75"))
     current = now.hour * 60 + now.minute
     return target <= current < target + window
 
@@ -385,7 +412,7 @@ def _delivery_complete(path: Path) -> bool:
     return bool(reports) and all(row.get("status") == "sent" for row in reports.values())
 
 
-def _require_source_exports(path: Path, label: str) -> None:
+def _require_source_exports(path: Path, label: str, from_date: str | None = None, to_date: str | None = None) -> None:
     required = (
         "technician_performance_board.csv",
         "technician_performance_scorecard_vadim.csv",
@@ -399,6 +426,10 @@ def _require_source_exports(path: Path, label: str) -> None:
         raise FileNotFoundError(
             f"Cannot reuse {label} source exports; missing: {', '.join(missing)}"
         )
+    if from_date is not None:
+        manifest = json.loads((path / "export-manifest.json").read_text())
+        if manifest.get("fromDate") != from_date or manifest.get("toDate") != to_date or manifest.get("failedReports"):
+            raise ValueError(f"Cannot reuse {label}: source dates differ or report exports failed")
 
 
 def _free_port() -> int:
@@ -407,13 +438,19 @@ def _free_port() -> int:
         return int(handle.getsockname()[1])
 
 
-def _wait_for_url(url: str, process: subprocess.Popen[bytes]) -> None:
+def _wait_for_url(
+    url: str, process: subprocess.Popen[bytes], report_render_token: str
+) -> None:
     deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         if process.poll() is not None:
             raise RuntimeError(f"Report renderer stopped with exit code {process.returncode}")
         try:
-            with urlopen(url, timeout=2) as response:
+            request = Request(
+                url,
+                headers={"x-irbis-report-render-token": report_render_token},
+            )
+            with urlopen(request, timeout=2) as response:
                 if response.status < 500:
                     return
         except Exception:

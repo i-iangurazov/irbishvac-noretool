@@ -99,6 +99,7 @@ export function getConfig() {
         env.NODE_ENV === "production",
       )
     },
+    personnel: { maxAgeMinutes: env.PERSONNEL_MAX_AGE_MINUTES },
     rippling: {
       token: env.RIPPLING_API_TOKEN,
       apiVersion: env.RIPPLING_API_VERSION,

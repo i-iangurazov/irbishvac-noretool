@@ -342,14 +342,20 @@ export class ServiceTitanClient {
         hasMore?: boolean;
       };
 
-      if (fields.length === 0) {
-        fields = payload.fields ?? [];
-      }
-      rows.push(...(payload.data ?? []));
+      if (!Array.isArray(payload.fields) || !Array.isArray(payload.data) || typeof payload.hasMore !== "boolean")
+        throw new Error("Incomplete ServiceTitan report: fields, rows or pagination metadata missing");
+      if (page > 1 && JSON.stringify(fields) !== JSON.stringify(payload.fields))
+        throw new Error("Incomplete ServiceTitan report: field definitions changed between pages");
+      if (fields.length === 0) fields = payload.fields;
+      if (payload.hasMore && payload.data.length === 0)
+        throw new Error("Incomplete ServiceTitan report: empty intermediate page");
+      rows.push(...payload.data);
       if (payload.totalCount != null) {
         totalCount = Number(payload.totalCount);
       }
       if (!payload.hasMore) {
+        if (totalCount !== null && (!Number.isSafeInteger(totalCount) || totalCount !== rows.length))
+          throw new Error("Incomplete ServiceTitan report: total count differs from collected rows");
         return {
           endpoint: baseEndpoint,
           payload: {

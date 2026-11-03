@@ -1,3 +1,4 @@
+import type { PerformanceGoal } from "../performance-goals";
 import {
   BUSINESS_UNIT_FIELD_KEYS,
   classifyFieldStaffDepartment,
@@ -10,6 +11,8 @@ import {
 import { resolveTabularReport, sumBy, toNumber, toRatio, weightedAverage } from "../shared/report";
 
 export type InstallerMetricRow = {
+  goal?: PerformanceGoal | null;
+  actualSourceAvailable?: boolean;
   name: string;
   businessUnit: string | null;
   department: FieldStaffDepartment | null;
@@ -27,6 +30,7 @@ export type InstallerMetricRow = {
 };
 
 export type InstallerDashboard = {
+  personnelFetchedAt?: string;
   rows: InstallerMetricRow[];
   rowsRanked: InstallerMetricRow[];
   totals: {
@@ -152,4 +156,9 @@ export function filterInstallerDashboardByDepartment(
     rowsRanked,
     totals: calculateInstallerTotals(rows, rowsRanked[0] ?? null)
   };
+}
+
+export function withInstallerRows(dashboard: InstallerDashboard, rows: InstallerMetricRow[]): InstallerDashboard {
+  const rowsRanked = rankInstallerRows(rows);
+  return { ...dashboard, rows, rowsRanked, totals: calculateInstallerTotals(rows, rowsRanked[0] ?? null) };
 }

@@ -11,6 +11,7 @@ const defaultChromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google
 const chromePath = process.env.PLAYWRIGHT_CHROME_PATH ??
   (existsSync(defaultChromePath) ? defaultChromePath : null);
 const snapshot = JSON.parse(await readFile(snapshotPath, "utf8"));
+const reportRenderToken = process.env.PERFORMANCE_REPORT_RENDER_TOKEN;
 const cutoffDate = snapshot.cutoffDate ?? new Date().toISOString().slice(0, 10);
 const reportVersion = String(snapshot.reportVersion ?? "V2").toLowerCase();
 const outputDir = process.env.PERFORMANCE_PDF_OUTPUT_DIR ??
@@ -22,6 +23,11 @@ const browser = await chromium.launch({
   headless: true,
 });
 const page = await browser.newPage({ viewport: { width: 1365, height: 1200 } });
+if (reportRenderToken) {
+  await page.setExtraHTTPHeaders({
+    "x-irbis-report-render-token": reportRenderToken,
+  });
+}
 const manifest = [];
 
 try {

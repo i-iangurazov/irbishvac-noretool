@@ -82,7 +82,7 @@ export function PerformanceDashboardPage(props: {
 
         <section className="performance-summary" aria-label="Performance summary">
           <div><span>Company plan</span><strong>{formatCompactCurrency(planTotal)}</strong><small>Draft target</small></div>
-          <div><span>Matched MTD revenue</span><strong>{formatCompactCurrency(revenueTotal)}</strong><small>{trackedRows.length} of {props.roster.length} matched</small></div>
+          <div><span>Matched MTD sales</span><strong>{formatCompactCurrency(revenueTotal)}</strong><small>{trackedRows.length} of {props.roster.length} matched</small></div>
           <div><span>On pace</span><strong>{onTrack}</strong><small>At or above 100%</small></div>
           <div><span>Input issues</span><strong>{sourceIssues}</strong><small>Missing goal or identity</small></div>
         </section>

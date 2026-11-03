@@ -9,6 +9,7 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
+from performance_reporting import SCHEDULE_TIMEZONE, prepare_personnel, report_export_options, preparation_complete, record_preparation, refresh_personnel_if_due, run_automatic_delivery
 
 from run_service_tech_thursday_delivery import (
     _business_now,
@@ -24,7 +25,7 @@ from run_service_tech_thursday_delivery import (
 
 def main() -> int:
     repo = Path(__file__).resolve().parents[1]
-    marketing_repo = repo.parent / "irbishvac-marketing"
+    marketing_repo = repo / "python"
     parser = argparse.ArgumentParser(
         description="Regenerate, QA, and deliver Friday Comfort Advisor reports."
     )
@@ -47,16 +48,25 @@ def main() -> int:
     if not timezone:
         raise ValueError("TIMEZONE or APP_TIMEZONE is required")
     zone = ZoneInfo(timezone)
-    now = _business_now(args.now, zone)
+    now = _business_now(args.now, ZoneInfo(env.get("PERFORMANCE_REPORT_SCHEDULE_TIMEZONE", SCHEDULE_TIMEZONE)))
+    if args.mode == "send" and not args.force_schedule:
+        if run_automatic_delivery(repo, Path(args.output_root).resolve(), now, env, "advisor", _run):
+            return 0
+        args.mode = "dry-run"
+        print("automatic_delivery=prepare_only outside the authorized 19:40 send slot")
     if args.force_schedule and args.mode == "send" and not _truthy(
         env.get("ADVISOR_REPORT_ALLOW_FORCE_SEND")
     ):
         raise ValueError("Forced live advisor delivery is disabled")
     if not args.force_schedule and not _inside_delivery_window(now, env):
+        refresh_personnel_if_due(repo, marketing_env, env, _run)
         print(f"schedule_noop={now.isoformat()}")
         return 0
 
     output_root = Path(args.output_root).resolve()
+    if args.mode == "dry-run" and not args.force_schedule and preparation_complete(output_root / now.date().isoformat() / "preparation-state.json"):
+        print("preparation_noop=already ready for today's cycle")
+        return 0
     output_root.mkdir(parents=True, exist_ok=True)
     with (output_root / ".delivery.lock").open("a+") as lock_handle:
         try:
@@ -114,14 +124,15 @@ def _run_cycle(
     print(f"delivery_date={delivery_date.isoformat()}")
     print(f"period={period_from.isoformat()}..{cutoff_date.isoformat()}")
     print(f"timezone={now.tzinfo}")
+    roster = prepare_personnel(repo, marketing_env, env, source, cutoff_date.strftime("%Y-%m"), "advisor", _run)
 
     export_wrapper = repo / "scripts" / "run_servicetitan_performance_export.py"
     performance_export = (
         marketing_repo / "scripts" / "servicetitan_weekly_performance_export.py"
     )
     if reuse_source_exports:
-        _require_source_exports(mtd_source, "advisor MTD")
-        _require_source_exports(baseline_source, "advisor baseline")
+        _require_source_exports(mtd_source, "advisor MTD", period_from.isoformat(), cutoff_date.isoformat())
+        _require_source_exports(baseline_source, "advisor baseline", baseline_from.isoformat(), baseline_to.isoformat())
         for path, label in (
             (mtd_source, "advisor MTD"),
             (baseline_source, "advisor baseline"),
@@ -145,6 +156,7 @@ def _run_cycle(
                     "--export-script",
                     str(performance_export),
                     "--",
+                    *report_export_options("advisor"),
                     "--from-date",
                     from_date.isoformat(),
                     "--to-date",
@@ -155,17 +167,13 @@ def _run_cycle(
                 repo,
             )
 
-    goals = Path(
-        env.get(
-            "ADVISOR_REPORT_GOALS_FILE",
-            str(repo / "docs" / "august-2026-performance-goals.csv"),
-        )
-    ).resolve()
-    shutil.copy2(goals, source / "performance-goals.csv")
+    goals = source / "performance-goals.csv"
     builder = repo / "scripts" / "build_advisor_delivery_snapshot.py"
     common = [
         sys.executable,
         str(builder),
+        "--roster",
+        str(roster),
         "--source-dir",
         str(mtd_source),
         "--baseline-source-dir",
@@ -230,6 +238,12 @@ def _run_cycle(
         repo,
     )
 
+    canonical = source / "canonical-performance.json"
+    _run(["pnpm", "exec", "tsx", "--tsconfig", "tsconfig.reporting.json", "scripts/build-canonical-performance.ts",
+          "--cycle", "advisor", "--from-date", period_from.isoformat(), "--cutoff-date", cutoff_date.isoformat(),
+          "--output", str(canonical)], repo, env)
+    _run([sys.executable, str(repo / "scripts/apply_canonical_performance.py"), "--snapshot", str(final_snapshot), "--canonical", str(canonical)], repo)
+
     generated = repo / "generated" / "advisor-mtd-delivery.tmp.json"
     generated.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(final_snapshot, generated)
@@ -273,6 +287,7 @@ def _run_cycle(
     if mode == "dry-run":
         sender_command.append("--smtp-preflight")
     _run(sender_command, repo, sender_env)
+    record_preparation(package, final_snapshot)
     print(f"package={package}")
     return 0
 
@@ -280,18 +295,13 @@ def _run_cycle(
 def _merge_advisor_pdfs(pdf_dir: Path, output: Path) -> None:
     manifest = json.loads((pdf_dir / "manifest.json").read_text(encoding="utf-8"))
     by_slug = {str(row["slug"]): row for row in manifest["reports"]}
-    order = ("raymond-porras", "rudy-noel-zapien", "matthew-stalcup")
-    if set(by_slug) != set(order):
-        raise ValueError("Advisor PDF roster does not match the approved three-person roster")
+    if not by_slug or len(by_slug) != len(manifest["reports"]):
+        raise ValueError("Advisor PDF roster is empty or contains duplicate IDs")
+    order = tuple(row["slug"] for row in sorted(manifest["reports"], key=lambda row: row["technician"]))
     inputs = [pdf_dir / str(by_slug[slug]["fileName"]) for slug in order]
-    join = Path(
-        "/System/Library/Automator/Combine PDF Pages.action/Contents/MacOS/join"
-    )
-    if not join.is_file():
-        raise FileNotFoundError("macOS PDF join utility is unavailable")
-    if output.exists():
-        output.unlink()
-    _run([str(join), "--output", str(output), *(str(path) for path in inputs)], pdf_dir)
+    pdf_python = _load_environment([Path(__file__).resolve().parents[2] / "irbishvac-marketing/.env"]).get("REPORT_PDF_PYTHON", sys.executable)
+    join = Path(__file__).with_name("merge_performance_pdfs.py")
+    _run([pdf_python, str(join), "--output", str(output), *(str(path) for path in inputs)], pdf_dir)
     if not output.is_file() or output.stat().st_size < 10_000:
         raise ValueError(f"Combined advisor PDF was not created correctly: {output}")
     if output.read_bytes()[:5] != b"%PDF-":
@@ -300,6 +310,7 @@ def _merge_advisor_pdfs(pdf_dir: Path, output: Path) -> None:
 
 
 def _inside_delivery_window(now: datetime, env: dict[str, str]) -> bool:
+    now = now.astimezone(ZoneInfo(env.get("PERFORMANCE_REPORT_SCHEDULE_TIMEZONE", SCHEDULE_TIMEZONE)))
     weekday = env.get("ADVISOR_REPORT_SEND_WEEKDAY", "FRI").strip().upper()
     weekday_index = {
         "MON": 0,
@@ -314,10 +325,10 @@ def _inside_delivery_window(now: datetime, env: dict[str, str]) -> bool:
         raise ValueError(f"Unsupported ADVISOR_REPORT_SEND_WEEKDAY: {weekday}")
     if now.weekday() != weekday_index[weekday]:
         return False
-    target = int(env.get("ADVISOR_REPORT_SEND_HOUR", "6")) * 60 + int(
+    target = int(env.get("ADVISOR_REPORT_SEND_HOUR", "18")) * 60 + int(
         env.get("ADVISOR_REPORT_SEND_MINUTE", "30")
     )
-    window = int(env.get("ADVISOR_REPORT_SEND_WINDOW_MINUTES", "20"))
+    window = int(env.get("ADVISOR_REPORT_SEND_WINDOW_MINUTES", "75"))
     current = now.hour * 60 + now.minute
     return target <= current < target + window
 

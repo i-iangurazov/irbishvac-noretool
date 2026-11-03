@@ -1,3 +1,4 @@
+import { deliveryPlan, loadPersonnelPlans } from "../../../lib/performance-personnel";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
@@ -13,7 +14,6 @@ import { getBrandLogoUrl } from "../../../lib/assets";
 import {
   buildCoachingFocus,
   buildPerformanceRoster,
-  getPerformancePlan,
   type CoachingFocus,
   type PerformancePlan
 } from "../../../lib/performance-data";
@@ -196,7 +196,8 @@ function buildDeliveryFocus(
 
 export async function generateMetadata({ params }: TechnicianReportPageProps): Promise<Metadata> {
   const { technician } = await params;
-  const plan = getPerformancePlan(technician);
+  const snapshot = await loadServiceTechDeliverySnapshot();
+  const plan = snapshot?.technicians.find(row => row.slug === technician) ?? (await loadPersonnelPlans()).find(row => row.slug === technician);
 
   return {
     title: plan ? `${plan.technician} · Weekly Coaching Report` : "Weekly Coaching Report"
@@ -205,14 +206,12 @@ export async function generateMetadata({ params }: TechnicianReportPageProps): P
 
 export default async function TechnicianReportPage({ params }: TechnicianReportPageProps) {
   const { technician } = await params;
-  const basePlan = getPerformancePlan(technician);
-
-  if (!basePlan) {
-    notFound();
-  }
-
   const deliverySnapshot = await loadServiceTechDeliverySnapshot();
-  const delivery = deliverySnapshot?.technicians.find((row) => row.slug === basePlan.slug) ?? null;
+  const delivery = deliverySnapshot?.technicians.find(row => row.slug === technician) ?? null;
+  const basePlan = delivery
+    ? deliveryPlan(delivery, deliverySnapshot!.periodFrom.slice(0, 7), deliverySnapshot?.sourceKind)
+    : (await loadPersonnelPlans()).find(row => row.slug === technician);
+  if (!basePlan) notFound();
   const plan: PerformancePlan = delivery?.personalizedTargets
     ? {
         ...basePlan,

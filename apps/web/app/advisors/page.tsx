@@ -1,3 +1,4 @@
+import type { PerformanceGoal } from "@irbis/domain";
 import {
   compactMoney,
   LeaderboardPage,
@@ -23,6 +24,7 @@ export default async function AdvisorsPage({
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;
+      goal?: PerformanceGoal | null;
       photoUrl?: string | null;
       totalSales: number;
       closedAverageSale: number;
@@ -69,7 +71,7 @@ export default async function AdvisorsPage({
         },
       ]}
       items={data.rowsRanked.map((row) => {
-        const goal = getTvPerformanceGoal(row.name);
+        const goal = getTvPerformanceGoal(row.goal);
         const pair = (actual: string, target: string | null) =>
           target ? `${actual} / ${target}` : actual;
 

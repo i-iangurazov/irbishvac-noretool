@@ -14,7 +14,6 @@ import { createLogger } from "@irbis/utils";
 import { DASHBOARD_FAMILY_MAP, buildDashboardReadModel } from "./read-models";
 
 import { refreshCsrSources } from "./call-center-sources";
-import { refreshAdvisorRoster } from "./advisor-roster";
 
 const logger = createLogger("worker-runner");
 
@@ -155,16 +154,9 @@ export class DashboardRefreshRunner {
     });
 
     try {
-      if (family === "advisors") {
-        try {
-          await refreshAdvisorRoster();
-        } catch {
-          logger.warn(
-            "Advisor roster refresh unavailable; retaining the last complete roster and report metrics.",
-          );
-        }
-      }
-      const result = await this.client.fetchReport({
+      const fetchReport = ["technicians", "advisors", "installers"].includes(family)
+        ? this.client.fetchPaginatedReport.bind(this.client) : this.client.fetchReport.bind(this.client);
+      const result = await fetchReport({
         family,
         category: definition.category,
         reportId: definition.reportId,

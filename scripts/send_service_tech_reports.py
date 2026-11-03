@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -11,6 +12,7 @@ from email.message import EmailMessage
 from email.utils import formatdate, make_msgid, parseaddr
 from pathlib import Path
 from typing import Any, Iterable, Optional
+from performance_reporting import assert_send_ready, verify_live_personnel
 
 
 def main() -> int:
@@ -40,6 +42,7 @@ def main() -> int:
         "--combined-plumbing-pdf",
         help="Combined Plumbing Service PDF required by the technician delivery profile.",
     )
+    parser.add_argument("--combined-electrical-pdf")
     parser.add_argument(
         "--test-recipient",
         help="Send one isolated test message to this address without changing delivery state.",
@@ -61,15 +64,31 @@ def main() -> int:
     pdf_dir = Path(args.pdf_dir).resolve()
     state_dir = Path(args.state_dir).resolve()
     state_dir.mkdir(parents=True, exist_ok=True)
+    # Keep this handle alive through the complete transaction, including dry-run.
+    delivery_lock = (state_dir / ".smtp.lock").open("a+")
+    try:
+        fcntl.flock(delivery_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print("delivery_noop=another process holds the SMTP delivery lock")
+        return 0
 
     manifest = _json(manifest_path)
     snapshot = _json(snapshot_path)
+    if args.mode == "send":
+        if snapshot.get("canonicalSource") is not True:
+            raise ValueError("Live delivery requires the shared canonical dashboard metrics and goals")
+        assert_send_ready(snapshot)
+        verify_live_personnel(snapshot, args.env_file)
     reports = _validate_package(manifest, snapshot, pdf_dir)
     routing = _routing(env)
     delivery_key = str(manifest["cutoffDate"])
 
     plan = []
+    delivery_issues = []
     for report in reports:
+        if not report.get("email"):
+            delivery_issues.append({"technician": report["technician"], "reason": "ServiceTitan email missing; PDF included in management packet"})
+            continue
         to = _email(str(report["email"]), f"technician {report['technician']}")
         pdf_path = pdf_dir / str(report["fileName"])
         plan.append(
@@ -91,18 +110,18 @@ def main() -> int:
             (
                 "hvac",
                 "HVAC Service",
-                _validated_combined_pdf(args.combined_hvac_pdf),
+                args.combined_hvac_pdf,
                 [routing["hvac_manager"], routing["vadim"], routing["tim"]],
                 [
                     str(row["technician"])
                     for row in reports
-                    if not str(row["department"]).lower().startswith("plumbing")
+                    if str(row["department"]).lower().startswith("hvac")
                 ],
             ),
             (
                 "plumbing",
                 "Plumbing Service",
-                _validated_combined_pdf(args.combined_plumbing_pdf),
+                args.combined_plumbing_pdf,
                 [routing["plumbing_manager"], routing["vadim"], routing["tim"]],
                 [
                     str(row["technician"])
@@ -111,9 +130,18 @@ def main() -> int:
                 ],
             ),
         ]
+        electrical = [str(row["technician"]) for row in reports if str(row["department"]).lower().startswith("electrical")]
+        if electrical:
+            manager = _email(_required(env, "TECH_REPORT_ELECTRICAL_MANAGER_EMAIL"), "electrical manager")
+            department_packets.append(("electrical", "Electrical Service", args.combined_electrical_pdf, [manager, routing["vadim"], routing["tim"]], electrical))
+        supported = {"HVAC Service", "HVAC Maintenance", "Plumbing Service", "Electrical Service"}
+        if any(row["department"] not in supported for row in reports):
+            raise ValueError("An unsupported department needs approved management routing")
         for slug, department, combined_pdf, recipients, technicians in department_packets:
             if not technicians:
-                raise ValueError(f"{department} management packet has no technicians")
+                print(f"management_packet_skipped={department}; no active staff")
+                continue
+            combined_pdf = _validated_combined_pdf(combined_pdf)
             plan.append(
                 {
                     "slug": f"management-{slug}",
@@ -134,14 +162,8 @@ def main() -> int:
             )
     else:
         combined_pdf = _validated_combined_pdf(args.combined_pdf)
-        raymond = next(
-            (row for row in reports if str(row.get("slug")) == "raymond-porras"),
-            None,
-        )
-        if raymond is None:
-            raise ValueError("Advisor delivery requires Raymond Porras in the report roster")
         managers = [
-            ("raymond", "Raymond", _email(str(raymond["email"]), "Raymond email")),
+            ("raymond", "Raymond", _email(_required(env, "RAYMOND_EMAIL"), "Raymond manager email")),
             (
                 "vadim",
                 "Vadim",
@@ -164,11 +186,7 @@ def main() -> int:
                     "technician": recipient_name,
                     "department": "HVAC Sales",
                     "managementDepartment": "Sales Department",
-                    "includedTechnicians": [
-                        "Raymond Porras",
-                        "Rudy-Noel Zapien",
-                        "Matthew Stalcup",
-                    ],
+                    "includedTechnicians": [row["technician"] for row in reports],
                     "to": [address],
                     "cc": [],
                     "attachment": str(combined_pdf),
@@ -186,6 +204,7 @@ def main() -> int:
             "deliveryKey": delivery_key,
             "mode": args.mode,
             "deliveryProfile": args.delivery_profile,
+            "deliveryIssues": delivery_issues,
             "emailFrom": routing["from"],
             "reports": plan,
         },
@@ -237,6 +256,7 @@ def main() -> int:
     skipped = 0
     with _smtp(env) as smtp:
         for row in plan:
+            assert_send_ready(snapshot)
             prior = state["reports"].get(row["slug"])
             if prior and prior.get("status") == "sent":
                 if prior.get("attachmentSha256") != row["attachmentSha256"]:
@@ -265,7 +285,9 @@ def main() -> int:
             _atomic_json(state_path, state)
 
             message = _message(row, routing["from"], manifest["cutoffDate"], message_id)
-            smtp.send_message(message)
+            refused = smtp.send_message(message)
+            if refused:
+                raise RuntimeError("SMTP rejected one or more recipients; delivery requires reconciliation")
             state["reports"][row["slug"]].update(
                 {"status": "sent", "sentAt": _utc_now()}
             )
@@ -287,6 +309,8 @@ def _validate_package(
             raise ValueError(f"Manifest is missing {key}")
     if manifest["cutoffDate"] != snapshot.get("cutoffDate"):
         raise ValueError("Manifest and snapshot cutoff dates do not match")
+    if manifest["periodFrom"] != snapshot.get("periodFrom"):
+        raise ValueError("Manifest and snapshot start dates do not match")
     if manifest.get("reportVersion") != snapshot.get("reportVersion"):
         raise ValueError("Manifest and snapshot report versions do not match")
 
@@ -314,8 +338,13 @@ def _validate_package(
         raise ValueError(f"Reports failed visual QA: {', '.join(sorted(failed))}")
 
     cutoff = str(manifest["cutoffDate"])
+    staff_by_slug = {row["slug"]: row for row in technicians}
     for report in reports:
-        for key in ("slug", "technician", "department", "email", "fileName"):
+        expected = staff_by_slug[report["slug"]]
+        for key in ("technician", "department", "email"):
+            if report.get(key) != expected.get(key):
+                raise ValueError(f"Manifest {key} differs from the prepared snapshot for {report['slug']}")
+        for key in ("slug", "technician", "department", "fileName"):
             if not report.get(key):
                 raise ValueError(f"Report row is missing {key}: {report}")
         if cutoff not in str(report["fileName"]):

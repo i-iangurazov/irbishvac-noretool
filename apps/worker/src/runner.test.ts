@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+vi.mock("./read-models", () => ({ DASHBOARD_FAMILY_MAP: {}, buildDashboardReadModel: vi.fn() }));
+import { describe, expect, it, vi } from "vitest";
 import { COMPANY_REFRESH_FAMILIES, PEOPLE_REFRESH_FAMILIES } from "./runner";
 
 describe("worker family registration", () => {

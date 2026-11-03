@@ -73,6 +73,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   APP_TIMEZONE: z.string().default("America/Los_Angeles"),
   ENABLE_DASHBOARD_FALLBACKS: z.enum(["true", "false"]).optional(),
+  PERSONNEL_MAX_AGE_MINUTES: z.coerce.number().int().min(1).max(60).default(60),
   WORKER_BOOTSTRAP_ON_START: z.enum(["true", "false"]).optional(),
   DATABASE_URL: z.string().min(1),
   RETOOL_DATABASE_URL: z.string().optional().default(""),

@@ -15,7 +15,7 @@ import {
 import { buildLatestSnapshotPlan } from "./snapshot-plan";
 import { CampaignPerformanceRefreshRunner } from "./campaign-performance";
 import { MembershipPerformanceRunner } from "./membership-performance";
-import { refreshAdvisorRoster } from "./advisor-roster";
+import { PersonnelRefreshRunner, startPersonnelWorker } from "./personnel";
 import { buildTvRefreshJobs } from "./tv-refresh-jobs";
 import { dashboardQueuePolicy } from "./queue-policy";
 
@@ -109,7 +109,7 @@ const worker = new Worker<RefreshJob, unknown, string>(
     const correlationId = `${job.id ?? "job"}:${Date.now()}`;
 
     if (job.data.type === "refresh-advisor-roster")
-      return refreshAdvisorRoster();
+      return new PersonnelRefreshRunner().refresh();
 
     if (job.data.type === "refresh-campaign-performance") {
       return campaignPerformanceRunner.refresh(
@@ -219,23 +219,8 @@ async function bootstrap() {
       period: "mtd",
       intervalMinutes: 30,
     });
-    await refreshQueue.upsertJobScheduler(
-      "sales-staff-every-15-minutes",
-      { pattern: "*/15 * * * *", tz: config.app.timezone },
-      {
-        name: "scheduled-sales-staff",
-        data: { type: "refresh-advisor-roster" },
-      },
-    );
-    if (await runner.isPersistenceAvailable()) {
-      try {
-        await refreshAdvisorRoster();
-      } catch {
-        logger.warn(
-          "Sales roster startup sync unavailable; scheduled retries remain enabled.",
-        );
-      }
-    }
+    await refreshQueue.removeJobScheduler("sales-staff-every-15-minutes");
+    await startPersonnelWorker(connection);
     for (const [preset, pattern] of [
       ["mtd", "5,35 * * * *"],
       ["ytd", "20 * * * *"],

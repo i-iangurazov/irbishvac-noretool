@@ -1,3 +1,4 @@
+import type { PerformanceGoal } from "@irbis/domain";
 import { formatNumber } from "@irbis/utils";
 import { compactMoney, LeaderboardPage, money, ratio } from "./leaderboard-page";
 import { fetchApi } from "../lib/api";
@@ -31,6 +32,7 @@ export async function FieldTechnicianBoardPage({
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;
+      goal?: PerformanceGoal | null;
       businessUnit: string;
       department: string | null;
       position: string | null;
@@ -72,9 +74,9 @@ export async function FieldTechnicianBoardPage({
         { label: "Membership Conversion", value: ratio(Number(data.totals.avgMembershipConv)) }
       ]}
       items={data.rowsRanked.map((row) => {
-        const goal = getTvPerformanceGoal(row.name);
+        const goal = getTvPerformanceGoal(row.goal);
         const goalValue = (value: string, target: string | null) =>
-          target ? `${value} / ${target}` : goal?.status === "UPDATED_GOAL_PENDING" ? `${value} / Pending` : value;
+          target ? `${value} / ${target}` : goal ? `${value} / Pending` : value;
 
         return {
           title: row.name,

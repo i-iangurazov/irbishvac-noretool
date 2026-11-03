@@ -1,3 +1,10 @@
+vi.mock("../personnel/personnel.service", () => ({
+  PersonnelService: class {
+    async technicians<T>(dashboard: T) { return dashboard; }
+    async advisors<T>(dashboard: T) { return dashboard; }
+    async installers<T>(dashboard: T) { return dashboard; }
+  }
+}));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const findFirst = vi.fn();
@@ -188,46 +195,15 @@ describe("DashboardService", () => {
     ]);
   });
 
-  it("adds active sales-BU staff to a cached selected period without altering its metrics", async () => {
+  it("uses the reconciled performance roster for the advisor dashboard", async () => {
     const { DashboardService } = await import("./dashboard.service");
     const { buildAdvisorDashboard } = await import("@irbis/domain");
     const service = new DashboardService();
-    const report = buildAdvisorDashboard([
-      {
-        Name: "Historical Seller",
-        TechnicianId: 1,
-        TechnicianBusinessUnit: "HVAC - Sales",
-        TotalSales: 250,
-        ClosedAverageSale: 125,
-        SalesOpportunity: 4,
-      },
-    ]);
-    report.snapshotTime = new Date().toISOString();
+    const report = buildAdvisorDashboard([{ Name: "Current seller", TechnicianId: "1", TechnicianBusinessUnit: "HVAC - Sales", TotalSales: 250 }]);
     vi.spyOn(service, "getPerformanceAdvisors").mockResolvedValue(report);
-    findUnique.mockResolvedValue({
-      snapshotTime: new Date(),
-      payloadJson: [
-        {
-          technicianId: "2",
-          name: "Future Hire",
-          businessUnit: "HVAC - Sales",
-        },
-      ],
-    });
-    const result = await service.getAdvisors({
-      from: "2026-09-01",
-      to: "2026-09-30",
-    });
-    expect(result.rows.map((row) => row.name)).toEqual([
-      "Historical Seller",
-      "Future Hire",
-    ]);
-    expect(result.totals).toEqual(report.totals);
-    expect(
-      result.rows.find((row) => row.name === "Future Hire")?.totalSales,
-    ).toBe(0);
-    findUnique.mockRejectedValueOnce(new Error("roster unavailable"));
-    expect((await service.getAdvisors()).rows).toEqual(report.rows);
+    const result = await service.getAdvisors({ from: "2026-09-01", to: "2026-09-30" });
+    expect(result.rows.map(row => row.name)).toEqual(["Current seller"]);
+    expect(findUnique).not.toHaveBeenCalled();
   });
 
   it("does not substitute monthly Sales figures for a missing annual scope", async () => {

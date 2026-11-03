@@ -13,12 +13,14 @@ vi.mock("@irbis/db", () => ({
     $queryRawUnsafe: queryRawUnsafe,
     dashboardReadModel: {
       findFirst
-    }
+    },
+    performancePersonnelSnapshot: { findFirst }
   }
 }));
 
 vi.mock("@irbis/config", () => ({
   getConfig: () => ({
+    personnel: { maxAgeMinutes: 60 },
     redis: {
       url: "rediss://example.upstash.io:6379"
     }

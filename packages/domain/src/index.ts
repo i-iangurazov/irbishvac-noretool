@@ -22,3 +22,7 @@ export * from "./metrics/membership-insights";
 
 export * from "./metrics/membership-customers";
 export * from "./metrics/membership-ledger";
+
+export * from "./personnel";
+
+export * from "./performance-goals";

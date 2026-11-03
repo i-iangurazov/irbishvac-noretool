@@ -1,3 +1,4 @@
+import type { PerformanceGoal } from "../performance-goals";
 import {
   BUSINESS_UNIT_FIELD_KEYS,
   classifyFieldStaffDepartment,
@@ -18,6 +19,8 @@ export type TechnicianExtra = {
 };
 
 export type TechnicianMetricRow = {
+  goal?: PerformanceGoal | null;
+  actualSourceAvailable?: boolean;
   name: string;
   businessUnit: string;
   department: FieldStaffDepartment | null;
@@ -47,6 +50,7 @@ export type TechnicianMetricRow = {
 };
 
 export type TechnicianDashboard = {
+  personnelFetchedAt?: string;
   rows: TechnicianMetricRow[];
   rowsRanked: TechnicianMetricRow[];
   totals: {
@@ -185,4 +189,9 @@ export function filterTechnicianDashboardByDepartment(
     rowsRanked: rankTechnicianRows(rows),
     totals: calculateTechnicianTotals(rows)
   };
+}
+
+export function withTechnicianRows(dashboard: TechnicianDashboard, rows: TechnicianMetricRow[]): TechnicianDashboard {
+  const rowsRanked = rankTechnicianRows(rows);
+  return { ...dashboard, rows, rowsRanked, totals: calculateTechnicianTotals(rows) };
 }

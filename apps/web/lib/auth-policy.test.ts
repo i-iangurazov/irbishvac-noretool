@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isAllowedIrbisEmail,
+  isLocalReportRenderRequest,
   isPublicAuthPath,
   resolvePublicRequestUrl,
 } from "./auth-policy";
@@ -61,5 +62,17 @@ describe("IRBIS authentication policy", () => {
         "javascript:alert(1)",
       ),
     ).toThrow("must use HTTP or HTTPS");
+  });
+});
+
+describe("private report rendering", () => {
+  const token = "a".repeat(43), env = { PERFORMANCE_REPORT_RENDER_MODE: "true", PERFORMANCE_REPORT_RENDER_TOKEN: token };
+  it("requires a strong matching token, loopback and a report route", () => {
+    expect(isLocalReportRenderRequest("http://127.0.0.1:4000/performance/staff-12", token, env)).toBe(true);
+    for (const url of ["https://public.example/performance/staff-12", "http://127.0.0.1:4000/api/dashboard/personnel", "http://127.0.0.1:4000/campaigns"])
+      expect(isLocalReportRenderRequest(url, token, env)).toBe(false);
+    expect(isLocalReportRenderRequest("http://localhost/performance/12", null, env)).toBe(false);
+    expect(isLocalReportRenderRequest("http://localhost/performance/12", token, {})).toBe(false);
+    expect(isLocalReportRenderRequest("http://localhost/performance/12", "short", { ...env, PERFORMANCE_REPORT_RENDER_TOKEN: "short" })).toBe(false);
   });
 });
