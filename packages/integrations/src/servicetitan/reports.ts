@@ -320,8 +320,6 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.bookingRate.reportId,
       legacyTableName: "st_booking_rate",
       defaultPreset: "today",
-      rangeResolver: ({ referenceDate, timeZone }) =>
-        buildTodayRange(referenceDate, timeZone),
     },
   };
 }

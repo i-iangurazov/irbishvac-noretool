@@ -3,7 +3,7 @@ import {
   resolveReportRequest,
   type ServiceTitanReportDefinition,
 } from "@irbis/integrations";
-import { buildTvRefreshJobs } from "./tv-refresh-jobs";
+import { buildTvRefreshJobs, buildCompanyRefreshJobs, COMPANY_TV_FAMILIES } from "./tv-refresh-jobs";
 const definition = (
   family: "technicians" | "installers" | "advisors",
 ): ServiceTitanReportDefinition => ({
@@ -12,6 +12,23 @@ const definition = (
   reportId: "123",
   legacyTableName: "synthetic",
   defaultPreset: "mtd",
+});
+
+describe("Company-wide scheduled refresh", () => {
+  it("covers all ten components with relative MTD periods, including at month rollover", () => {
+    const sources = Object.fromEntries(COMPANY_TV_FAMILIES.map(family => [family, {
+      family,category:"synthetic",reportId:"123",legacyTableName:"synthetic",defaultPreset:"mtd",
+    }])) as Parameters<typeof buildCompanyRefreshJobs>[0];
+    const jobs=buildCompanyRefreshJobs(sources);
+    expect(jobs.map(job=>job.family)).toEqual([...COMPANY_TV_FAMILIES]);
+    for(const job of jobs){
+      expect(job.context).toEqual({preset:"mtd"});
+      const request=resolveReportRequest(sources[job.family],{...job.context,timezone:"America/Los_Angeles",referenceDate:new Date("2026-11-01T09:00:00Z")});
+      expect(request.range).toEqual({from:"2026-11-01",to:"2026-11-01"});
+    }
+    sources.bookingRate.reportId="UNRESOLVED";
+    expect(buildCompanyRefreshJobs(sources).some(job=>job.family==="bookingRate")).toBe(false);
+  });
 });
 const definitions = () => ({
   technicians: definition("technicians"),

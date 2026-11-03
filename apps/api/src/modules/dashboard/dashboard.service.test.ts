@@ -446,6 +446,29 @@ describe("DashboardService", () => {
     expect(result.trending.months).toHaveLength(12);
   });
 
+  it("refreshes cached Company-wide components older than thirty minutes", async () => {
+    const old=new Date(Date.now()-31*60_000);
+    findUnique.mockResolvedValue({payloadJson:{snapshotTime:old.toISOString()},snapshotTime:old});
+    findFirst.mockResolvedValue({payloadJson:{},fetchedAt:old,sourceSnapshotTime:old});
+    const enqueue=vi.fn();
+    const {DashboardService}=await import("./dashboard.service");
+    await new DashboardService({ensureRefreshEnqueued:enqueue} as never).getCompanyWide({preset:"mtd",to:new Date().toISOString().slice(0,10)});
+    expect(new Set(enqueue.mock.calls.map(call=>call[0]))).toEqual(new Set([
+      "marketing","capacity","jobCostingSummary","revenueGoals","salesToday","salesYesterday",
+      "salesMonthlyPace","revenueMonthlyPace","bookingRate","trending",
+    ]));
+  });
+
+  it("does not repeatedly queue fresh Company-wide components", async () => {
+    const now=new Date();
+    findUnique.mockResolvedValue({payloadJson:{snapshotTime:now.toISOString()},snapshotTime:now});
+    findFirst.mockResolvedValue({payloadJson:{},fetchedAt:now,sourceSnapshotTime:now});
+    const enqueue=vi.fn();
+    const {DashboardService}=await import("./dashboard.service");
+    await new DashboardService({ensureRefreshEnqueued:enqueue} as never).getCompanyWide({preset:"mtd",to:new Date().toISOString().slice(0,10)});
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
   it("loads goal tracker rows for the selected business year", async () => {
     findUnique.mockResolvedValue(null);
     findFirst.mockResolvedValue(null);
