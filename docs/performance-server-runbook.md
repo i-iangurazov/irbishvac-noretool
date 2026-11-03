@@ -6,6 +6,24 @@ ServiceTitan personnel directory every 15 minutes in a dedicated queue. The
 volume persists frozen inputs, PDFs, SMTP state and scheduler history across releases.
 No process depends on a Mac, a sibling checkout or a local env file.
 
+## Rollout state — 2026-11-03
+
+API, worker and dashboards are live. Reports remain in isolated smoke mode;
+scheduled server delivery is not enabled. `PERFORMANCE_REPORT_AUTO_SEND=false`
+must remain set until the mail channel has been configured and verified. The
+owner chose to retain Railway Hobby and use an HTTPS mail API. Hobby blocks
+outbound SMTP, so the current SMTP preflight failure is a known rollout blocker,
+not evidence of a delivered cycle. No plan upgrade or paid mail account has been
+created. The HTTPS provider/account is still to be selected and connected.
+
+Before enabling normal operation, implement and verify the selected HTTPS
+transport for both coaching mail and owner alerts; preserve recipient routing,
+attachment hashes and durable duplicate prevention. Use the least-permissive
+sending credential and an approved company sender. Keep credentials in Railway
+variables only. A local configuration check must not be described as SMTP RCPT
+validation or proof of delivery. Verify an owner-only connection test before
+enabling staff delivery. Then perform the legacy-scheduler cutover below.
+
 ## Schedule and acceptance
 
 Times are Asia/Bishkek: Thursday technicians, Friday Comfort Advisors. Preparation
@@ -14,6 +32,9 @@ unfinished cycles become `missed_deadline`; there is no automatic late delivery.
 Source dates use America/Los_Angeles. Yesterday must have closed in that timezone
 before extraction. Smoke runs use the last closed Pacific day, live in a separate
 `smoke/` tree, and never send messages. They do not prove a scheduled live cycle.
+`PERFORMANCE_REPORT_SMOKE_CYCLE=both` validates both packages sequentially and
+keeps the service available for inspection. Each package retains its own result;
+a passed PDF check does not override a failed mail preflight.
 
 Final acceptance additionally requires successful Thursday and Friday delivery
 records while the owner's Mac is switched off. Record the dates, deployment IDs,
