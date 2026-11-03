@@ -84,7 +84,7 @@ export function PerformanceDashboardPage(props: {
         </section>
 
         <section className="performance-summary" aria-label="Performance summary">
-          <div><span>Approved sales goals</span><strong>{plansWithSalesGoal.length ? formatCompactCurrency(planTotal) : "—"}</strong><small>{plansWithSalesGoal.length} of {rows.length} goals available</small></div>
+          <div><span>Company plan</span><strong>{plansWithSalesGoal.length ? formatCompactCurrency(planTotal) : "—"}</strong><small>{plansWithSalesGoal.length} of {rows.length} goals available</small></div>
           <div><span>Matched MTD sales</span><strong>{trackedRows.length ? formatCompactCurrency(revenueTotal) : "—"}</strong><small>{trackedRows.length} of {rows.length} matched</small></div>
           <div><span>On pace</span><strong>{onTrack}</strong><small>At or above 100%</small></div>
           <div><span>Input issues</span><strong>{sourceIssues}</strong><small>Missing goal or identity</small></div>
@@ -107,7 +107,7 @@ export function PerformanceDashboardPage(props: {
           <div className="performance-queue__heading">
             <div>
               <h3>{activeDepartment === "all" ? "All technicians" : activeDepartment}</h3>
-              <p>Worst pace first. Scheduled reports use approved goals; missing inputs remain flagged.</p>
+              <p>Worst pace first. Every report requires manager approval before delivery.</p>
             </div>
             <span>{rows.length} reports</span>
           </div>

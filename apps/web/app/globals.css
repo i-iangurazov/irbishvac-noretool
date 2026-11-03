@@ -2888,7 +2888,7 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto auto auto auto auto 1fr auto;
   align-content: start;
-  gap: 0.06in;
+  gap: 0.08in;
   width: 8.5in;
   height: 11in;
   min-height: 11in;
@@ -2916,7 +2916,7 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
   grid-template-columns: 0.72in minmax(0, 1fr) auto;
   gap: 0.16in;
   align-items: center;
-  padding-bottom: 0.1in;
+  padding-bottom: 0.14in;
   border-bottom: 1.5pt solid #17191c;
 }
 
@@ -2967,7 +2967,7 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
   display: flex;
   align-items: center;
   gap: 0.08in;
-  padding: 0.05in 0.09in;
+  padding: 0.07in 0.09in;
   border-bottom: 0.8pt solid #d9dde1;
   background: #f3f4f5;
 }

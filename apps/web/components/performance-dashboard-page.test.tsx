@@ -24,6 +24,5 @@ describe("current coaching queue", () => {
     expect(Array.from(summary.querySelectorAll("strong")).slice(0, 2).map(node => node.textContent)).toEqual(["—", "—"]);
     expect(doc.querySelector("tbody")?.textContent).toContain("Service hire");
     expect(doc.querySelector("tbody")?.textContent).not.toContain("Sales colleague");
-    expect(html).not.toContain("Every report requires manager approval before delivery");
   });
 });

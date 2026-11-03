@@ -25,10 +25,10 @@ export function DataFreshnessBadge({ value }: DataFreshnessBadgeProps) {
   const stale = available && (age > 180 * 60_000 || age < -5 * 60_000);
   return (
     <div
-      className={`data-freshness-badge inline-flex items-center border font-semibold shadow-[0_4px_12px_rgba(15,23,42,0.04)] ${stale ? "border-amber-300 bg-amber-50 text-amber-900" : available ? "border-[#d6e8e2] bg-[#eef7f3] text-[#0b6b5c]" : "border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]"}`}
+      className={`data-freshness-badge inline-flex items-center border font-semibold shadow-[0_4px_12px_rgba(15,23,42,0.04)] ${available ? "border-[#d6e8e2] bg-[#eef7f3] text-[#0b6b5c]" : "border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]"}`}
     >
       <span
-        className={`data-freshness-badge__dot inline-flex rounded-full ${stale ? "bg-amber-600" : available ? "bg-[#0b8b4f]" : "bg-[#94a3b8]"}`}
+        className={`data-freshness-badge__dot inline-flex rounded-full ${available ? "bg-[#0b8b4f]" : "bg-[#94a3b8]"}`}
       />
       {stale ? "Stale · " : ""}{formatFreshness(value)}
     </div>
