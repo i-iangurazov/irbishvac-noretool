@@ -1,4 +1,4 @@
-import { getConfig, resolveMonthlySpreadsheetId } from "@irbis/config";
+import { getConfig } from "@irbis/config";
 import { DashboardFamily, Prisma, RunStatus, prisma } from "@irbis/db";
 import {
   buildCampaignPerformanceSnapshot,
@@ -488,11 +488,7 @@ export class CampaignPerformanceRefreshRunner {
     const cutoff = cutoffForMonth(month, this.config.app.timezone);
     const from = `${month}-01`;
     const scopeKey = `${SCOPE_PREFIX}${month}`;
-    const spreadsheetId = resolveMonthlySpreadsheetId(
-      this.config.campaignPerformance.google.spreadsheetId,
-      this.config.campaignPerformance.google.spreadsheetIdsByMonth,
-      month,
-    );
+    const spreadsheetId = await this.sheets.resolveMonthlySpreadsheetId(month);
     const requestParams = {
       month,
       from,
@@ -587,7 +583,8 @@ export class CampaignPerformanceRefreshRunner {
           category: report.category,
           reportId: report.reportId,
           parameters,
-          correlationId
+          correlationId,
+          retryRateLimits: true,
         });
         reportPayloads.push(result.payload);
       }
@@ -600,6 +597,7 @@ export class CampaignPerformanceRefreshRunner {
         });
         const result = await this.serviceTitan.fetchPaginatedReport({
           family: "revenueMonthlyPace", category: report.category, reportId: report.reportId, correlationId,
+          retryRateLimits: true,
           parameters: buildReportParameters(definition.payload as ReportDefinition, from, cutoff),
         });
         departmentRevenue = result.payload;

@@ -3,7 +3,7 @@
 Production services: API and web serve dashboards; the worker refreshes the shared
 ServiceTitan personnel directory every 15 minutes in a dedicated queue. The
 `performance-reports` service owns coaching preparation and delivery. Its `/data`
-volume persists frozen inputs, PDFs, SMTP state and scheduler history across releases.
+volume persists frozen inputs, PDFs, delivery state and scheduler history across releases.
 No process depends on a Mac, a sibling checkout or a local env file.
 
 ## Rollout state — 2026-11-03
@@ -47,6 +47,34 @@ preflight checks configuration and address format; it does not authenticate with
 the provider or claim recipient acceptance. SMTP preflight remains available for
 environments that actually permit SMTP.
 
+## Monthly external documents — November 2026
+
+The production service account can read `November 2026 - Call Center Report`
+(`1m1EOFwz3B9Vh0IWopyJoan7jLhNbJXiGx8yGy6e0cj0`) inside the shared CSR Reports
+folder. Its `Master Sheet` has the expected CSR/lead/channel columns and dated
+November 1–2 records. Both API and worker month mappings now preserve September
+and October and select this file for `2026-11`. The similarly named November
+file last modified in December 2025 is historical and must not be selected.
+
+Marketing refresh and planning use the same resolver. Explicit mappings take
+precedence; otherwise only a matching, unambiguous month/year file from the
+shared folder or its year-labelled quarter folders is accepted. Missing files,
+duplicates and missing `Master Sheet` fail without using the August default.
+CSR text-source discovery already follows the same shared folder and retains
+coverage/missing-month status. Source documents were not edited during audit.
+
+The November source has no Campaign Plan, Capacity Plan, Campaign Forecast,
+Campaign Costs or Campaign Commissions tabs at audit time. Their absence does
+not approve October targets or manual costs for November; retain the existing
+missing-plan/source status. Automatic provider costs still use the selected
+month's dates.
+
+The accessible Membership root and all 13 descendant folders were inspected;
+no separate November membership document was found on November 3. The live
+membership dashboard gets its metrics directly from ServiceTitan and uses the
+CSR snapshot for representative names. Do not connect an older membership
+workbook as a substitute for November activity.
+
 ## Schedule and acceptance
 
 Times are Asia/Bishkek: Thursday technicians, Friday Comfort Advisors. Preparation
@@ -61,7 +89,7 @@ a passed PDF check does not override a failed mail preflight.
 
 Final acceptance additionally requires successful Thursday and Friday delivery
 records while the owner's Mac is switched off. Record the dates, deployment IDs,
-SMTP message IDs, management packets and the owner's Mac-off confirmation before
+message/provider IDs, management packets and the owner's Mac-off confirmation before
 marking the priority complete. Initial rollout is not this final acceptance.
 
 ## Personnel and goals
@@ -113,7 +141,7 @@ In the Railway `performance-reports` service inspect:
   `preparation-state.json`, `server-run.log`, `source/`, `individual-pdfs/manifest.json`,
   `individual-pdfs/qa-results.json`, department PDFs and `delivery/`.
 - `delivery/delivery-plan.json`: current recipient routing and frozen attachment hashes.
-- `delivery/delivery-state.json`: each message's status, recipients and SMTP message ID.
+- `delivery/delivery-state.json`: each message's status, recipients, Message-ID and HTTPS provider receipt when applicable.
 - `/data/performance/scheduler/personnel-health.json`: central directory health.
 
 Use Railway's service/volume file browser to inspect or download evidence. Service
@@ -125,7 +153,7 @@ API readiness includes personnel freshness, DB, Redis and metric snapshot health
 ## Recovery and duplicate prevention
 
 The service and sender each hold file locks; run only one report service replica.
-Safe preparation retries occur before 19:30 and only before SMTP has started.
+Safe preparation retries occur before 19:30 and only before delivery has started.
 Sending revalidates live personnel, addresses, departments, monthly goals and cutoff
 completeness. Changed staff/goals block the frozen package. Before the send window,
 regenerate the package after checking that no SMTP state exists. During or after
@@ -133,8 +161,8 @@ that window, resolve the failure with the owner; never bypass validation to meet
 clock time. Packages and state stay together on the volume.
 
 A `sent` record is skipped on replay and its attachment hash must match. `sending`
-means SMTP delivery may have occurred: inspect the mail provider's sent-mail/log
-using the recorded Message-ID and recipients. Only after that reconciliation may
+means the provider may have accepted the message: inspect its log using the recorded
+Message-ID, provider receipt or idempotency key and recipients. Only after that reconciliation may
 an operator mark it confirmed sent or proven unsent. Never delete `sending` state
 or regenerate PDFs after any message has started. Partial confirmed runs can resume
 only unsent messages before the deadline. Missed deadlines require an explicitly
@@ -166,6 +194,6 @@ fallback automations to prevent independently scheduled copies.
 
 Secrets belong only in Railway variables. The report service requires ST read
 credentials, database/Redis access for canonical refresh, server API auth, asset
-settings, SMTP credentials and approved management routing. Never copy unrelated
+settings, the selected mail-provider credentials and approved management routing. Never copy unrelated
 advertising credentials. SMTP preflight authenticates and validates recipients
 without sending DATA. Do not send test reports to staff.

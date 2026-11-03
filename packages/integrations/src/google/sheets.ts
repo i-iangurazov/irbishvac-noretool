@@ -183,6 +183,50 @@ export class GoogleSheetsClient {
     };
   }
 
+  /** Never substitute the legacy default spreadsheet for a different month. */
+  async resolveMonthlySpreadsheetId(month: string): Promise<string> {
+    if (!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month))
+      throw new Error("Spreadsheet month must use YYYY-MM");
+    const configured = this.config.spreadsheetIdsByMonth[month];
+    if (configured) return configured;
+    const reportMonth = (name: string, parent = "") => {
+      if (/\b(draft|template|quarterly)\b/i.test(name)) return null;
+      const year = name.match(/\b(20\d{2})\b/)?.[1] ?? parent.match(/\b(20\d{2})\b/)?.[1];
+      const iso = name.match(/\b(20\d{2})[-_. ](0?[1-9]|1[0-2])\b/);
+      if (iso) return `${iso[1]}-${iso[2]!.padStart(2, "0")}`;
+      const names = ["jan(?:uary)?", "feb(?:ruary)?", "mar(?:ch)?", "apr(?:il)?", "may", "jun(?:e)?", "jul(?:y)?", "aug(?:ust)?", "sep(?:t(?:ember)?)?", "oct(?:ober)?", "nov(?:ember)?", "dec(?:ember)?"];
+      const index = names.findIndex(value => new RegExp(`\\b${value}\\b`, "i").test(name));
+      return year && index >= 0 ? `${year}-${String(index + 1).padStart(2, "0")}` : null;
+    };
+    try {
+      const metadata = await this.getSpreadsheetMetadata();
+      if (reportMonth(metadata.properties?.title ?? "") === month &&
+          metadata.sheets?.some(sheet => sheet.properties.title === "Master Sheet"))
+        return this.config.spreadsheetId;
+    } catch {
+      // A missing legacy file must not prevent discovering the current month.
+    }
+    const folderId = getConfig().csr.reportsFolderId;
+    const root = await this.listFolderFiles(folderId);
+    const candidates = new Set<string>();
+    const visit = (files: typeof root, parent = "") => {
+      for (const file of files)
+        if (file.mimeType === "application/vnd.google-apps.spreadsheet" &&
+            reportMonth(file.name, parent) === month) candidates.add(file.id);
+    };
+    visit(root);
+    const folders = root.filter(file => file.mimeType === "application/vnd.google-apps.folder" && /\b20\d{2}\b/.test(file.name));
+    if (folders.length > 10) throw new Error("Monthly report discovery exceeds the folder limit");
+    for (const folder of folders) visit(await this.listFolderFiles(folder.id), folder.name);
+    if (candidates.size !== 1)
+      throw new Error(`Expected one Call Center spreadsheet for ${month}; found ${candidates.size}. Configure its month mapping.`);
+    const id = [...candidates][0]!;
+    const metadata = await this.getSpreadsheetMetadata(id);
+    if (!metadata.sheets?.some(sheet => sheet.properties.title === "Master Sheet"))
+      throw new Error(`Call Center spreadsheet for ${month} has no Master Sheet`);
+    return id;
+  }
+
   async getOptionalValues(
     range: string,
     spreadsheetId = this.config.spreadsheetId,
