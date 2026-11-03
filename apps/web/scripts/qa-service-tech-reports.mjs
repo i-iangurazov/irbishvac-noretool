@@ -51,13 +51,13 @@ try {
       const descendants = Array.from(element.querySelectorAll("*"));
       const footerRect = element.querySelector(".coaching-report__footer")?.getBoundingClientRect();
       const footerOverlaps = footerRect
-        ? [".coaching-block--previous", ".coaching-block--focus"]
-            .map((selector) => {
-              const node = element.querySelector(selector);
-              if (!node) return null;
+        ? Array.from(element.querySelectorAll(
+            ".coaching-block--previous, .coaching-block--previous *, .coaching-block--focus, .coaching-block--focus *",
+          ))
+            .map((node) => {
               const rect = node.getBoundingClientRect();
               return {
-                selector,
+                selector: node.className || node.tagName,
                 blockBottom: rect.bottom,
                 footerTop: footerRect.top,
               };

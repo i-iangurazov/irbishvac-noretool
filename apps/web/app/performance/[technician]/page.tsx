@@ -322,7 +322,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
             number={1}
             title="Pace to goal"
             subtitle={updatedGoalPending
-              ? "Updated trailing-90-day goal was not provided; actual performance remains visible"
+              ? "Current-month goals await approval; available actuals remain visible"
               : "Monthly progress through the report cutoff"}
           />
           <div className="coaching-metrics coaching-metrics--four">
@@ -339,7 +339,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
           {updatedGoalPending ? (
             <div className="coaching-goal-note">
               <strong>Updated goal pending</strong>
-              <span>Vadim did not provide new opportunity, close-rate or revenue-per-opportunity targets for this technician. No target was inferred.</span>
+              <span>Some current-month targets have not been approved. Available approved targets are shown; missing targets remain pending.</span>
             </div>
           ) : null}
         </section>
@@ -589,7 +589,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
 
         <footer className="coaching-report__footer">
           <span>Evidence: ServiceTitan reports, appointments, timesheets, forms and reviews</span>
-          <span>Plan status: {plan.approvalStatus} · {delivery?.plan?.sourceNote ?? plan.month}</span>
+          <span>Goal status: {updatedGoalPending ? "Pending approval" : "Approved"} · {delivery?.plan?.sourceNote ?? plan.month}</span>
           <span>Manager notes: ____________________</span>
         </footer>
       </article>
