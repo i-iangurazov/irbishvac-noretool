@@ -37,10 +37,10 @@ def phase(now: datetime, cycle: str, state: dict) -> str:
         return "idle"
     if state.get("status") != "ready":
         # Leave time to finish a package; never regenerate one after SMTP began.
-        if state.get("smtpStarted") or minute >= 19 * 60 + 35:
-            return "send" if state.get("smtpStarted") and minute >= 19 * 60 + 40 else "idle"
+        if state.get("smtpStarted") or minute >= 19 * 60 + 30:
+            return "send" if state.get("smtpStarted") and minute >= 19 * 60 + 35 else "idle"
         return "prepare"
-    return "send" if minute >= 19 * 60 + 40 else "idle"
+    return "send" if minute >= 19 * 60 + 35 else "idle"
 
 
 def has_smtp_started(package: Path) -> bool:

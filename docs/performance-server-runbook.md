@@ -9,7 +9,7 @@ No process depends on a Mac, a sibling checkout or a local env file.
 ## Schedule and acceptance
 
 Times are Asia/Bishkek: Thursday technicians, Friday Comfort Advisors. Preparation
-starts at 18:00; only complete, QA-passed packages may send at 19:40–19:44. At 19:45
+starts at 18:00; only complete, QA-passed packages may send at 19:35–19:44. At 19:45
 unfinished cycles become `missed_deadline`; there is no automatic late delivery.
 Source dates use America/Los_Angeles. Yesterday must have closed in that timezone
 before extraction. Smoke runs use the last closed Pacific day, live in a separate
@@ -67,7 +67,7 @@ In the Railway `performance-reports` service inspect:
 - `/data/performance/scheduler/YYYY-MM-DD-{technician|advisor}.json`: scheduled status.
 - `/data/performance/{service-tech-report-delivery|advisor-report-delivery}/YYYY-MM-DD/`:
   `preparation-state.json`, `server-run.log`, `source/`, `individual-pdfs/manifest.json`,
-  `individual-pdfs/qa/qa-results.json`, department PDFs and `delivery/`.
+  `individual-pdfs/qa-results.json`, department PDFs and `delivery/`.
 - `delivery/delivery-plan.json`: current recipient routing and frozen attachment hashes.
 - `delivery/delivery-state.json`: each message's status, recipients and SMTP message ID.
 - `/data/performance/scheduler/personnel-health.json`: central directory health.
@@ -81,7 +81,7 @@ API readiness includes personnel freshness, DB, Redis and metric snapshot health
 ## Recovery and duplicate prevention
 
 The service and sender each hold file locks; run only one report service replica.
-Safe preparation retries occur before 19:35 and only before SMTP has started.
+Safe preparation retries occur before 19:30 and only before SMTP has started.
 Sending revalidates live personnel, addresses, departments, monthly goals and cutoff
 completeness. Changed staff/goals block the frozen package. Before the send window,
 regenerate the package after checking that no SMTP state exists. During or after

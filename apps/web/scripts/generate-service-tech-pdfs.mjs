@@ -50,6 +50,8 @@ try {
     const department = String(technician.department ?? "");
     const prefix = department.startsWith("Plumbing")
       ? "plumbing"
+      : department.startsWith("Electrical")
+        ? "electrical"
       : department.includes("Sales")
         ? "sales"
         : "hvac";

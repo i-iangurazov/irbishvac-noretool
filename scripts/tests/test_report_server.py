@@ -15,7 +15,7 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(self.at("2026-11-06T18:00:00", cycle="advisor"), "prepare")
     def test_never_sends_unprepared_or_late(self):
         self.assertEqual(self.at("2026-11-05T19:40:00"), "idle")
-        self.assertEqual(self.at("2026-11-05T19:40:00", {"status":"ready"}), "send")
+        self.assertEqual(self.at("2026-11-05T19:35:00", {"status":"ready"}), "send")
         self.assertEqual(self.at("2026-11-05T19:45:00", {"status":"ready"}), "missed_deadline")
     def test_completed_or_empty_cycle_is_terminal(self):
         for status in ("sent", "skipped_no_active_staff", "missed_deadline"):
