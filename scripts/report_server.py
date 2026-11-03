@@ -93,12 +93,20 @@ def tick(repo: Path, root: Path, env: dict, now: datetime) -> None:
         package = output / local.date().isoformat()
         state_path = root / "scheduler" / f"{local.date().isoformat()}-{cycle}.json"
         state = json.loads(state_path.read_text()) if state_path.exists() else {"cycle": cycle, "runKind": "scheduled", "status": "waiting"}
+        # Recover a fully prepared frozen package if the process stopped between
+        # finishing preparation and persisting scheduler state.
+        if state.get("status") not in {"sent", "skipped_no_active_staff", "missed_deadline"} and preparation_complete(package / "preparation-state.json"):
+            state["status"] = "ready"
         action = phase(now, cycle, state)
         if action == "idle":
             pending = state.get("pendingAlert")
             if pending and state.get("status") not in {"sent", "skipped_no_active_staff"} and now >= datetime.fromisoformat(pending["retryAt"]):
                 alert(env, state, pending["key"], pending["detail"])
                 _atomic_json(state_path, state)
+            continue
+        if action == "send" and str(env.get("PERFORMANCE_REPORT_AUTO_SEND", "false")).lower() not in {"1", "true", "yes", "on"}:
+            state["autoSendEnabled"] = False
+            _atomic_json(state_path, state)
             continue
         retry_at = datetime.fromisoformat(state["retryAt"]) if state.get("retryAt") else now
         if action != "missed_deadline" and now < retry_at:
@@ -157,8 +165,19 @@ def main() -> int:
             delivery_date = cutoff + timedelta(days=1)
             output = root / "smoke" / CYCLES[args.smoke][2]
             package = output / str(delivery_date)
-            run_logged([sys.executable, str(REPO / "scripts" / CYCLES[args.smoke][1]), "--mode", "dry-run", "--force-schedule", "--now", f"{delivery_date}T18:30:00+06:00", "--output-root", str(output)], package, env)
-            _atomic_json(package / "smoke-state.json", {"runKind": "smoke", "noLiveSend": True, "completedAt": datetime.now(timezone.utc).isoformat()})
+            try:
+                run_logged([sys.executable, str(REPO / "scripts" / CYCLES[args.smoke][1]), "--mode", "dry-run", "--force-schedule", "--now", f"{delivery_date}T18:30:00+06:00", "--output-root", str(output)], package, env)
+                result = {"runKind": "smoke", "status": "passed", "noLiveSend": True, "completedAt": datetime.now(timezone.utc).isoformat()}
+            except Exception as error:
+                result = {"runKind": "smoke", "status": "failed", "noLiveSend": True, "errorType": type(error).__name__, "completedAt": datetime.now(timezone.utc).isoformat()}
+            _atomic_json(package / "smoke-state.json", result)
+            print(json.dumps({"smokeCycle": args.smoke, **result}), flush=True)
+            # Keep the container available for the existing Railway file browser.
+            # Inspection mode has no scheduled/live delivery path.
+            for sig in (signal.SIGTERM, signal.SIGINT):
+                signal.signal(sig, lambda *_: STOP.set())
+            while not STOP.wait(20):
+                pass
             return 0
         for sig in (signal.SIGTERM, signal.SIGINT):
             signal.signal(sig, lambda *_: STOP.set())
