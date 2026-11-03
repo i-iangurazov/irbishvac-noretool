@@ -18,6 +18,12 @@ const authenticatedMiddleware = clerkMiddleware(async (auth, request) => {
   }
 
   const authState = await auth();
+  const publicRequestUrl = resolvePublicRequestUrl(
+    request.url,
+    process.env.DASHBOARD_PUBLIC_URL,
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+    process.env.DASHBOARD_ADDITIONAL_PUBLIC_ORIGINS,
+  );
 
   if (!authState.isAuthenticated) {
     if (request.nextUrl.pathname.startsWith("/api/")) {
@@ -30,10 +36,7 @@ const authenticatedMiddleware = clerkMiddleware(async (auth, request) => {
       );
     }
     return authState.redirectToSignIn({
-      returnBackUrl: resolvePublicRequestUrl(
-        request.url,
-        process.env.DASHBOARD_PUBLIC_URL,
-      ),
+      returnBackUrl: publicRequestUrl,
     });
   }
 
@@ -47,7 +50,7 @@ const authenticatedMiddleware = clerkMiddleware(async (auth, request) => {
     return NextResponse.redirect(
       new URL(
         "/access-denied",
-        resolvePublicRequestUrl(request.url, process.env.DASHBOARD_PUBLIC_URL),
+        publicRequestUrl,
       ),
     );
   }

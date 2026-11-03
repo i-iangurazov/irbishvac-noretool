@@ -32,18 +32,30 @@ export function isPublicAuthPath(pathname: string) {
 export function resolvePublicRequestUrl(
   requestUrl: string,
   configuredOrigin: string | undefined,
+  forwardedHost?: string | null,
+  additionalOrigins?: string,
 ) {
   const request = new URL(requestUrl);
   if (!configuredOrigin) {
     return request.toString();
   }
 
-  const origin = new URL(configuredOrigin);
-  if (origin.protocol !== "https:" && origin.protocol !== "http:") {
-    throw new Error("DASHBOARD_PUBLIC_URL must use HTTP or HTTPS");
-  }
-
-  return new URL(`${request.pathname}${request.search}`, origin).toString();
+  const parseOrigin = (value: string) => {
+    const origin = new URL(value);
+    if (origin.protocol !== "https:" && origin.protocol !== "http:") {
+      throw new Error("DASHBOARD_PUBLIC_URL must use HTTP or HTTPS");
+    }
+    return origin;
+  };
+  const fallbackOrigin = parseOrigin(configuredOrigin);
+  const origins = [fallbackOrigin, ...(additionalOrigins ?? "").split(",")
+    .map((value) => value.trim()).filter(Boolean).map(parseOrigin)];
+  const host = (forwardedHost ?? request.host).trim().toLowerCase();
+  const origin = origins.find((value) => value.host.toLowerCase() === host) ?? fallbackOrigin;
+  const result = new URL(origin.origin);
+  result.pathname = request.pathname;
+  result.search = request.search;
+  return result.toString();
 }
 
 // Renderer runs in a private container, listens only on loopback, and rotates this

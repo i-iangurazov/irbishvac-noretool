@@ -55,6 +55,37 @@ describe("IRBIS authentication policy", () => {
     );
   });
 
+  it.each(["dashboard.irbishvac.com", "irbisweb-production.up.railway.app"])(
+    "returns to the opened approved host after login: %s",
+    (host) => {
+      expect(resolvePublicRequestUrl(
+        "http://0.0.0.0:8080/technicians?preset=mtd",
+        "https://irbisweb-production.up.railway.app",
+        host,
+        "https://dashboard.irbishvac.com",
+      )).toBe(`https://${host}/technicians?preset=mtd`);
+    },
+  );
+
+  it.each(["evil.example", "dashboard.irbishvac.com.evil.example", "dashboard.irbishvac.com, evil.example", "evil@dashboard.irbishvac.com"])(
+    "rejects an unapproved forwarded host: %s",
+    (host) => {
+      expect(resolvePublicRequestUrl(
+        "http://0.0.0.0:8080/technicians?preset=mtd",
+        "https://irbisweb-production.up.railway.app",
+        host,
+        "https://dashboard.irbishvac.com",
+      )).toBe("https://irbisweb-production.up.railway.app/technicians?preset=mtd");
+    },
+  );
+
+  it("keeps protocol-relative paths on the approved origin", () => {
+    expect(resolvePublicRequestUrl(
+      "https://0.0.0.0:8080//evil.example/report",
+      "https://irbisweb-production.up.railway.app",
+    )).toBe("https://irbisweb-production.up.railway.app//evil.example/report");
+  });
+
   it("rejects non-http public origins", () => {
     expect(() =>
       resolvePublicRequestUrl(
