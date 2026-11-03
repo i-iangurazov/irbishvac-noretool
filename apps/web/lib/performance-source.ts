@@ -23,6 +23,7 @@ type TechnicianDashboardPayload = {
     closeRate: number;
     avgSaleFromOpps: number;
     membershipsSold: number;
+    actualSourceAvailable?: boolean;
   }>;
   snapshotTime: string | null;
 };
@@ -37,6 +38,7 @@ type AdvisorDashboardPayload = {
     closedOpportunitiesCount: number;
     closeRateRolling: number;
     closedAverageSale: number;
+    actualSourceAvailable?: boolean;
   }>;
   snapshotTime: string | null;
 };
@@ -103,6 +105,7 @@ export async function loadPerformanceActuals(range?: PerformanceRange) {
   const actuals: PerformanceActual[] = [
     ...technicians.rowsRanked.map((row) => ({
         name: row.name,
+        sourceAvailable: row.actualSourceAvailable !== false,
         sourceKind: "technician" as const,
         technicianId: row.technicianId,
         businessUnit: row.businessUnit,
@@ -116,6 +119,7 @@ export async function loadPerformanceActuals(range?: PerformanceRange) {
       })),
     ...advisors.rowsRanked.map((row) => ({
       name: row.name,
+      sourceAvailable: row.actualSourceAvailable !== false,
       sourceKind: "advisor" as const,
       technicianId: row.technicianId,
       businessUnit: row.businessUnit,
@@ -151,7 +155,7 @@ export async function loadPerformanceRoster(
   cutoffDate = toBusinessDateString(new Date(), "America/Los_Angeles"),
 ): Promise<PerformanceRosterRow[]> {
   const [actuals, fieldPro] = await Promise.all([
-    loadPerformanceActuals(),
+    loadPerformanceActuals({ from: `${cutoffDate.slice(0, 7)}-01`, to: cutoffDate }),
     loadFieldProActuals(getLastCompletedWeek())
   ]);
   return mergeFieldProIntoRoster(

@@ -548,7 +548,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               <div><span>Result</span><strong>Not measured</strong></div>
               <div><span>Status</span><strong>Baseline week</strong></div>
             </div>
-            <p>This is the first report cycle. Progress tracking begins after manager approval.</p>
+            <p>No prior approved coaching focus is connected to this report. Track progress after manager approval.</p>
             <div className="coaching-manager-notes">
               <span>Manager notes</span>
               <i /><i /><i /><i />
