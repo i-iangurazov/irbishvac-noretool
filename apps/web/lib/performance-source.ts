@@ -156,7 +156,7 @@ export async function loadPerformanceRoster(
 ): Promise<PerformanceRosterRow[]> {
   const [actuals, fieldPro] = await Promise.all([
     loadPerformanceActuals({ from: `${cutoffDate.slice(0, 7)}-01`, to: cutoffDate }),
-    loadFieldProActuals(getLastCompletedWeek())
+    loadFieldProActuals({ from: `${cutoffDate.slice(0, 7)}-01`, to: cutoffDate })
   ]);
   return mergeFieldProIntoRoster(
     buildPerformanceRoster(actuals, cutoffDate, await loadPersonnelPlans(cutoffDate.slice(0, 7))),

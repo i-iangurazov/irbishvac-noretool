@@ -35,8 +35,11 @@ export function PerformanceDashboardPage(props: {
     activeDepartment === "all"
       ? props.roster
       : props.roster.filter((row) => row.department === activeDepartment);
-  const trackedRows = props.roster.filter((row) => row.actual);
-  const planTotal = props.roster.reduce(
+  const trackedRows = rows.filter((row) => row.actual);
+  const plansWithSalesGoal = rows.filter(row => row.monthlySalesGoal != null);
+  const monthLabel = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" })
+    .format(new Date(`${props.cutoffDate.slice(0, 7)}-01T12:00:00Z`));
+  const planTotal = rows.reduce(
     (total, row) => total + (row.monthlySalesGoal ?? 0),
     0,
   );
@@ -44,8 +47,8 @@ export function PerformanceDashboardPage(props: {
     (total, row) => total + (row.actual?.revenue ?? 0),
     0,
   );
-  const onTrack = props.roster.filter((row) => row.status === "on-track").length;
-  const sourceIssues = props.roster.filter(
+  const onTrack = rows.filter((row) => row.status === "on-track").length;
+  const sourceIssues = rows.filter(
     (row) => row.status === "missing-data" || row.status === "missing-goal",
   ).length;
 
@@ -59,8 +62,8 @@ export function PerformanceDashboardPage(props: {
       subtitle="Manager review queue for weekly technician coaching reports."
       headerContent={
         <div className="performance-dashboard__header-meta">
-          <span>July 2026 plan</span>
-          <strong>DRAFT</strong>
+          <span>{monthLabel} goals</span>
+          <strong>{rows.length > 0 && rows.every(row => row.approvalStatus === "ACTIVE") ? "Approved" : "Pending inputs"}</strong>
         </div>
       }
     >
@@ -70,7 +73,7 @@ export function PerformanceDashboardPage(props: {
             <div className="performance-eyebrow">Manager workspace</div>
             <h2>Weekly coaching queue</h2>
             <p>
-              ServiceTitan outcomes and weekly Field Pro recording coverage are live where an
+              Month-to-date ServiceTitan outcomes and Field Pro recording coverage are live where an
               employee match exists. Remaining process metrics stay visible as source gaps.
             </p>
           </div>
@@ -81,8 +84,8 @@ export function PerformanceDashboardPage(props: {
         </section>
 
         <section className="performance-summary" aria-label="Performance summary">
-          <div><span>Company plan</span><strong>{formatCompactCurrency(planTotal)}</strong><small>Draft target</small></div>
-          <div><span>Matched MTD sales</span><strong>{formatCompactCurrency(revenueTotal)}</strong><small>{trackedRows.length} of {props.roster.length} matched</small></div>
+          <div><span>Approved sales goals</span><strong>{plansWithSalesGoal.length ? formatCompactCurrency(planTotal) : "—"}</strong><small>{plansWithSalesGoal.length} of {rows.length} goals available</small></div>
+          <div><span>Matched MTD sales</span><strong>{trackedRows.length ? formatCompactCurrency(revenueTotal) : "—"}</strong><small>{trackedRows.length} of {rows.length} matched</small></div>
           <div><span>On pace</span><strong>{onTrack}</strong><small>At or above 100%</small></div>
           <div><span>Input issues</span><strong>{sourceIssues}</strong><small>Missing goal or identity</small></div>
         </section>
@@ -104,7 +107,7 @@ export function PerformanceDashboardPage(props: {
           <div className="performance-queue__heading">
             <div>
               <h3>{activeDepartment === "all" ? "All technicians" : activeDepartment}</h3>
-              <p>Worst pace first. Every report requires manager approval before delivery.</p>
+              <p>Worst pace first. Scheduled reports use approved goals; missing inputs remain flagged.</p>
             </div>
             <span>{rows.length} reports</span>
           </div>

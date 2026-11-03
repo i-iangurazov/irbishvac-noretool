@@ -171,6 +171,12 @@ If it is missing, the API queues a refresh and returns unavailable actuals with
 the current roster. It never substitutes an unscoped latest staff export. The
 live coaching page preserves that availability flag and requests month-start
 through its displayed cutoff explicitly, matching the frozen-report period.
+The technician, advisor and installer boards also preserve that flag: unmatched
+scorecards keep the employee card and approved targets, but actuals are marked
+unavailable rather than zero. Verified zero activity remains zero. Missing scopes
+must not produce zero totals. The coaching queue uses the current goal month and
+selected department for its summaries; live Field Pro and sales use the same MTD
+range. The live report header uses month-start, not the prior week's Monday.
 
 Dashboards and PDFs use the same scoped normalized performance source. The PDF
 sales figure is `totalSales`, matching the dashboard Sales/Goal metric. Influenced

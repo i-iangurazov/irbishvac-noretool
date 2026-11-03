@@ -29,6 +29,7 @@ describe("live coaching source agreement", () => {
     expect(rows.find(row=>row.technicianId==="zero")).toMatchObject({pace:0,status:"off-track"});
     expect(fetchApi).toHaveBeenCalledWith("/dashboard/performance/technicians?from=2026-11-01&to=2026-11-01");
     expect(fetchApi).toHaveBeenCalledWith("/dashboard/performance/advisors?from=2026-11-01&to=2026-11-01");
+    expect(fetchApi).toHaveBeenCalledWith("/dashboard/performance/field-pro?from=2026-11-01&to=2026-11-01");
     expect(loadPersonnelPlans).toHaveBeenCalledWith("2026-11");
   });
 });

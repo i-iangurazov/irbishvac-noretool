@@ -8,6 +8,7 @@ import { fetchApi } from "../../lib/api";
 import { resolveDashboardFilters } from "../../lib/dashboard-filters";
 import { getTvPerformanceGoal } from "../../lib/performance-goals";
 import { preparedStaffPortraitUrls } from "../../lib/staff-portraits";
+import { staffMetricValue, staffTotalsAvailable } from "../../lib/staff-metric-display";
 
 type AdvisorsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -24,6 +25,7 @@ export default async function AdvisorsPage({
   const data = await fetchApi<{
     rowsRanked: Array<{
       name: string;
+      actualSourceAvailable?: boolean;
       goal?: PerformanceGoal | null;
       photoUrl?: string | null;
       totalSales: number;
@@ -44,6 +46,8 @@ export default async function AdvisorsPage({
   const portraits = await preparedStaffPortraitUrls(
     data.rowsRanked.map((row) => row.name),
   );
+  const total = (value: number, format: (value: number) => string) =>
+    staffMetricValue(value, format, staffTotalsAvailable(data.rowsRanked, data.snapshotTime));
 
   return (
     <LeaderboardPage
@@ -56,30 +60,32 @@ export default async function AdvisorsPage({
       maxVisibleItems={4}
       useHeadshots={true}
       kpis={[
-        { label: "Total Sales", value: compactMoney(data.totals.totalSales) },
+        { label: "Total Sales", value: total(data.totals.totalSales, compactMoney) },
         {
           label: "Opportunities",
-          value: String(data.totals.totalOpportunities),
+          value: total(data.totals.totalOpportunities, String),
         },
         {
           label: "Weighted Close Rate",
-          value: ratio(data.totals.weightedCloseRate),
+          value: total(data.totals.weightedCloseRate, ratio),
         },
         {
           label: "Closed Average Sale",
-          value: compactMoney(data.totals.weightedClosedAverageSale),
+          value: total(data.totals.weightedClosedAverageSale, compactMoney),
         },
       ]}
       items={data.rowsRanked.map((row) => {
         const goal = getTvPerformanceGoal(row.goal);
+        const actual = (value: number, format: (value: number) => string) =>
+          staffMetricValue(value, format, row.actualSourceAvailable);
         const pair = (actual: string, target: string | null) =>
           target ? `${actual} / ${target}` : actual;
 
         return {
           title: row.name,
           imageUrl: portraits.get(row.name) ?? row.photoUrl,
-          valueLabel: "Sales",
-          value: compactMoney(row.totalSales),
+          valueLabel: row.actualSourceAvailable === false ? "Data unavailable" : "Sales",
+          value: row.actualSourceAvailable === false ? "—" : compactMoney(row.totalSales),
           stats: [
             {
               label: "Monthly Sales Goal",
@@ -91,7 +97,7 @@ export default async function AdvisorsPage({
             {
               label: "Avg Sale / Goal",
               value: pair(
-                compactMoney(row.closedAverageSale),
+                actual(row.closedAverageSale, compactMoney),
                 goal?.targetAverage != null
                   ? compactMoney(goal.targetAverage)
                   : null,
@@ -100,7 +106,7 @@ export default async function AdvisorsPage({
             {
               label: "Close / Goal",
               value: pair(
-                ratio(row.closeRateRolling),
+                actual(row.closeRateRolling, ratio),
                 goal?.targetRate != null ? ratio(goal.targetRate) : null,
               ),
             },
@@ -110,7 +116,7 @@ export default async function AdvisorsPage({
                   ? "Opps / Goal"
                   : "Opportunities",
               value: pair(
-                String(row.salesOpportunitiesCount),
+                actual(row.salesOpportunitiesCount, String),
                 filters.preset === "mtd" &&
                   !filters.customRange &&
                   goal?.targetOpportunitiesMonthly != null

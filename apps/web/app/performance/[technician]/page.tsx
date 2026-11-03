@@ -21,10 +21,7 @@ import {
   loadServiceTechDeliverySnapshot,
   type ServiceTechDeliveryRow
 } from "../../../lib/performance-delivery-source";
-import {
-  getLastCompletedWeek,
-  loadPerformanceRoster
-} from "../../../lib/performance-source";
+import { loadPerformanceRoster } from "../../../lib/performance-source";
 
 type TechnicianReportPageProps = {
   params: Promise<{ technician: string }>;
@@ -200,7 +197,7 @@ export async function generateMetadata({ params }: TechnicianReportPageProps): P
   const plan = snapshot?.technicians.find(row => row.slug === technician) ?? (await loadPersonnelPlans()).find(row => row.slug === technician);
 
   return {
-    title: plan ? `${plan.technician} · Weekly Coaching Report` : "Weekly Coaching Report"
+    title: plan ? `${plan.technician} · MTD Coaching Report` : "MTD Coaching Report"
   };
 }
 
@@ -230,7 +227,6 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
       }
     : basePlan;
   const cutoffDate = deliverySnapshot?.cutoffDate ?? toBusinessDateString(new Date(), "America/Los_Angeles");
-  const week = getLastCompletedWeek();
   const liveRow = delivery ? undefined : (await loadPerformanceRoster(cutoffDate)).find((row) => row.slug === plan.slug);
   const deliveryRow = delivery
     ? buildPerformanceRoster(
@@ -274,15 +270,15 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
         ...delivery.fieldPro
       }
     : mtdRow.fieldPro;
-  const reportFrom = deliverySnapshot?.periodFrom ?? week.from;
-  const reportLabel = delivery ? "Month-to-Date Coaching Report" : "Weekly Coaching Report";
+  const reportFrom = deliverySnapshot?.periodFrom ?? `${cutoffDate.slice(0, 7)}-01`;
+  const reportLabel = "Month-to-Date Coaching Report";
   const reportState = deliverySnapshot?.reportVersion ?? (delivery?.personalizedTargets ? "V2" : delivery ? "V1" : "DRAFT");
   const targetBasis = delivery?.personalizedTargets;
   const updatedGoalPending = plan.approvalStatus === "UPDATED_GOAL_PENDING";
   const leadsSetGoal = delivery?.plan?.leadsSetGoal ?? null;
   const installSalesGoal = delivery?.plan?.installSalesGoal ?? null;
   const membershipConversionGoal = delivery?.plan?.membershipConversionGoal ?? null;
-  const actualSourceAvailable = delivery?.actualSourceAvailable ?? true;
+  const actualSourceAvailable = delivery?.actualSourceAvailable ?? (mtdRow.actual != null);
   const isAdvisor = plan.sourceKind === "advisor";
 
   return (
@@ -428,13 +424,13 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               {isAdvisor ? (
                 <>
                   <strong>{valueOrUnavailable(actualSourceAvailable ? delivery?.actual.closeRateFromTgl : null, (value) => formatPercent(value, 0))}</strong>
-                  <small>{actualSourceAvailable ? `${delivery?.actual.techLeadJobs ?? 0} technician-generated leads` : "Current scorecard unavailable"}</small>
+                  <small>{actualSourceAvailable && delivery?.actual.techLeadJobs != null ? `${delivery.actual.techLeadJobs} technician-generated leads` : "Lead count unavailable"}</small>
                 </>
               ) : (
                 <>
                   <strong>{valueOrUnavailable(actualSourceAvailable ? delivery?.actual.membershipConversionRate : null, (value) => formatPercent(value, 0))}</strong>
                   <small>
-                    Target {valueOrUnavailable(membershipConversionGoal, (value) => formatPercent(value, 0))} · {actualSourceAvailable ? `${delivery?.actual.membershipsSold ?? 0}/${delivery?.actual.membershipOpportunities ?? 0} visits` : "current scorecard unavailable"}
+                    Target {valueOrUnavailable(membershipConversionGoal, (value) => formatPercent(value, 0))} · {actualSourceAvailable && delivery ? `${delivery.actual.membershipsSold}/${delivery.actual.membershipOpportunities} visits` : "membership source unavailable"}
                   </small>
                 </>
               )}
@@ -465,7 +461,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
                   </div>
                   <div>
                     <span>Memberships sold</span>
-                    <strong>{valueOrUnavailable(delivery.actual.membershipsSold, formatNumber)}</strong>
+                    <strong>{valueOrUnavailable(actualSourceAvailable ? delivery.actual.membershipsSold : null, formatNumber)}</strong>
                     <small>Monthly goal {valueOrUnavailable(plan.membershipMonthlyGoal, formatNumber)}</small>
                   </div>
                 </>
@@ -508,7 +504,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
         </section>
 
         <section className="coaching-block coaching-block--fieldpro">
-          <BlockTitle number={4} title="Field Pro conversation quality" subtitle={delivery ? "MTD recording adoption and evidence" : "Recording adoption and evidence"} />
+          <BlockTitle number={4} title="Field Pro conversation quality" subtitle="MTD recording adoption and evidence" />
           {fieldPro ? (
             <div className="coaching-fieldpro-grid">
               <div>
