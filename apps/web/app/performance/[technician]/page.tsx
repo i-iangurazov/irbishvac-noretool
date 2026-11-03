@@ -381,7 +381,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
             </div>
             <div>
               <span>On-time arrival</span>
-              <strong>{delivery?.execution.arrivalEligibleAppointments === 0 ? "No measured visits" : valueOrUnavailable(delivery?.execution.onTimeArrivalRate, (value) => formatPercent(value, 0))}</strong>
+              <strong>{delivery?.execution.arrivalEligibleAppointments === 0 ? "Not measured" : valueOrUnavailable(delivery?.execution.onTimeArrivalRate, (value) => formatPercent(value, 0))}</strong>
               <small>
                 {delivery?.execution.arrivalEligibleAppointments == null
                   ? "Timing evidence unavailable"
@@ -390,7 +390,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
             </div>
             <div>
               <span>Average time on site</span>
-              <strong>{delivery?.execution.onsiteEligibleAppointments === 0 ? "No measured visits" : valueOrUnavailable(delivery?.execution.averageTimeOnSiteMinutes, formatDurationMinutes)}</strong>
+              <strong>{delivery?.execution.onsiteEligibleAppointments === 0 ? "Not measured" : valueOrUnavailable(delivery?.execution.averageTimeOnSiteMinutes, formatDurationMinutes)}</strong>
               <small>
                 {delivery?.execution.onsiteEligibleAppointments == null
                   ? "Timesheet evidence unavailable"
@@ -520,11 +520,11 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
               <div>
                 <span>Average duration</span>
                 <strong>{fieldPro.totalRecordings === 0 ? "No recordings" : valueOrUnavailable(fieldPro.averageRecordingMinutes, (value) => `${Math.round(value)} min`)}</strong>
-                <small>Longest {valueOrUnavailable(fieldPro.longestRecordingMinutes, (value) => `${Math.round(value)} min`)}</small>
+                <small>Longest {fieldPro.totalRecordings === 0 ? "No recordings" : valueOrUnavailable(fieldPro.longestRecordingMinutes, (value) => `${Math.round(value)} min`)}</small>
               </div>
               <div>
                 <span>Score and talk share</span>
-                <strong>Not provided by source</strong>
+                <strong>Not exported</strong>
                 <small>Not included in the ServiceTitan report export</small>
               </div>
             </div>

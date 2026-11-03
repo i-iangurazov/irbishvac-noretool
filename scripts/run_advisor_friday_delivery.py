@@ -17,6 +17,7 @@ from run_service_tech_thursday_delivery import (
     _load_environment,
     _render_and_qa,
     _require_source_exports,
+    _source_exports_valid,
     _run,
     _shift_month,
     _truthy,
@@ -147,7 +148,7 @@ def _run_cycle(
             (period_from, cutoff_date, mtd_source),
             (baseline_from, baseline_to, baseline_source),
         ):
-            if mode == "dashboard" and output == baseline_source and (output / "export-manifest.json").exists():
+            if mode == "dashboard" and output == baseline_source and _source_exports_valid(output, baseline_from.isoformat(), baseline_to.isoformat()):
                 _require_source_exports(output, "dashboard baseline", baseline_from.isoformat(), baseline_to.isoformat())
                 continue
             _run(

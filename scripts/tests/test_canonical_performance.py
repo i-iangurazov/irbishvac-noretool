@@ -27,6 +27,16 @@ class CanonicalPerformanceTests(unittest.TestCase):
         self.assertEqual(report["technicians"][0]["personalizedTargets"]["targetRate"], .5)
         self.assertTrue(report["canonicalSource"])
 
+    def test_uses_complete_matching_recordings_by_employee_id_without_turning_missing_durations_into_zero(self):
+        self.canonical["fieldProRecordings"]={"status":"available","from":"2026-11-01","to":"2026-11-04","rows":[
+            {"technicianId":"1","jobId":"10","durationMinutes":5.9},
+            {"technicianId":"1","jobId":"11","durationMinutes":None},
+            {"technicianId":"2","jobId":"12","durationMinutes":999}]}
+        result=apply_canonical(self.snapshot,self.canonical)["technicians"][0]["fieldPro"]
+        self.assertEqual(result["longestRecordingMinutes"],5.9)
+        self.assertEqual(result["averageRecordingMinutes"],5.9)
+        self.assertEqual(len(result["recordedJobs"]),2)
+
     def test_rejects_a_different_period_or_employee_roster(self):
         other = copy.deepcopy(self.canonical)
         other["cutoffDate"] = "2026-11-03"

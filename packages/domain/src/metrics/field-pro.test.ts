@@ -2,10 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   buildFieldProJobRecordings,
   buildFieldProPerformance,
-  buildFieldProTechnicianActivity
+  buildFieldProTechnicianActivity,
+  fieldProRecordingStaffId
 } from "./field-pro";
 
 describe("Field Pro report normalization", () => {
+  it("resolves an older longer profile name only with an exact single job assignment",()=>{
+    const staff=[{technicianId:"1",technician:"Pat Lee"}];
+    const recording=(technician:string,assignedTechnicians:string)=>({technician,assignedTechnicians} as never);
+    expect(fieldProRecordingStaffId(recording("Pat Lee Garcia","Pat Lee"),staff)).toBe("1");
+    expect(fieldProRecordingStaffId(recording("Pat Lee Garcia","Pat Lee, Other"),staff)).toBeNull();
+    expect(fieldProRecordingStaffId(recording("Pat Leech","Pat Lee"),staff)).toBeNull();
+    expect(fieldProRecordingStaffId(recording("Pat Lee Garcia","Pat Lee"),[...staff,{technicianId:"2",technician:"Pat Lee Garcia"}])).toBe("2");
+  });
   it("preserves missing recording data and normalizes populated technicians", () => {
     const activity = buildFieldProTechnicianActivity({
       fields: [

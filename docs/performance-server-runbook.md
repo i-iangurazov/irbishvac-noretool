@@ -171,6 +171,22 @@ Install the additive table once with `scripts/install-coaching-schema.ts` before
 deploying this endpoint. Failed refreshes retain the last successful source with
 its original timestamp; they cannot make stale data appear fresh.
 
+Technician refreshes supplement the compact sales scorecard with the complete
+same-period operations report. The compact source can omit staff who still have
+completed jobs or negative sales; its absence alone cannot establish no activity.
+The November cross-source audit restored Christian's 4 jobs/$1,798 completed
+revenue, Kenneth's 3 jobs and David's 4 jobs. Negative sales are retained.
+Installer zero-activity rows were independently checked against the full board.
+
+Canonical coaching inputs also fetch complete current-scope Field Pro job
+recordings for maximum durations and recording evidence. An older, longer profile
+name may match only through an exact single job assignment and a unique current
+identity; explicit known recording-owner names take precedence. Missing durations
+stay null. Score/talk-share fields are not present in the connected exports.
+Partial failed baseline manifests are retried rather than cached permanently;
+advisor historical baselines use the existing compact report to avoid the legacy
+report's repeated timeouts.
+
 `GET /api/dashboard/personnel?month=YYYY-MM` is the shared directory with goals.
 Server access uses `x-dashboard-access-token`. Refresh and goal writes additionally
 require `x-dashboard-write-token`. Both values use the existing server auth secret;

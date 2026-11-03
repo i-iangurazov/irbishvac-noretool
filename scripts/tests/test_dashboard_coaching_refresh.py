@@ -1,6 +1,7 @@
 import sys
 import unittest
 import tempfile
+import json
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -9,6 +10,17 @@ import run_service_tech_thursday_delivery as tech
 import run_advisor_friday_delivery as advisor
 
 class DashboardOnlyTests(unittest.TestCase):
+    def test_failed_partial_baseline_is_retried_instead_of_cached_forever(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            for name in ("technician_performance_board","technician_performance_scorecard_vadim","technician_dashboard_productivity","fieldpro_technician_recording_activity","field_conversion_report","operations_performance"):
+                (root/(name+".csv")).write_text("Name\n")
+            manifest={"fromDate":"2026-08-01","toDate":"2026-10-31","failedReports":["operations_performance"]}
+            (root/"export-manifest.json").write_text(json.dumps(manifest))
+            self.assertFalse(tech._source_exports_valid(root,"2026-08-01","2026-10-31"))
+            manifest["failedReports"]=[]
+            (root/"export-manifest.json").write_text(json.dumps(manifest))
+            self.assertTrue(tech._source_exports_valid(root,"2026-08-01","2026-10-31"))
     def test_both_cycles_publish_current_pacific_day_without_pdf_or_email(self):
         # The Pacific date is still November 3 even though Bishkek has crossed midnight.
         now = datetime.fromisoformat("2026-11-04T02:00:00+06:00")

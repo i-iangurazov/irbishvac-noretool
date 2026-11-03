@@ -156,7 +156,7 @@ def _run_cycle(
             ],
             repo,
         )
-        if mode != "dashboard" or not (baseline_source / "export-manifest.json").exists():
+        if mode != "dashboard" or not _source_exports_valid(baseline_source, baseline_from.isoformat(), baseline_to.isoformat()):
             _run(
                 [
                     sys.executable,
@@ -433,6 +433,14 @@ def _require_source_exports(path: Path, label: str, from_date: str | None = None
         manifest = json.loads((path / "export-manifest.json").read_text())
         if manifest.get("fromDate") != from_date or manifest.get("toDate") != to_date or manifest.get("failedReports"):
             raise ValueError(f"Cannot reuse {label}: source dates differ or report exports failed")
+
+
+def _source_exports_valid(path: Path, from_date: str, to_date: str) -> bool:
+    try:
+        _require_source_exports(path, "cached baseline", from_date, to_date)
+        return True
+    except (OSError, ValueError, TypeError):
+        return False
 
 
 def _free_port() -> int:
