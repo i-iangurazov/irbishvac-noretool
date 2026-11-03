@@ -76,11 +76,30 @@ export function buildTechnicianDashboard(
   },
 ): TechnicianDashboard {
   const report = resolveTabularReport(input);
+  const primaryCoverage = personnelSourceCoverage(input, ["Name", "CompletedRevenue", "CompletedJobs", "TotalSales", "SalesOpportunity", "ClosedOpportunities", "MembershipsSold"]);
+  const supplement = input && typeof input === "object" ? (input as Record<string,unknown>).operationsSupplement : undefined;
+  const operationsCoverage = personnelSourceCoverage(supplement, ["Name", "TechnicianId", "CompletedRevenue", "CompletedJobs", "TotalSales", "MembershipOpportunities", "MembershipsSold", "TotalLeadSales"]);
+  const sourceRows = report.rows.slice();
+  if (primaryCoverage && operationsCoverage) {
+    const identity=(value:unknown)=>String(value??"").toLowerCase().replace(/[^a-z0-9]/g,"");
+    for (const operational of resolveTabularReport(supplement).rows) {
+      const id=readTextField(operational,TECHNICIAN_ID_FIELD_KEYS);
+      const matches=sourceRows.map((row,index)=>({row,index})).filter(({row})=>{
+        const rowId=readTextField(row,TECHNICIAN_ID_FIELD_KEYS);
+        return rowId ? rowId===id : identity(row.Name)===identity(operational.Name);
+      });
+      if (matches.length>1) throw new Error("Ambiguous technician operational supplement");
+      const match=matches[0];
+      // Shared source fields agree; the compact scorecard keeps its own sales-opportunity definitions.
+      if (match) sourceRows[match.index]={...operational,...match.row,TechnicianId:id};
+      else sourceRows.push(operational);
+    }
+  }
   const extrasByName = options?.extrasByName ?? {};
   const commissionRate = options?.commissionRate ?? 0;
   const headshotsByName = options?.headshotsByName ?? {};
 
-  const rows = report.rows.map((row) => {
+  const rows = sourceRows.map((row) => {
     const name = String(row.Name ?? "");
     const extra = extrasByName[name] ?? {};
     const businessUnit = readTextField(row, BUSINESS_UNIT_FIELD_KEYS) ?? "";
@@ -135,7 +154,7 @@ export function buildTechnicianDashboard(
   const rowsRanked = rankTechnicianRows(rows);
 
   return {
-    sourceCoverage: personnelSourceCoverage(input, ["Name", "CompletedRevenue", "CompletedJobs", "TotalSales", "SalesOpportunity", "ClosedOpportunities", "MembershipsSold"]),
+    sourceCoverage: primaryCoverage && operationsCoverage ? primaryCoverage : undefined,
     rows,
     rowsRanked,
     totals: calculateTechnicianTotals(rows),

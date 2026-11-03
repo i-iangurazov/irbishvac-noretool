@@ -4,7 +4,7 @@ import argparse
 import csv
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -54,6 +54,7 @@ def main() -> int:
     parser.add_argument("--output-dir", default=str(OUTPUT_DIR), help="Directory for CSV/JSON exports.")
     parser.add_argument("--catalog-only", action="store_true", help="Only refresh the ServiceTitan report catalog.")
     parser.add_argument("--fail-on-missing-selected", action="store_true", help="Exit unsuccessfully if any selected report cannot be exported.")
+    parser.add_argument("--advisor-scorecard-report-id", type=int, help="Use the compact advisor report for closed historical baselines.")
     parser.add_argument(
         "--skip-catalog",
         action="store_true",
@@ -103,6 +104,8 @@ def main() -> int:
     failed = []
     started_at = datetime.now(timezone.utc).isoformat()
     for spec in selected_reports:
+        if spec.slug == "comfort_advisor_performance_scorecard" and args.advisor_scorecard_report_id:
+            spec = replace(spec, report_id=args.advisor_scorecard_report_id)
         try:
             description = get_report_description(client, spec)
             body = build_report_data_body(description, start_date, end_date)
