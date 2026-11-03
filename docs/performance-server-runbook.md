@@ -9,8 +9,13 @@ No process depends on a Mac, a sibling checkout or a local env file.
 ## Rollout state — 2026-11-03
 
 API, worker and dashboards are live. Both isolated smoke packages for the closed
-working day November 2 generated all 9 technician and 5 advisor PDFs with no
-layout QA failures. These were non-sending runs, not scheduled delivery proof.
+working day November 2 generated all 9 technician and 5 advisor PDFs. Restoring
+the template's original spacing exposed footer overlap in 10 of those 14 reports.
+The owner authorized necessary minor fit corrections on November 3: only three
+report spacing values are reduced (grid gap, header bottom padding and block-title
+vertical padding). Fonts, colours, content and block structure are preserved.
+Rerender all 14 frozen inputs and verify the unchanged layout QA before accepting
+this correction. These non-sending runs do not prove scheduled delivery.
 The report service is configured for normal scheduling with
 `PERFORMANCE_REPORT_AUTO_SEND=true` after the owner confirmed the live connection
 test reached the inbox and the six legacy triggers were disabled. Verify the
