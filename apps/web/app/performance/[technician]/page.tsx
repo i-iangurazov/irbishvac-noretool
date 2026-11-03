@@ -159,7 +159,7 @@ function buildDeliveryFocus(
     return {
       title: "Arrive within the first half of every arrival window",
       reason: `MTD first-half arrival rate is ${formatPercent(onTimeRate, 0)} across ${delivery.execution.arrivalEligibleAppointments ?? 0} measured appointments.`,
-      instruction: "Review the route before dispatch, leave enough travel buffer, and notify dispatch immediately when the first-half threshold is at risk.",
+      instruction: "Review the route, allow travel time, and alert dispatch immediately if first-half arrival is at risk.",
       target: "90%+ first-half arrival rate",
       play: [
         "Check the next appointment window before leaving the current job.",
