@@ -1,4 +1,5 @@
 import type { PerformanceGoal } from "../performance-goals";
+import { personnelSourceCoverage, type PersonnelSourceCoverage } from "../shared/personnel-coverage";
 import {
   BUSINESS_UNIT_FIELD_KEYS,
   classifyFieldStaffDepartment,
@@ -18,6 +19,8 @@ import {
 
 export type AdvisorMetricRow = {
   goal?: PerformanceGoal | null;
+  monthlyGoal?: PerformanceGoal | null;
+  noActivity?: boolean;
   actualSourceAvailable?: boolean;
   name: string;
   businessUnit: string | null;
@@ -33,6 +36,7 @@ export type AdvisorMetricRow = {
 };
 
 export type AdvisorDashboard = {
+  sourceCoverage?: PersonnelSourceCoverage | undefined;
   personnelFetchedAt?: string;
   rows: AdvisorMetricRow[];
   rowsRanked: AdvisorMetricRow[];
@@ -204,6 +208,7 @@ export function buildAdvisorDashboard(input: unknown): AdvisorDashboard {
   return {
     rows,
     rowsRanked,
+    sourceCoverage: personnelSourceCoverage(input, ["Name", "TechnicianId", "TotalSales", "SalesOpportunity", "ClosedOpportunities"]),
     totals: calculateAdvisorTotals(rows),
     snapshotTime: report.snapshotTime,
   };

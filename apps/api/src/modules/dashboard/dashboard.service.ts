@@ -401,7 +401,7 @@ export class DashboardService {
       (payload) => buildTechnicianDashboard(payload),
       context,
     );
-    return this.personnelService.technicians(dashboard, this.performanceGoalMonth("technicians", context));
+    return this.personnelService.technicians(dashboard, this.performanceGoalMonth("technicians", context), this.resolveRequest("technicians", context).range.to.slice(0, 7));
   }
 
   async getTechnicians(context?: DashboardRequestContext) {
@@ -448,7 +448,7 @@ export class DashboardService {
       context,
     );
 
-    return filterInstallerDashboardByDepartment(await this.personnelService.installers(dashboard, this.performanceGoalMonth("installers", context)), department);
+    return filterInstallerDashboardByDepartment(await this.personnelService.installers(dashboard, this.performanceGoalMonth("installers", context), this.resolveRequest("installers", context).range.to.slice(0, 7)), department);
   }
 
   async getAdvisors(context?: DashboardRequestContext) {
@@ -463,7 +463,7 @@ export class DashboardService {
       context,
     );
 
-    return this.personnelService.advisors(dashboard, this.performanceGoalMonth("advisors", context));
+    return this.personnelService.advisors(dashboard, this.performanceGoalMonth("advisors", context), this.resolveRequest("advisors", context).range.to.slice(0, 7));
   }
 
   async getPerformanceFieldPro(context?: DashboardRequestContext) {

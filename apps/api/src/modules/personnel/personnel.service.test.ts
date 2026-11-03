@@ -25,4 +25,15 @@ describe("server personnel directory", () => {
     findFirst.mockRejectedValue(new Error("database unavailable"));
     await expect(service.directory()).rejects.toMatchObject({ status: 503 });
   });
+
+  it("keeps the requested month's goal visible separately from multi-month performance comparisons", async () => {
+    const directory = buildPerformancePersonnelDirectory([{id:1,name:"New tech",active:true,isManagedTech:true,businessUnitId:2}], [{id:2,name:"HVAC - Service",active:true}]);
+    const goal = {month:"2026-10",monthly_sales_goal:1000};
+    const attach = vi.fn().mockResolvedValue({...directory,staff:directory.staff.map(person=>({...person,goal}))});
+    findFirst.mockResolvedValue({payloadJson:directory});
+    const result = await new PersonnelService({attach} as never).technicians(buildTechnicianDashboard([]), null, "2026-10");
+    expect(attach).toHaveBeenCalledWith(directory,"2026-10");
+    expect(result.rows[0]?.goal).toBeNull();
+    expect(result.rows[0]?.monthlyGoal).toEqual(goal);
+  });
 });

@@ -2,6 +2,7 @@ import type { FieldStaffDepartment, FieldStaffSourceFamily } from "./metrics/fie
 import { buildTechnicianDashboard, withTechnicianRows, type TechnicianDashboard } from "./metrics/technicians";
 import { buildAdvisorDashboard, withAdvisorRows, type AdvisorDashboard } from "./metrics/advisors";
 import { buildInstallerDashboard, withInstallerRows, type InstallerDashboard } from "./metrics/installers";
+import type { PersonnelSourceCoverage } from "./shared/personnel-coverage";
 
 type SourceRow = Record<string, unknown>;
 
@@ -120,6 +121,7 @@ type MetricIdentity = { name: string; technicianId: string | null };
 function reconcileRows<T extends MetricIdentity>(
   rows: T[], directory: PerformancePersonnelDirectory, family: FieldStaffSourceFamily,
   empty: (person: PerformanceStaff) => T,
+  coverage?: PersonnelSourceCoverage,
 ) {
   const personnel = directory.staff.filter(person => person.sourceFamily === family);
   return personnel.map(person => {
@@ -130,26 +132,30 @@ function reconcileRows<T extends MetricIdentity>(
     if (byName.length > 1 || byName.some(row => personnel.some(other => other.technicianId !== person.technicianId && [other.technician, ...other.reportAliases].some(name => personnelIdentity(name) === personnelIdentity(row.name)))))
       throw new Error("Ambiguous name-only metric rows");
     const actual = byId[0] ?? byName[0];
+    const noActivity = actual === undefined && coverage !== undefined
+      && (coverage.businessUnitIds === null || coverage.businessUnitIds.includes(person.businessUnitId))
+      && !rows.some(row => names.has(personnelIdentity(row.name)));
     return {
       ...(actual ?? empty(person)),
       name: person.technician, technicianId: person.technicianId,
       businessUnit: person.businessUnit, department: person.dashboardDepartment,
-      actualSourceAvailable: actual !== undefined,
+      actualSourceAvailable: actual !== undefined || noActivity,
+      noActivity,
     };
   });
 }
 
 export function reconcileTechnicianPersonnel(dashboard: TechnicianDashboard, directory: PerformancePersonnelDirectory): TechnicianDashboard {
-  const rows = reconcileRows(dashboard.rows, directory, "technicians", person => buildTechnicianDashboard([{ Name: person.technician }]).rows[0]!);
+  const rows = reconcileRows(dashboard.rows, directory, "technicians", person => buildTechnicianDashboard([{ Name: person.technician, CompletedJobs: 0 }]).rows[0]!, dashboard.sourceCoverage);
   return { ...withTechnicianRows(dashboard, rows), personnelFetchedAt: directory.fetchedAt };
 }
 
 export function reconcileAdvisorPersonnel(dashboard: AdvisorDashboard, directory: PerformancePersonnelDirectory): AdvisorDashboard {
-  const rows = reconcileRows(dashboard.rows, directory, "advisors", person => buildAdvisorDashboard([{ Name: person.technician }]).rows[0]!);
+  const rows = reconcileRows(dashboard.rows, directory, "advisors", person => buildAdvisorDashboard([{ Name: person.technician }]).rows[0]!, dashboard.sourceCoverage);
   return { ...withAdvisorRows(dashboard, rows), personnelFetchedAt: directory.fetchedAt };
 }
 
 export function reconcileInstallerPersonnel(dashboard: InstallerDashboard, directory: PerformancePersonnelDirectory): InstallerDashboard {
-  const rows = reconcileRows(dashboard.rows, directory, "installers", person => buildInstallerDashboard([{ Name: person.technician }]).rows[0]!);
+  const rows = reconcileRows(dashboard.rows, directory, "installers", person => buildInstallerDashboard([{ Name: person.technician }]).rows[0]!, dashboard.sourceCoverage);
   return { ...withInstallerRows(dashboard, rows), personnelFetchedAt: directory.fetchedAt };
 }

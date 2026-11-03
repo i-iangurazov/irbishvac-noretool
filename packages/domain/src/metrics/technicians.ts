@@ -1,4 +1,5 @@
 import type { PerformanceGoal } from "../performance-goals";
+import { personnelSourceCoverage, type PersonnelSourceCoverage } from "../shared/personnel-coverage";
 import {
   BUSINESS_UNIT_FIELD_KEYS,
   classifyFieldStaffDepartment,
@@ -20,6 +21,8 @@ export type TechnicianExtra = {
 
 export type TechnicianMetricRow = {
   goal?: PerformanceGoal | null;
+  monthlyGoal?: PerformanceGoal | null;
+  noActivity?: boolean;
   actualSourceAvailable?: boolean;
   name: string;
   businessUnit: string;
@@ -50,6 +53,7 @@ export type TechnicianMetricRow = {
 };
 
 export type TechnicianDashboard = {
+  sourceCoverage?: PersonnelSourceCoverage | undefined;
   personnelFetchedAt?: string;
   rows: TechnicianMetricRow[];
   rowsRanked: TechnicianMetricRow[];
@@ -119,7 +123,7 @@ export function buildTechnicianDashboard(
       membershipsSold: toNumber(row.MembershipsSold),
       techMembershipConvPct: toRatio(row.MembershipConversionRate),
       totalInfluencedRevenue,
-      completedJobs: extra.completedJobs ?? null,
+      completedJobs: extra.completedJobs ?? (row.CompletedJobs != null ? toNumber(row.CompletedJobs) : null),
       callbackRate: extra.callbackRate ?? null,
       averageTicket:
         extra.averageTicket ?? (toNumber(row.OpportunityJobAverage) || avgSaleFromOpps || null),
@@ -131,6 +135,7 @@ export function buildTechnicianDashboard(
   const rowsRanked = rankTechnicianRows(rows);
 
   return {
+    sourceCoverage: personnelSourceCoverage(input, ["Name", "CompletedRevenue", "CompletedJobs", "TotalSales", "SalesOpportunity", "ClosedOpportunities", "MembershipsSold"]),
     rows,
     rowsRanked,
     totals: calculateTechnicianTotals(rows),

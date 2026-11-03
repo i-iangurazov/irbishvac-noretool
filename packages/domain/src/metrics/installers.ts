@@ -1,4 +1,5 @@
 import type { PerformanceGoal } from "../performance-goals";
+import { personnelSourceCoverage, type PersonnelSourceCoverage } from "../shared/personnel-coverage";
 import {
   BUSINESS_UNIT_FIELD_KEYS,
   classifyFieldStaffDepartment,
@@ -12,6 +13,8 @@ import { resolveTabularReport, sumBy, toNumber, toRatio, weightedAverage } from 
 
 export type InstallerMetricRow = {
   goal?: PerformanceGoal | null;
+  monthlyGoal?: PerformanceGoal | null;
+  noActivity?: boolean;
   actualSourceAvailable?: boolean;
   name: string;
   businessUnit: string | null;
@@ -30,6 +33,7 @@ export type InstallerMetricRow = {
 };
 
 export type InstallerDashboard = {
+  sourceCoverage?: PersonnelSourceCoverage | undefined;
   personnelFetchedAt?: string;
   rows: InstallerMetricRow[];
   rowsRanked: InstallerMetricRow[];
@@ -97,6 +101,7 @@ export function buildInstallerDashboard(input: unknown): InstallerDashboard {
   return {
     rows,
     rowsRanked,
+    sourceCoverage: personnelSourceCoverage(input, ["Name", "TechnicianId", "CompletedRevenue", "CompletedJobs", "RecallsCaused", "BillableEfficiency"]),
     totals: calculateInstallerTotals(rows, leader),
     snapshotTime: report.snapshotTime
   };

@@ -43,22 +43,22 @@ export class PersonnelService {
 
   private decorate<T extends { rows: Array<{ technicianId: string | null }>; rowsRanked: Array<{ technicianId: string | null }> }>(dashboard: T, directory: Awaited<ReturnType<PersonnelService["directoryWithGoals"]>>, disableGoals: boolean) {
     const goals = new Map(directory.staff.map(person => [person.technicianId, person.goal]));
-    const decorate = (row: T["rows"][number]) => ({ ...row, goal: disableGoals ? null : goals.get(row.technicianId ?? "") ?? null });
+    const decorate = (row: T["rows"][number]) => ({ ...row, goal: disableGoals ? null : goals.get(row.technicianId ?? "") ?? null, monthlyGoal: goals.get(row.technicianId ?? "") ?? null });
     return { ...dashboard, rows: dashboard.rows.map(decorate), rowsRanked: dashboard.rowsRanked.map(decorate) };
   }
 
-  async technicians(dashboard: TechnicianDashboard, month?: string | null): Promise<TechnicianDashboard> {
-    const directory = await this.directoryWithGoals(month ?? undefined);
+  async technicians(dashboard: TechnicianDashboard, month?: string | null, referenceMonth?: string): Promise<TechnicianDashboard> {
+    const directory = await this.directoryWithGoals(month ?? referenceMonth);
     return this.decorate(reconcileTechnicianPersonnel(dashboard, directory), directory, month === null);
   }
 
-  async advisors(dashboard: AdvisorDashboard, month?: string | null): Promise<AdvisorDashboard> {
-    const directory = await this.directoryWithGoals(month ?? undefined);
+  async advisors(dashboard: AdvisorDashboard, month?: string | null, referenceMonth?: string): Promise<AdvisorDashboard> {
+    const directory = await this.directoryWithGoals(month ?? referenceMonth);
     return this.decorate(reconcileAdvisorPersonnel(dashboard, directory), directory, month === null);
   }
 
-  async installers(dashboard: InstallerDashboard, month?: string | null): Promise<InstallerDashboard> {
-    const directory = await this.directoryWithGoals(month ?? undefined);
+  async installers(dashboard: InstallerDashboard, month?: string | null, referenceMonth?: string): Promise<InstallerDashboard> {
+    const directory = await this.directoryWithGoals(month ?? referenceMonth);
     return this.decorate(reconcileInstallerPersonnel(dashboard, directory), directory, month === null);
   }
 }
