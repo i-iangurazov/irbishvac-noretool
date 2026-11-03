@@ -163,6 +163,15 @@ export class DashboardRefreshRunner {
         parameters,
         correlationId,
       });
+      if (["technicians", "advisors", "installers"].includes(family)) {
+        const unitFilter = parameters.find(parameter => /^(BusinessUnitId|BusinessUnitIds)$/.test(parameter.name));
+        const unitIds = unitFilter?.value;
+        // The paginated client has already verified every page and the total row count.
+        result.payload = { ...(result.payload as Record<string, unknown>), personnelCoverage: {
+          complete: true,
+          businessUnitIds: Array.isArray(unitIds) && unitIds.length ? unitIds.map(String) : null,
+        } };
+      }
       if (family === "callCenterByCsr" || family === "callCenterSummary") {
         const csrSupplement = await refreshCsrSources(
           request.range.from,

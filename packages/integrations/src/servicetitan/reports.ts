@@ -152,7 +152,6 @@ export function getServiceTitanReportDefinitions(): Record<
       reportId: config.serviceTitan.reports.installers.reportId,
       legacyTableName: "st_installer",
       defaultPreset: "mtd",
-      businessUnitGroup: "installers",
     },
     advisors: {
       family: "advisors",

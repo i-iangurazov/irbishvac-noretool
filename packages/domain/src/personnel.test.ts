@@ -13,6 +13,32 @@ const units = [
 const person = (id: number, businessUnitId = 1, extra = {}) => ({ id, name: `Person ${id}`, businessUnitId, active: true, isManagedTech: true, ...extra });
 
 describe("shared personnel policy", () => {
+  it("shows verified no-activity zeroes only for complete reports covering the employee's unit", () => {
+    const directory = buildPerformancePersonnelDirectory([person(1), person(2, 3)], units);
+    const fields = ["Name", "CompletedRevenue", "CompletedJobs", "TotalSales", "SalesOpportunity", "ClosedOpportunities", "MembershipsSold"].map(name => ({name}));
+    const payload = { fields, data: [], hasMore: false, totalCount: 0, personnelCoverage: { complete: true, businessUnitIds: ["1"] } };
+    const result = reconcileTechnicianPersonnel(buildTechnicianDashboard(payload), directory);
+    expect(result.rows[0]).toMatchObject({ actualSourceAvailable: true, noActivity: true, completedJobs: 0, totalSales: 0 });
+    expect(result.rows[1]).toMatchObject({ actualSourceAvailable: false, noActivity: false });
+    for (const broken of [{...payload, hasMore:true}, {...payload,totalCount:1}, {...payload,fields:[]}, {...payload,personnelCoverage:undefined}]) {
+      expect(reconcileTechnicianPersonnel(buildTechnicianDashboard(broken), directory).rows[0]?.actualSourceAvailable).toBe(false);
+    }
+  });
+
+  it("uses reported completed jobs and preserves explicit zero", () => {
+    expect(buildTechnicianDashboard([{Name:"Person 1",CompletedJobs:7}]).rows[0]?.completedJobs).toBe(7);
+    expect(buildTechnicianDashboard([{Name:"Person 1",CompletedJobs:0}]).rows[0]?.completedJobs).toBe(0);
+    expect(buildTechnicianDashboard([{Name:"Person 1"}]).rows[0]?.completedJobs).toBeNull();
+  });
+
+  it("distinguishes no advisor or installer activity from an incomplete source", () => {
+    const directory = buildPerformancePersonnelDirectory([person(1,2),person(2,4)], units);
+    const payload = (names:string[]) => ({fields:names.map(name=>({name})),data:[],hasMore:false,totalCount:0,personnelCoverage:{complete:true,businessUnitIds:null}});
+    const advisors = buildAdvisorDashboard(payload(["Name","TechnicianId","TotalSales","SalesOpportunity","ClosedOpportunities"]));
+    const installers = buildInstallerDashboard(payload(["Name","TechnicianId","CompletedRevenue","CompletedJobs","RecallsCaused","BillableEfficiency"]));
+    expect(reconcileAdvisorPersonnel(advisors,directory).rows[0]).toMatchObject({actualSourceAvailable:true,noActivity:true,totalSales:0});
+    expect(reconcileInstallerPersonnel(installers,directory).rows[0]).toMatchObject({actualSourceAvailable:true,noActivity:true,jobsCompleted:0});
+  });
   it("keeps a new technician with no email, metrics or goals and removes inactive staff", () => {
     const directory = buildPerformancePersonnelDirectory([person(1), person(2, 1, { active: false })], units);
     const raw = buildTechnicianDashboard([{ Name: "Person 2", TechnicianId: "2", CompletedRevenue: 100 }]);

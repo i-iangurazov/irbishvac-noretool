@@ -27,6 +27,7 @@ export default async function AdvisorsPage({
       name: string;
       actualSourceAvailable?: boolean;
       goal?: PerformanceGoal | null;
+      monthlyGoal?: PerformanceGoal | null;
       photoUrl?: string | null;
       totalSales: number;
       closedAverageSale: number;
@@ -76,6 +77,7 @@ export default async function AdvisorsPage({
       ]}
       items={data.rowsRanked.map((row) => {
         const goal = getTvPerformanceGoal(row.goal);
+        const monthlyGoal = getTvPerformanceGoal(row.monthlyGoal ?? row.goal);
         const actual = (value: number, format: (value: number) => string) =>
           staffMetricValue(value, format, row.actualSourceAvailable);
         const pair = (actual: string, target: string | null) =>
@@ -90,9 +92,9 @@ export default async function AdvisorsPage({
             {
               label: "Monthly Sales Goal",
               value:
-                goal?.monthlySalesGoal != null
-                  ? compactMoney(goal.monthlySalesGoal)
-                  : "Pending",
+                monthlyGoal?.monthlySalesGoal != null
+                  ? compactMoney(monthlyGoal.monthlySalesGoal)
+                  : "Not set",
             },
             {
               label: "Avg Sale / Goal",
@@ -127,16 +129,16 @@ export default async function AdvisorsPage({
             {
               label: "Membership Goal/mo",
               value:
-                goal?.membershipMonthlyGoal != null
-                  ? String(goal.membershipMonthlyGoal)
-                  : "Pending",
+                monthlyGoal?.membershipMonthlyGoal != null
+                  ? String(monthlyGoal.membershipMonthlyGoal)
+                  : "Not set",
             },
             {
               label: "Monthly Review Goal",
               value:
-                goal?.reviewMonthlyGoal != null
-                  ? String(goal.reviewMonthlyGoal)
-                  : "Pending",
+                monthlyGoal?.reviewMonthlyGoal != null
+                  ? String(monthlyGoal.reviewMonthlyGoal)
+                  : "Not set",
             },
           ],
         };
