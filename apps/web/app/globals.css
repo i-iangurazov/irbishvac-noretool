@@ -980,37 +980,32 @@ body[data-vw-app="true"] .tv-settings-modal__action[data-active="false"] .tv-set
   min-height: 0 !important;
 }
 
-[data-dashboard-shell="true"] .company-board__trend-axis {
+/* The axis and bars share row 1; month captions are outside the monetary scale. */
+[data-dashboard-shell="true"] .company-board__trend-shell {
+  column-gap: var(--dash-space-sm) !important;
+  row-gap: 0 !important;
+  grid-template-columns: var(--dash-company-trend-axis) minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) var(--dash-company-trend-label-row) !important;
   height: var(--dash-company-trend-height) !important;
+  min-height: 0 !important;
 }
 
-[data-dashboard-shell="true"]:not([data-tv-mode="true"]) .company-board__trend-axis {
+[data-dashboard-shell="true"]:not([data-tv-mode="true"]) .company-board__trend-shell {
   height: calc(var(--vw-unit) * 340) !important;
 }
 
-[data-dashboard-shell="true"][data-tv-mode="true"] .company-board__trend-axis {
+[data-dashboard-shell="true"] .company-board__trend-axis {
+  grid-column: 1;
+  grid-row: 1;
   height: 100% !important;
-  min-height: var(--dash-company-trend-height) !important;
-}
-
-[data-dashboard-shell="true"] .company-board__trend-shell {
-  gap: var(--dash-space-sm) !important;
-  grid-template-columns: var(--dash-company-trend-axis) minmax(0, 1fr) !important;
   min-height: 0 !important;
 }
 
 [data-dashboard-shell="true"] .company-board__trend-chart {
-  height: var(--dash-company-trend-height) !important;
-  grid-template-rows: minmax(0, 1fr) var(--dash-company-trend-label-row) !important;
-  min-height: 0 !important;
-}
-
-[data-dashboard-shell="true"]:not([data-tv-mode="true"]) .company-board__trend-chart {
-  height: calc(var(--vw-unit) * 340) !important;
-}
-
-[data-dashboard-shell="true"][data-tv-mode="true"] .company-board__trend-chart {
+  grid-column: 2;
+  grid-row: 1;
   height: 100% !important;
+  min-height: 0 !important;
 }
 
 [data-dashboard-shell="true"] .company-board__trend-axis-label,
@@ -1029,6 +1024,8 @@ body[data-vw-app="true"] .tv-settings-modal__action[data-active="false"] .tv-set
 }
 
 [data-dashboard-shell="true"] .company-board__trend-months {
+  grid-column: 2;
+  grid-row: 2;
   padding-top: var(--dash-space-xs) !important;
 }
 
@@ -1039,12 +1036,6 @@ body[data-vw-app="true"] .tv-settings-modal__action[data-active="false"] .tv-set
 
 [data-dashboard-shell="true"] .company-board__trend-bars > div {
   gap: var(--dash-space-2xs) !important;
-}
-
-[data-dashboard-shell="true"]
-  .company-board__trend-bars
-  [style*="height: 0.36rem"] {
-  height: var(--dash-company-trend-goal) !important;
 }
 
 [data-dashboard-shell="true"] .company-board__trend-bar {
@@ -1702,15 +1693,6 @@ body[data-vw-app="true"] {
 
 [data-dashboard-shell="true"][data-tv-mode="true"] .company-board__calls-grid {
   justify-items: center !important;
-}
-
-[data-dashboard-shell="true"][data-tv-mode="true"] .company-board__trend-axis {
-  height: var(--dash-company-trend-height) !important;
-  min-height: 0 !important;
-}
-
-[data-dashboard-shell="true"][data-tv-mode="true"] .company-board__trend-chart {
-  height: var(--dash-company-trend-height) !important;
 }
 
 [data-dashboard-shell="true"]:not([data-tv-mode="true"]) .company-board__support,
@@ -4419,3 +4401,30 @@ body[data-vw-app="true"] .goal-tracker-card__fill {
   .campaign-executive-grid { grid-template-columns: 1.05fr 1.25fr 1.45fr 0.9fr; }
   .campaign-executive-card { padding: 0.08in; }
 }
+
+/* Portal tooltips remain readable outside the chart card and its scrolling ancestors. */
+.marketing-tooltip.company-trend-tooltip {
+  position: fixed;
+  z-index: 10000;
+  width: max-content;
+  max-width: min(520px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 14px 16px;
+  border: 1px solid #0d4c58;
+  border-radius: 10px;
+  background: #123d46;
+  color: white;
+  box-shadow: 0 8px 24px #123d4630;
+  font-size: clamp(12px, 0.7vw, 20px);
+  line-height: 1.6;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.marketing-tooltip.company-trend-tooltip p { margin: 0; }
+.marketing-tooltip.company-trend-tooltip p:first-child { font-weight: 700; }
+.marketing-tooltip.company-trend-tooltip p + p { margin-top: 4px; }
+.company-board__trend-bars .company-board__trend-bar-group { cursor: crosshair; }
+[data-dashboard-shell="true"] .company-board__trend-bar-group:focus-visible { outline: 2px solid #0d4c58; outline-offset: 2px; }
+@media print { .company-trend-tooltip { display: none; } }

@@ -18,6 +18,8 @@ import {
 import { getBrandLogoUrl } from "../lib/assets";
 import { CompanyWideGoalInsertButton } from "./company-wide-goal-insert-button";
 import { companyFreshness } from "../lib/company-freshness";
+import { CompanyTrendingChart } from "./company-trending-chart";
+import type { CompanyTrendingData } from "../lib/company-trending";
 
 type CompanyWideData = {
   marketing: {
@@ -69,21 +71,7 @@ type CompanyWideData = {
     kpis: { leads: number; booked: number; unbooked: number; rate: number };
     snapshotTime?: string | null;
   };
-  trending: {
-    years: {
-      previous: number;
-      current: number;
-    };
-    months: Array<{
-      month: string;
-      short?: string;
-      previous: { sales: number; revenue: number };
-      current: { sales: number; revenue: number };
-      goal: number;
-    }>;
-    chartMax?: number;
-    snapshotTime?: string | null;
-  };
+  trending: CompanyTrendingData;
   goals: Array<{
     year: number;
     monthIndex: number;
@@ -148,32 +136,9 @@ function percentLabel(value: number) {
 }
 
 function axisCurrency(value: number) {
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
-  }
-
-  if (value >= 1_000) {
-    return `$${Math.round(value / 1_000)}K`;
-  }
-
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${Math.round(value / 1_000)}K`;
   return `$${Math.round(value)}`;
-}
-
-function trendBarHeight(value: number, max: number) {
-  if (value <= 0 || max <= 0) {
-    return "0%";
-  }
-
-  return `${Math.max((value / max) * 100, 2)}%`;
-}
-
-function goalMarkerBottom(goal: number, max: number) {
-  if (max <= 0) {
-    return "0%";
-  }
-
-  const ratio = Math.max(goal, 0) / max;
-  return `${Math.max(0, Math.min(ratio, 1)) * 100}%`;
 }
 
 function StatBlock(props: { label: string; value: string; accent?: boolean }) {
@@ -223,22 +188,6 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
     ) + 1,
   );
   const revenuePacing = daysElapsed > 0 ? ytdRevenue * (daysInYear / daysElapsed) : 0;
-  const trendMax =
-    data.trending.chartMax ||
-    Math.max(
-      1,
-      ...data.trending.months.flatMap((month) => [
-        month.previous.sales,
-        month.previous.revenue,
-        month.current.sales,
-        month.current.revenue,
-        month.goal,
-      ]),
-    );
-  const trendTicks = Array.from(
-    { length: 5 },
-    (_, index) => trendMax * ((4 - index) / 4),
-  );
   const {freshness,hasCachedData} = companyFreshness([data.trending, data.marketing, data.capacity,
     data.jobCostingSummary, data.revenueGoals, data.salesToday, data.salesYesterday,
     data.salesMonthlyPace, data.revenueMonthlyPace, data.bookingRate]);
@@ -361,127 +310,7 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
                   />
                 </div>
                 <Panel className="company-board__trending-panel">
-                  <div className="company-board__legend flex flex-wrap">
-                    <span
-                      className="border border-[#dfe5ee] bg-[#f1f3f7] font-semibold text-[#8b5b3c]"
-                    >
-                      {data.trending.years.previous} Sales
-                    </span>
-                    <span
-                      className="border border-[#dfe5ee] bg-[#f1f3f7] font-semibold text-[#4a90e2]"
-                    >
-                      {data.trending.years.previous} Revenue
-                    </span>
-                    <span
-                      className="border border-[#d7efe8] bg-[#eefaf7] font-semibold text-[#ff6b35]"
-                    >
-                      {data.trending.years.current} Sales
-                    </span>
-                    <span
-                      className="border border-[#d7efe8] bg-[#eefaf7] font-semibold text-[#17b4b0]"
-                    >
-                      {data.trending.years.current} Revenue
-                    </span>
-                  </div>
-
-                  <div className="company-board__trend-frame border border-[#edf0f4] bg-[#f8fbff]">
-                    <div className="company-board__trend-shell grid">
-                      <div className="company-board__trend-axis relative">
-                        {trendTicks.map((tick, index) => (
-                          <div
-                            className="company-board__trend-axis-label absolute left-0 right-0 flex -translate-y-1/2 items-center font-bold text-slate-500"
-                            key={`${tick}-${index}`}
-                            style={{
-                              top: `${(index / (trendTicks.length - 1)) * 100}%`,
-                            }}
-                          >
-                            {axisCurrency(tick)}
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="company-board__trend-chart relative grid min-h-0">
-                        <div className="absolute inset-0">
-                          {trendTicks.map((_, index) => (
-                            <div
-                              className="absolute left-0 right-0 border-t border-[#dbe6f4]"
-                              key={index}
-                              style={{
-                                top: `${(index / (trendTicks.length - 1)) * 100}%`,
-                              }}
-                            />
-                          ))}
-                        </div>
-
-                        <div className="company-board__trend-bars grid grid-cols-12">
-                          {data.trending.months.map((month) => (
-                            <div
-                              className="company-board__trend-bar-group relative flex h-full items-end justify-center"
-                              key={month.month}
-                            >
-                              <div
-                                className="company-board__trend-goal absolute left-1/2 -translate-x-1/2 rounded-full bg-[#42d14a]"
-                                style={{
-                                  bottom: goalMarkerBottom(
-                                    month.goal,
-                                    trendMax,
-                                  ),
-                                  height: "0.36rem",
-                                }}
-                              />
-                              <div
-                                className="company-board__trend-bar rounded-full bg-[#8b5b3c]"
-                                style={{
-                                  height: trendBarHeight(
-                                    month.previous.sales,
-                                    trendMax,
-                                  ),
-                                }}
-                              />
-                              <div
-                                className="company-board__trend-bar rounded-full bg-[#4a90e2]"
-                                style={{
-                                  height: trendBarHeight(
-                                    month.previous.revenue,
-                                    trendMax,
-                                  ),
-                                }}
-                              />
-                              <div
-                                className="company-board__trend-bar rounded-full bg-[#ff6b35]"
-                                style={{
-                                  height: trendBarHeight(
-                                    month.current.sales,
-                                    trendMax,
-                                  ),
-                                }}
-                              />
-                              <div
-                                className="company-board__trend-bar rounded-full bg-[#17b4b0]"
-                                style={{
-                                  height: trendBarHeight(
-                                    month.current.revenue,
-                                    trendMax,
-                                  ),
-                                }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="company-board__trend-months grid grid-cols-12">
-                          {data.trending.months.map((month) => (
-                            <div
-                              className="company-board__trend-month text-center font-black uppercase tracking-[0.16em] text-slate-500"
-                              key={`${month.month}-label`}
-                            >
-                              {month.short ?? month.month.slice(0, 3)}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <CompanyTrendingChart data={data.trending} cutoff={filters.to} />
                 </Panel>
               </section>
 
