@@ -163,6 +163,17 @@ export class DashboardRefreshRunner {
         parameters,
         correlationId,
       });
+      if (family === "technicians") {
+        // The compact scorecard omits zero/negative-sales employees who may still have completed jobs.
+        const operations = await this.client.fetchPaginatedReport({
+          family, category:"operations", reportId:"7966542",
+          parameters:[{name:"From",value:request.range.from},{name:"To",value:request.range.to},{name:"IncludeInactive",value:false}],
+          correlationId:`${correlationId}:operations`,
+        });
+        result.payload={...(result.payload as Record<string,unknown>),operationsSupplement:{
+          ...(operations.payload as Record<string,unknown>),personnelCoverage:{complete:true,businessUnitIds:null},
+        }};
+      }
       if (["technicians", "advisors", "installers"].includes(family)) {
         const unitFilter = parameters.find(parameter => /^(BusinessUnitId|BusinessUnitIds)$/.test(parameter.name));
         const unitIds = unitFilter?.value;

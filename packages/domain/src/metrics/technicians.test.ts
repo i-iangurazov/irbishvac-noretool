@@ -5,6 +5,16 @@ import {
 } from "./technicians";
 
 describe("buildTechnicianDashboard", () => {
+  it("retains real jobs, revenue, membership opportunities and negative sales for staff omitted by the compact scorecard", () => {
+    const complete=(fields:string[],data:unknown[][])=>({fields:fields.map(name=>({name})),data,hasMore:false,totalCount:data.length,personnelCoverage:{complete:true,businessUnitIds:null}});
+    const primary=complete(["Name","CompletedRevenue","CompletedJobs","TotalSales","SalesOpportunity","ClosedOpportunities","MembershipsSold"],[["Existing",100,2,250,3,1,0]]);
+    const operations=complete(["Name","TechnicianId","CompletedRevenue","CompletedJobs","TotalSales","MembershipOpportunities","MembershipsSold","TotalLeadSales"],[["Existing",1,100,2,250,2,0,0],["Plumber",2,1798,4,-99,4,0,0],["Zero revenue tech",3,0,3,0,3,0,0]]);
+    const result=buildTechnicianDashboard({...primary,operationsSupplement:operations});
+    expect(result.rows.find(row=>row.technicianId==="2")).toMatchObject({completedRevenue:1798,completedJobs:4,totalSales:-99,membershipOpportunities:4});
+    expect(result.rows.find(row=>row.technicianId==="3")).toMatchObject({completedJobs:3,totalSales:0,membershipOpportunities:3});
+    expect(result.rows.find(row=>row.technicianId==="1")).toMatchObject({salesOpportunity:3,closedOpportunities:1,totalSales:250});
+    expect(buildTechnicianDashboard({...primary,operationsSupplement:{...operations,hasMore:true}}).rows).toHaveLength(1);
+  });
   it("preserves weighted totals and ranking", () => {
     const result = buildTechnicianDashboard({
       fields: [

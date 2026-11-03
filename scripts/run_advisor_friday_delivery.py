@@ -160,6 +160,7 @@ def _run_cycle(
                     str(performance_export),
                     "--",
                     *report_export_options("advisor"),
+                    *(["--advisor-scorecard-report-id", "138322718"] if output == baseline_source else []),
                     "--from-date",
                     from_date.isoformat(),
                     "--to-date",

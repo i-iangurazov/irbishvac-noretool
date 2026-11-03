@@ -16,13 +16,15 @@ describe("shared personnel policy", () => {
   it("shows verified no-activity zeroes only for complete reports covering the employee's unit", () => {
     const directory = buildPerformancePersonnelDirectory([person(1), person(2, 3)], units);
     const fields = ["Name", "CompletedRevenue", "CompletedJobs", "TotalSales", "SalesOpportunity", "ClosedOpportunities", "MembershipsSold"].map(name => ({name}));
-    const payload = { fields, data: [], hasMore: false, totalCount: 0, personnelCoverage: { complete: true, businessUnitIds: ["1"] } };
+    const operationsSupplement = {fields:["Name","TechnicianId","CompletedRevenue","CompletedJobs","TotalSales","MembershipOpportunities","MembershipsSold","TotalLeadSales"].map(name=>({name})),data:[],hasMore:false,totalCount:0,personnelCoverage:{complete:true,businessUnitIds:null}};
+    const payload = { fields, data: [], hasMore: false, totalCount: 0, personnelCoverage: { complete: true, businessUnitIds: ["1"] }, operationsSupplement };
     const result = reconcileTechnicianPersonnel(buildTechnicianDashboard(payload), directory);
     expect(result.rows[0]).toMatchObject({ actualSourceAvailable: true, noActivity: true, completedJobs: 0, totalSales: 0 });
     expect(result.rows[1]).toMatchObject({ actualSourceAvailable: false, noActivity: false });
     for (const broken of [{...payload, hasMore:true}, {...payload,totalCount:1}, {...payload,fields:[]}, {...payload,personnelCoverage:undefined}]) {
       expect(reconcileTechnicianPersonnel(buildTechnicianDashboard(broken), directory).rows[0]?.actualSourceAvailable).toBe(false);
     }
+    expect(reconcileTechnicianPersonnel(buildTechnicianDashboard({...payload,operationsSupplement:undefined}),directory).rows[0]?.actualSourceAvailable).toBe(false);
   });
 
   it("uses reported completed jobs and preserves explicit zero", () => {
