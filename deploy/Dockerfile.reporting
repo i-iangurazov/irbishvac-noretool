@@ -4,16 +4,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
 RUN corepack enable && corepack prepare pnpm@10.6.0 --activate
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY apps/worker/package.json ./apps/worker/
+COPY packages/config/package.json ./packages/config/
+COPY packages/db/package.json ./packages/db/
+COPY packages/domain/package.json ./packages/domain/
+COPY packages/integrations/package.json ./packages/integrations/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/utils/package.json ./packages/utils/
+RUN pnpm install --frozen-lockfile
+COPY scripts/requirements-reporting.txt ./scripts/
+RUN python3 -m venv /opt/reporting && /opt/reporting/bin/pip install --no-cache-dir -r scripts/requirements-reporting.txt
+ENV PATH=/opt/reporting/bin:$PATH
+RUN pnpm --filter @irbis/web exec playwright install --with-deps chromium && rm -rf /var/lib/apt/lists/*
 COPY apps ./apps
 COPY packages ./packages
 COPY scripts ./scripts
 COPY python ./python
 COPY deploy ./deploy
 COPY tsconfig.base.json tsconfig.reporting.json turbo.json ./
-RUN pnpm install --frozen-lockfile
-RUN python3 -m venv /opt/reporting && /opt/reporting/bin/pip install --no-cache-dir -r scripts/requirements-reporting.txt
-ENV PATH=/opt/reporting/bin:$PATH
-RUN pnpm --filter @irbis/web exec playwright install --with-deps chromium && rm -rf /var/lib/apt/lists/*
 RUN pnpm db:generate
 # Build-time values are placeholders only. Secrets arrive at runtime from Railway.
 # Clerk is bypassed solely for private, token-authenticated loopback report routes.

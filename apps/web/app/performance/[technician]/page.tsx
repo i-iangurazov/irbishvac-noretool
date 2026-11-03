@@ -231,8 +231,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
     : basePlan;
   const cutoffDate = deliverySnapshot?.cutoffDate ?? toBusinessDateString(new Date(), "America/Los_Angeles");
   const week = getLastCompletedWeek();
-  const mtdRoster = await loadPerformanceRoster(cutoffDate);
-  const liveRow = mtdRoster.find((row) => row.slug === plan.slug);
+  const liveRow = delivery ? undefined : (await loadPerformanceRoster(cutoffDate)).find((row) => row.slug === plan.slug);
   const deliveryRow = delivery
     ? buildPerformanceRoster(
         [{

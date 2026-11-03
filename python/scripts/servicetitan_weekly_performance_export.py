@@ -202,14 +202,26 @@ def fetch_report_data(client: ServiceTitanClient, spec: ReportSpec, body: dict[s
             {"page": str(page), "pageSize": str(PAGE_SIZE), "includeTotal": "true"},
             body,
         )
+        if not isinstance(payload.get("fields"), list) or not isinstance(payload.get("data"), list) or not isinstance(payload.get("hasMore"), bool):
+            raise RuntimeError("Incomplete report: fields, data or pagination metadata missing")
+        if any(not isinstance(row, list) for row in payload["data"]):
+            raise RuntimeError("Incomplete report: malformed data row")
+        if page > 1 and fields != payload["fields"]:
+            raise RuntimeError("Incomplete report: fields changed between pages")
         if not fields:
-            fields = list(payload.get("fields") or [])
-        data_rows.extend([row for row in payload.get("data") or [] if isinstance(row, list)])
+            fields = list(payload["fields"])
+        if payload["hasMore"] and not payload["data"]:
+            raise RuntimeError("Incomplete report: empty intermediate page")
+        data_rows.extend(payload["data"])
         if payload.get("totalCount") is not None:
             total_count = int(payload.get("totalCount") or 0)
-        if not payload.get("hasMore"):
+        if not payload["hasMore"]:
+            if total_count is not None and total_count != len(data_rows):
+                raise RuntimeError("Incomplete report: collected rows differ from totalCount")
             break
         page += 1
+        if page > 100:
+            raise RuntimeError("Incomplete report: pagination exceeded 100 pages")
 
     return {
         "fields": fields,

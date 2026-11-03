@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
@@ -32,7 +33,7 @@ def phase(now: datetime, cycle: str, state: dict) -> str:
         return "idle"
     minute = local.hour * 60 + local.minute
     if minute >= 19 * 60 + 45:
-        return "missed_deadline" if minute < 20 * 60 else "idle"
+        return "missed_deadline"
     if minute < 18 * 60:
         return "idle"
     if state.get("status") != "ready":
@@ -74,8 +75,10 @@ def run_logged(command: list[str], package: Path, env: dict) -> None:
     package.mkdir(parents=True, exist_ok=True)
     with (package / "server-run.log").open("ab", buffering=0) as log:
         process = subprocess.Popen(command, cwd=REPO, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        started = time.monotonic()
         while process.poll() is None:
-            if STOP.wait(1):
+            timed_out = time.monotonic() - started > int(env.get("PERFORMANCE_REPORT_PROCESS_TIMEOUT_SECONDS", "3600"))
+            if STOP.wait(1) or timed_out:
                 os.killpg(process.pid, signal.SIGTERM)
                 try:
                     process.wait(timeout=20)
@@ -92,6 +95,7 @@ def tick(repo: Path, root: Path, env: dict, now: datetime) -> None:
         output = root / folder
         package = output / local.date().isoformat()
         state_path = root / "scheduler" / f"{local.date().isoformat()}-{cycle}.json"
+        state_path.parent.mkdir(parents=True, exist_ok=True)
         state = json.loads(state_path.read_text()) if state_path.exists() else {"cycle": cycle, "runKind": "scheduled", "status": "waiting"}
         # Recover a fully prepared frozen package if the process stopped between
         # finishing preparation and persisting scheduler state.
@@ -150,6 +154,34 @@ def tick(repo: Path, root: Path, env: dict, now: datetime) -> None:
         print(json.dumps({"cycle": cycle, "action": action, "status": state["status"], "date": str(local.date())}), flush=True)
 
 
+def audit_missed_cycles(root: Path, env: dict, now: datetime) -> None:
+    local = now.astimezone(ZoneInfo(SCHEDULE_TIMEZONE))
+    activation = root / "scheduler/activation.json"
+    activation.parent.mkdir(parents=True, exist_ok=True)
+    if not activation.exists():
+        _atomic_json(activation, {"activatedAt": now.isoformat(), "localDate": str(local.date())})
+    start = json.loads(activation.read_text())["localDate"]
+    for back in range(1, 8):
+        day = local.date() - timedelta(days=back)
+        if str(day) < start:
+            continue
+        for cycle, (weekday, _, _) in CYCLES.items():
+            if day.weekday() != weekday:
+                continue
+            path = root / "scheduler" / f"{day}-{cycle}.json"
+            state = json.loads(path.read_text()) if path.exists() else {"cycle": cycle, "runKind": "scheduled", "status": "waiting"}
+            if state.get("status") in {"sent", "skipped_no_active_staff"}:
+                continue
+            pending = state.get("pendingAlert")
+            if state.get("status") == "missed_deadline" and not pending:
+                continue
+            if pending and now < datetime.fromisoformat(pending["retryAt"]):
+                continue
+            state["status"] = "missed_deadline"
+            alert(env, state, f"{day}-{cycle}-deadline", "A scheduled cycle did not complete before its deadline, including possible server downtime. No automatic late send will occur.")
+            _atomic_json(path, state)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--smoke", choices=CYCLES, help="Prepare and validate only, in a separate non-sending output tree")
@@ -193,6 +225,7 @@ def main() -> int:
                 except Exception as error:
                     monitor.update(status="failed", errorType=type(error).__name__, checkedAt=now.isoformat())
                     alert(env, monitor, "personnel-unavailable", "The central personnel directory is unavailable or older than one hour. Consumers block stale data. Check the API and personnel worker.")
+                audit_missed_cycles(root, env, now)
                 monitor_path.parent.mkdir(parents=True, exist_ok=True)
                 _atomic_json(monitor_path, monitor)
                 next_check = now + timedelta(minutes=5)
