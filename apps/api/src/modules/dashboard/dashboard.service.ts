@@ -304,14 +304,17 @@ export class DashboardService {
       );
     }
 
+    // Staff figures must match the resolved period, including default MTD.
+    // An unscoped latest export can belong to another month or cutoff.
+    if (["technicians", "advisors", "installers"].includes(reportFamily)) {
+      this.queueRefresh(reportFamily, context);
+      return this.attachSnapshotTime(build({}), null);
+    }
+
     if (this.hasExplicitScope(context)) {
       this.queueRefresh(reportFamily, context);
 
-      // Sales annual and monthly scopes must never borrow one another's figures.
-      if (
-        reportFamily === "advisors" ||
-        !this.canUseLatestSnapshotFallback(context)
-      ) {
+      if (!this.canUseLatestSnapshotFallback(context)) {
         return this.attachSnapshotTime(build({}), null);
       }
 

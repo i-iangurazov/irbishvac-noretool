@@ -132,6 +132,12 @@ pending. `calculate-advisor-month-goals.ts` requires an explicit HR employment
 input and complete source months; it never approves by itself. Keep its calculation,
 HR-date evidence and source caches with the approved release.
 
+Staff metrics require the exact resolved reporting scope, including default MTD.
+If it is missing, the API queues a refresh and returns unavailable actuals with
+the current roster. It never substitutes an unscoped latest staff export. The
+live coaching page preserves that availability flag and requests month-start
+through its displayed cutoff explicitly, matching the frozen-report period.
+
 Dashboards and PDFs use the same scoped normalized performance source. The PDF
 sales figure is `totalSales`, matching the dashboard Sales/Goal metric. Influenced
 revenue is a separate metric. Canonical extraction refreshes the scoped dashboard

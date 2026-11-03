@@ -234,6 +234,20 @@ describe("DashboardService", () => {
     expect(findFirst).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["getPerformanceTechnicians", "getPerformanceAdvisors", "getInstallers"] as const)("does not borrow an unrelated latest export for the default staff scope: %s", async (method) => {
+    findUnique.mockResolvedValueOnce(null).mockResolvedValue({payloadJson:{rows:[],rowsRanked:[{name:"Unrelated staff"}]}});
+    findFirst.mockImplementation(async query => query.where.requestHash ? null : {payloadJson:{fields:[{name:"Name"}],data:[["Unrelated staff"]]}});
+    const enqueue=vi.fn();
+    const {DashboardService}=await import("./dashboard.service");
+    const service=new DashboardService({ensureRefreshEnqueued:enqueue} as never);
+    const result=await service[method]();
+    expect(result.rowsRanked).toEqual([]);
+    expect(result.snapshotTime).toBeNull();
+    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledOnce();
+  });
+
   it("keeps unavailable Sales figures distinct from zero-activity staff", async () => {
     const { DashboardService } = await import("./dashboard.service");
     const { buildAdvisorDashboard } = await import("@irbis/domain");
@@ -344,7 +358,7 @@ describe("DashboardService", () => {
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it("uses the latest cached read model while an MTD refresh is queued", async () => {
+  it("does not borrow an unscoped staff read model while an MTD refresh is queued", async () => {
     findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({
       payloadJson: {
         rowsRanked: [{ name: "Cached technician" }],
@@ -364,16 +378,15 @@ describe("DashboardService", () => {
       to: "2026-03-22",
     });
 
-    expect(result.rowsRanked).toEqual([
-      expect.objectContaining({ name: "Cached technician" }),
-    ]);
-    expect(result.snapshotTime).toBe("2026-03-21T12:00:00.000Z");
+    expect(result.rowsRanked).toEqual([]);
+    expect(result.snapshotTime).toBeNull();
+    expect(findUnique).toHaveBeenCalledTimes(1);
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it("prefers a newer raw snapshot over the latest read model during MTD refresh", async () => {
+  it("uses a raw snapshot matching the requested MTD scope", async () => {
     findUnique.mockResolvedValue(null);
-    findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({
+    findFirst.mockResolvedValueOnce({
       payloadJson: {
         fields: [{ name: "Name" }, { name: "TechnicianBusinessUnit" }],
         data: [["Fresh technician", "HVAC Service"]],
@@ -395,7 +408,8 @@ describe("DashboardService", () => {
 
     expect(result.rowsRanked[0]?.name).toBe("Fresh technician");
     expect(findUnique).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(findFirst).toHaveBeenCalledTimes(1);
   });
 
   it("does not fall back to a different cached date for a custom range", async () => {
