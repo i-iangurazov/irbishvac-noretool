@@ -43,6 +43,12 @@ class RateLimitTests(unittest.TestCase):
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'python/scripts'))
 import servicetitan_weekly_performance_export as exporter
 class PaginationTests(unittest.TestCase):
+    def test_forms_zero_count_placeholder_is_replaced_by_an_explicit_count_request(self):
+        from unittest.mock import Mock
+        rows=[{"id":1},{"id":2}]
+        client=Mock(_get=Mock(side_effect=lambda path,params: {"data":rows,"hasMore":False,"totalCount":2 if params.get("includeTotal")=="true" else 0}))
+        self.assertEqual(_complete_pages(client,"/forms",{"includeTotal":"false"}),rows)
+
     def test_coaching_rejects_missing_pages_and_repeated_records(self):
         from unittest.mock import Mock
         for pages in (

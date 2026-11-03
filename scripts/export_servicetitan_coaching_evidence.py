@@ -76,16 +76,18 @@ def _complete_pages(client: ServiceTitanClient, path: str, params: dict[str, str
     seen_ids: set[str] = set()
     expected_total: int | None = None
     for page in range(1, max_pages + 1):
-        payload = client._get(path, {**params, "page": str(page)})
+        # Forms returns totalCount=0 when the count was not requested, even
+        # with 52 real rows. Explicitly request it instead of treating that
+        # placeholder as evidence of truncation or ignoring actual totals.
+        payload = client._get(path, {**params, "includeTotal": "true", "page": str(page)})
         rows = payload.get("data") if isinstance(payload, dict) else None
         more = payload.get("hasMore") if isinstance(payload, dict) else None
         if not isinstance(rows, list) or not isinstance(more, bool) or any(not isinstance(row, dict) for row in rows):
             raise ValueError("Incomplete coaching source: invalid collection page")
         total = payload.get("totalCount")
-        if total is not None:
-            if type(total) is not int or total < 0 or (expected_total is not None and total != expected_total):
-                raise ValueError("Incomplete coaching source: inconsistent total count")
-            expected_total = total
+        if type(total) is not int or total < 0 or (expected_total is not None and total != expected_total):
+            raise ValueError("Incomplete coaching source: missing or inconsistent requested total count")
+        expected_total = total
         if more and not rows:
             raise ValueError("Incomplete coaching source: empty intermediate page")
         for row in rows:
@@ -96,7 +98,7 @@ def _complete_pages(client: ServiceTitanClient, path: str, params: dict[str, str
         records.extend(rows)
         if not more:
             if expected_total is not None and len(records) != expected_total:
-                raise ValueError("Incomplete coaching source: total count differs")
+                raise ValueError(f"Incomplete coaching source: total count differs for {path} (received {len(records)}, expected {expected_total})")
             return _filter_records_for_params(records, params)
     raise ValueError("Incomplete coaching source: pagination limit reached")
 
