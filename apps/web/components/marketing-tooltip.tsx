@@ -16,10 +16,12 @@ export function MarketingTooltip({
   children,
   as: Tag = "span",
   className,
+  popupClassName,
   tabIndex = 0,
   ...props
 }: HTMLAttributes<HTMLElement> & {
   content: string;
+  popupClassName?: string;
   as?: "strong" | "small" | "span" | "td" | "div";
   children: ReactNode;
 }) {
@@ -126,7 +128,7 @@ export function MarketingTooltip({
       {anchor
         ? createPortal(
             <div
-              className="marketing-tooltip"
+              className={["marketing-tooltip", popupClassName].filter(Boolean).join(" ")}
               id={id}
               role="tooltip"
               ref={popup}
