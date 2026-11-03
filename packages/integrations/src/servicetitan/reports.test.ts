@@ -1,11 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ServiceTitanReportFetchError,
   isRetryableServiceTitanStatus,
 } from "./client";
-import { buildReportParameters } from "./reports";
+import { buildReportParameters, getServiceTitanReportDefinitions, resolveReportRequest } from "./reports";
 
 describe("buildReportParameters", () => {
+  it("uses the selected November range for Company-wide calls while retaining today's default", () => {
+    const required = ["DATABASE_URL", "REDIS_URL", "AUTH_COOKIE_SECRET", "NEXT_PUBLIC_APP_NAME", "SERVICETITAN_CLIENT_ID", "SERVICETITAN_CLIENT_SECRET", "SERVICETITAN_TENANT_ID", "ST_REPORT_TECHNICIANS", "ST_REPORT_INSTALLERS", "ST_REPORT_ADVISORS", "ST_REPORT_CALL_CENTER_SOURCE", "ST_REPORT_CALL_CENTER_PERFORMANCE", "ST_REPORT_LEADS", "ST_REPORT_CAMPAIGNS", "ST_REPORT_BOOKING_RATE", "ST_REPORT_TRENDING", "ST_REPORT_SALES", "ST_REPORT_REVENUE_MONTHLY_PACE"];
+    for (const key of required) vi.stubEnv(key, "synthetic");
+    vi.stubEnv("AUTH_DEFAULT_ADMIN_EMAIL", "test@example.com");
+    vi.stubEnv("AUTH_DEFAULT_ADMIN_PASSWORD", "synthetic-password");
+    for (const key of ["ST_BU_INSTALLERS", "ST_BU_ADVISORS", "ST_BU_COMPANY"]) vi.stubEnv(key, "");
+    const definition=getServiceTitanReportDefinitions().bookingRate;
+    vi.unstubAllEnvs();
+    const context={timezone:"America/Los_Angeles",referenceDate:new Date("2026-11-03T18:00:00Z")};
+    expect(resolveReportRequest(definition,{...context,preset:"mtd"}).range).toEqual({from:"2026-11-01",to:"2026-11-03"});
+    expect(resolveReportRequest(definition,context).range).toEqual({from:"2026-11-03",to:"2026-11-03"});
+    expect(resolveReportRequest(definition,{...context,from:"2026-10-15",to:"2026-11-03"}).range).toEqual({from:"2026-10-15",to:"2026-11-03"});
+  });
   it("uses the advisor report's declared BU parameter and keeps its request scope distinct from an unfiltered legacy request", () => {
     const source = {
       family: "advisors" as const,

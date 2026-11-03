@@ -224,6 +224,16 @@ export class DashboardService {
     void this.refreshService?.ensureRefreshEnqueued(reportFamily, context);
   }
 
+  private refreshIfStale(reportFamily: ReportFamilyKey, timestamp: unknown, context?: DashboardRequestContext) {
+    const today = new Intl.DateTimeFormat("en-CA", {timeZone:this.config.app.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    if (this.resolveRequest(reportFamily, context).range.to < today) return;
+    const time = timestamp instanceof Date ? timestamp.getTime()
+      : typeof timestamp === "string" ? Date.parse(timestamp) : NaN;
+    const age = Date.now() - time;
+    if (!Number.isFinite(time) || age > 30 * 60_000 || age < -5 * 60_000)
+      this.queueRefresh(reportFamily, context);
+  }
+
   private async getReadModel<T>(
     family: DashboardFamily,
     reportFamily: ReportFamilyKey,
@@ -289,6 +299,7 @@ export class DashboardService {
   ): Promise<T> {
     const readModel = await this.getReadModel<T>(family, reportFamily, context);
     if (readModel) {
+      this.refreshIfStale(reportFamily, (readModel as { snapshotTime?: unknown }).snapshotTime, context);
       return readModel;
     }
 
@@ -298,6 +309,7 @@ export class DashboardService {
       context,
     );
     if (scopedSnapshot) {
+      this.refreshIfStale(reportFamily, scopedSnapshot.fetchedAt, context);
       return this.attachSnapshotTime(
         build(scopedSnapshot.payloadJson),
         scopedSnapshot.sourceSnapshotTime ?? scopedSnapshot.fetchedAt,
@@ -729,6 +741,7 @@ export class DashboardService {
     if (!scopedTrendingSnapshot && hasExplicitScope) {
       this.queueRefresh("trending", context);
     }
+    if (scopedTrendingSnapshot) this.refreshIfStale("trending", scopedTrendingSnapshot.fetchedAt, context);
 
     return {
       marketing,

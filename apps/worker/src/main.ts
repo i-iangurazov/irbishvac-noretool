@@ -16,7 +16,7 @@ import { buildLatestSnapshotPlan } from "./snapshot-plan";
 import { CampaignPerformanceRefreshRunner } from "./campaign-performance";
 import { MembershipPerformanceRunner } from "./membership-performance";
 import { PersonnelRefreshRunner, startPersonnelWorker } from "./personnel";
-import { buildTvRefreshJobs } from "./tv-refresh-jobs";
+import { buildTvRefreshJobs, buildCompanyRefreshJobs } from "./tv-refresh-jobs";
 import { dashboardQueuePolicy } from "./queue-policy";
 
 type RefreshJob =
@@ -197,6 +197,17 @@ async function bootstrap() {
   }
 
   if (runner.isIngestionConfigured()) {
+    for (const data of buildCompanyRefreshJobs(getServiceTitanReportDefinitions())) {
+      await refreshQueue.upsertJobScheduler(
+        `company-mtd-${data.family}`,
+        { pattern: "3,33 * * * *", tz: config.app.timezone },
+        {name: `scheduled-company-${data.family}`, data},
+      );
+      await refreshQueue.add(`startup-company-${data.family}`, data, {
+        jobId: getRefreshJobId("company-startup", data.family, String(Math.floor(Date.now() / 1_800_000))),
+      });
+    }
+    logger.info("Company-wide refresh schedulers enabled", {intervalMinutes:30,period:"mtd"});
     // Keep the office TVs current even if GitHub's scheduled full refresh is delayed.
     for (const data of buildTvRefreshJobs(getServiceTitanReportDefinitions())) {
       await refreshQueue.upsertJobScheduler(

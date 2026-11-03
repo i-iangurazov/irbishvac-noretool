@@ -17,6 +17,7 @@ import {
 } from "../lib/dashboard-filters";
 import { getBrandLogoUrl } from "../lib/assets";
 import { CompanyWideGoalInsertButton } from "./company-wide-goal-insert-button";
+import { companyFreshness } from "../lib/company-freshness";
 
 type CompanyWideData = {
   marketing: {
@@ -238,15 +239,9 @@ export function CompanyWidePage({ data, filters }: CompanyWidePageProps) {
     { length: 5 },
     (_, index) => trendMax * ((4 - index) / 4),
   );
-  const freshness =
-    data.trending.snapshotTime ??
-    data.revenueGoals.snapshotTime ??
-    data.revenueMonthlyPace.snapshotTime ??
-    data.salesMonthlyPace.snapshotTime ??
-    data.salesToday.snapshotTime ??
-    data.bookingRate.snapshotTime ??
-    null;
-  const hasCachedData = Boolean(freshness);
+  const {freshness,hasCachedData} = companyFreshness([data.trending, data.marketing, data.capacity,
+    data.jobCostingSummary, data.revenueGoals, data.salesToday, data.salesYesterday,
+    data.salesMonthlyPace, data.revenueMonthlyPace, data.bookingRate]);
   const marketingTotal = data.marketing.rows.reduce(
     (sum, row) => sum + row.value,
     0,
