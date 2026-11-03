@@ -7,7 +7,24 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'python'))
 from marketing_os_agent.clients.http import HttpClient, _retry_delay
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from export_servicetitan_coaching_evidence import ReportHttpClient, _complete_pages
+from export_servicetitan_coaching_evidence import ReportHttpClient, _complete_pages, _review_evidence
+import tempfile
+import json
+
+class ReviewSourceTests(unittest.TestCase):
+    def test_verified_empty_reviews_are_zero_and_missing_exports_remain_unavailable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            staff=[{"technician":"Person One"}]
+            (root/"reviews.csv").write_text("TechnicianName,TotalReviews\n")
+            (root/"review.csv").write_text("PublishDate,Review,TechnicianFullName\n")
+            self.assertFalse(_review_evidence(root,staff)["personone"]["sourceAvailable"])
+            for filename,fields in (("reviews.json",["TechnicianName","TotalReviews"]),("review.json",["PublishDate","Review","TechnicianFullName"])):
+                (root/filename).write_text(json.dumps({"fields":[{"name":name} for name in fields],"data":[],"hasMore":False,"totalCount":0}))
+            result=_review_evidence(root,staff)["personone"]
+            self.assertTrue(result["sourceAvailable"])
+            self.assertEqual(result["totalEvidenceReviews"],0)
+
 class Response(io.BytesIO):
     status=200
     headers={}

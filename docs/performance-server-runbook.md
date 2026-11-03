@@ -147,6 +147,30 @@ and an owner inbox test must not be described as actual staff delivery.
 
 ## Personnel and goals
 
+### Current web coaching data
+
+The authenticated `GET /api/dashboard/performance/coaching?staff=staff-ID` endpoint
+reads the shared `PerformanceCoachingSnapshot` table and returns only that current
+employee. The source must cover the current Pacific MTD period and be no older
+than 90 minutes. Current directory membership and current-month goals are checked
+again at read time. Missing/stale sources stay explicit; a previous month is never
+substituted. The existing local snapshot override remains the authority while
+rendering frozen PDFs.
+
+The report service runs a separate `dashboard` data path every 30 minutes. It
+extracts current Pacific-day activity/evidence and publishes it to the shared
+database without rendering PDFs or sending mail. Its files live under
+`/data/performance/dashboard`, separately from scheduled delivery packages. It
+yields Thursday/Friday 17:00–20:59 Bishkek to the scheduled report preparation and
+delivery window. Basic staff actuals continue refreshing through the API worker.
+Closed historical baseline exports are validated and reused within the work folder.
+Reviews now come from the actual detail/summary reports; verified empty complete
+exports mean zero reviews. Header-only placeholders do not establish availability.
+
+Install the additive table once with `scripts/install-coaching-schema.ts` before
+deploying this endpoint. Failed refreshes retain the last successful source with
+its original timestamp; they cannot make stale data appear fresh.
+
 `GET /api/dashboard/personnel?month=YYYY-MM` is the shared directory with goals.
 Server access uses `x-dashboard-access-token`. Refresh and goal writes additionally
 require `x-dashboard-write-token`. Both values use the existing server auth secret;

@@ -193,7 +193,7 @@ function buildDeliveryFocus(
 
 export async function generateMetadata({ params }: TechnicianReportPageProps): Promise<Metadata> {
   const { technician } = await params;
-  const snapshot = await loadServiceTechDeliverySnapshot();
+  const snapshot = await loadServiceTechDeliverySnapshot(technician);
   const plan = snapshot?.technicians.find(row => row.slug === technician) ?? (await loadPersonnelPlans()).find(row => row.slug === technician);
 
   return {
@@ -203,7 +203,7 @@ export async function generateMetadata({ params }: TechnicianReportPageProps): P
 
 export default async function TechnicianReportPage({ params }: TechnicianReportPageProps) {
   const { technician } = await params;
-  const deliverySnapshot = await loadServiceTechDeliverySnapshot();
+  const deliverySnapshot = await loadServiceTechDeliverySnapshot(technician);
   const delivery = deliverySnapshot?.technicians.find(row => row.slug === technician) ?? null;
   const basePlan = delivery
     ? deliveryPlan(delivery, deliverySnapshot!.periodFrom.slice(0, 7), deliverySnapshot?.sourceKind)
@@ -381,7 +381,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
             </div>
             <div>
               <span>On-time arrival</span>
-              <strong>{valueOrUnavailable(delivery?.execution.onTimeArrivalRate, (value) => formatPercent(value, 0))}</strong>
+              <strong>{delivery?.execution.arrivalEligibleAppointments === 0 ? "No measured visits" : valueOrUnavailable(delivery?.execution.onTimeArrivalRate, (value) => formatPercent(value, 0))}</strong>
               <small>
                 {delivery?.execution.arrivalEligibleAppointments == null
                   ? "Timing evidence unavailable"
@@ -390,7 +390,7 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
             </div>
             <div>
               <span>Average time on site</span>
-              <strong>{valueOrUnavailable(delivery?.execution.averageTimeOnSiteMinutes, formatDurationMinutes)}</strong>
+              <strong>{delivery?.execution.onsiteEligibleAppointments === 0 ? "No measured visits" : valueOrUnavailable(delivery?.execution.averageTimeOnSiteMinutes, formatDurationMinutes)}</strong>
               <small>
                 {delivery?.execution.onsiteEligibleAppointments == null
                   ? "Timesheet evidence unavailable"
@@ -509,22 +509,22 @@ export default async function TechnicianReportPage({ params }: TechnicianReportP
             <div className="coaching-fieldpro-grid">
               <div>
                 <span>Recordings / completed job</span>
-                <strong>{valueOrUnavailable(fieldPro.recordingCoverage, formatRecordingRatio)}</strong>
+                <strong>{fieldPro.completedJobs === 0 ? "No completed jobs" : valueOrUnavailable(fieldPro.recordingCoverage, formatRecordingRatio)}</strong>
                 <small>{fieldPro.totalRecordings ?? 0} recordings / {fieldPro.completedJobs} completed jobs</small>
               </div>
               <div>
                 <span>Quality recording rate</span>
-                <strong>{valueOrUnavailable(fieldPro.qualityRecordingRate, (value) => formatPercent(value, 0))}</strong>
+                <strong>{fieldPro.totalRecordings === 0 ? "No recordings" : valueOrUnavailable(fieldPro.qualityRecordingRate, (value) => formatPercent(value, 0))}</strong>
                 <small>{fieldPro.qualityRecordings ?? 0} recordings over 10 minutes</small>
               </div>
               <div>
                 <span>Average duration</span>
-                <strong>{valueOrUnavailable(fieldPro.averageRecordingMinutes, (value) => `${Math.round(value)} min`)}</strong>
+                <strong>{fieldPro.totalRecordings === 0 ? "No recordings" : valueOrUnavailable(fieldPro.averageRecordingMinutes, (value) => `${Math.round(value)} min`)}</strong>
                 <small>Longest {valueOrUnavailable(fieldPro.longestRecordingMinutes, (value) => `${Math.round(value)} min`)}</small>
               </div>
               <div>
                 <span>Score and talk share</span>
-                <strong>Data unavailable</strong>
+                <strong>Not provided by source</strong>
                 <small>Not included in the ServiceTitan report export</small>
               </div>
             </div>
