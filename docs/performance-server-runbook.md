@@ -47,6 +47,14 @@ preflight checks configuration and address format; it does not authenticate with
 the provider or claim recipient acceptance. SMTP preflight remains available for
 environments that actually permit SMTP.
 
+Owner alerts also reserve a message in the persistent scheduler/monitor state
+before making a delivery request. Connection/configuration failures before that
+reservation retry after five minutes. The HTTPS adapter retries identical requests
+in process; after an unknown result or restart, `alertReconciliationRequired`
+blocks automatic replay permanently, including after provider idempotency keys
+expire. Reconcile the recorded Message-ID/provider key before any manual resend.
+Accepted alert records and provider receipts remain in `alertDeliveries`.
+
 ## Monthly external documents — November 2026
 
 The production service account can read `November 2026 - Call Center Report`

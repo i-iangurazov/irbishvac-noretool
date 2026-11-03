@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 from performance_reporting import central_personnel, preparation_complete, SCHEDULE_TIMEZONE
 from run_service_tech_thursday_delivery import _load_environment
 from send_service_tech_reports import _mailer, _email, _atomic_json
+from performance_mail import transport_name
 
 REPO = Path(__file__).resolve().parents[1]
 STOP = threading.Event()
@@ -50,31 +51,60 @@ def has_smtp_started(package: Path) -> bool:
     return path.exists() and bool(json.loads(path.read_text()).get("reports"))
 
 
-def alert(env: dict, state: dict, key: str, detail: str) -> None:
+def alert(env: dict, state: dict, key: str, detail: str, state_path: Path) -> None:
     if state.get("alertedKey") == key:
         return
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    started = False
     try:
         owner = _email(env.get("PERFORMANCE_REPORT_ALERT_EMAIL", "it@irbishvac.com"), "report owner")
         message = EmailMessage()
         message["From"] = _email(env.get("EMAIL_FROM") or env.get("SMTP_USER", ""), "sender")
         message["To"] = owner
         message["Subject"] = "IRBIS reporting requires attention: " + key
-        delivery_key = hashlib.sha256(f"owner-alert:{owner}:{key}:{detail}".encode()).hexdigest()
+        epoch = state.setdefault("alertEpoch", datetime.now(timezone.utc).isoformat())
+        delivery_key = hashlib.sha256(f"owner-alert:{epoch}:{message['From']}:{owner}:{key}:{detail}".encode()).hexdigest()
+        deliveries = state.setdefault("alertDeliveries", {})
+        prior = deliveries.get(delivery_key)
+        if prior:
+            if prior["status"] == "accepted":
+                state["alertedKey"] = key
+            else:
+                state["alertReconciliationRequired"] = delivery_key
+            state.pop("pendingAlert", None)
+            _atomic_json(state_path, state)
+            return
         message["Message-ID"] = f"<{delivery_key}@{str(message['From']).split('@')[1]}>"
         message["X-IRBIS-Delivery-Key"] = delivery_key
         message.set_content(detail + "\nInspect the reporting service log and persistent scheduler state.\n")
         with _mailer(env) as smtp:
+            # Reserve before the first request. A crash or unknown result must
+            # never become an automatic replay, even after provider keys expire.
+            deliveries[delivery_key] = {"status": "sending", "alertKey": key,
+                "sender": str(message["From"]), "owner": owner, "provider": transport_name(env),
+                "messageId": str(message["Message-ID"]), "idempotencyKey": delivery_key,
+                "startedAt": datetime.now(timezone.utc).isoformat()}
+            _atomic_json(state_path, state)
+            started = True
             rejected = smtp.send_message(message)
             if rejected:
                 raise RuntimeError("Owner notification rejected")
             receipt = getattr(smtp, "last_receipt", None)
             if isinstance(receipt, dict):
                 state["alertReceipt"] = receipt
+                deliveries[delivery_key].update(receipt)
+            deliveries[delivery_key].update(status="accepted", acceptedAt=datetime.now(timezone.utc).isoformat())
         state["alertedKey"] = key
         state.pop("pendingAlert", None)
+        _atomic_json(state_path, state)
     except Exception as error:
         # No credentials or raw upstream responses in the public service log.
-        state["pendingAlert"] = {"key": key, "detail": detail, "retryAt": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()}
+        if started:
+            state["alertReconciliationRequired"] = delivery_key
+            state.pop("pendingAlert", None)
+        else:
+            state["pendingAlert"] = {"key": key, "detail": detail, "retryAt": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()}
+        _atomic_json(state_path, state)
         print(json.dumps({"alertFailed": key, "errorType": type(error).__name__}), flush=True)
 
 
@@ -112,7 +142,7 @@ def tick(repo: Path, root: Path, env: dict, now: datetime) -> None:
         if action == "idle":
             pending = state.get("pendingAlert")
             if pending and state.get("status") not in {"sent", "skipped_no_active_staff"} and now >= datetime.fromisoformat(pending["retryAt"]):
-                alert(env, state, pending["key"], pending["detail"])
+                alert(env, state, pending["key"], pending["detail"], state_path)
                 _atomic_json(state_path, state)
             continue
         if action == "send" and str(env.get("PERFORMANCE_REPORT_AUTO_SEND", "false")).lower() not in {"1", "true", "yes", "on"}:
@@ -126,7 +156,7 @@ def tick(repo: Path, root: Path, env: dict, now: datetime) -> None:
         try:
             if action == "missed_deadline":
                 state["status"] = "missed_deadline"
-                alert(env, state, f"{local.date()}-{cycle}-deadline", "The cycle did not reach confirmed delivery before 19:45 Asia/Bishkek. No automatic late send will occur.")
+                alert(env, state, f"{local.date()}-{cycle}-deadline", "The cycle did not reach confirmed delivery before 19:45 Asia/Bishkek. No automatic late send will occur.", state_path)
             elif action == "prepare":
                 directory = central_personnel(env, (local.date() - timedelta(days=1)).strftime("%Y-%m"), refresh=True)
                 active = [p for p in directory["staff"] if p["cycle"] == cycle and p["active"]]
@@ -155,7 +185,7 @@ def tick(repo: Path, root: Path, env: dict, now: datetime) -> None:
                          smtpStarted=has_smtp_started(package))
             # Once SMTP starts the sender resumes only confirmed unsent items. A
             # 'sending' item requires manual reconciliation and is never replayed.
-            alert(env, state, f"{local.date()}-{cycle}-{action}", f"The {action} step failed. No success is recorded. Staff, goals, data completeness and SMTP state must be valid before any delivery.")
+            alert(env, state, f"{local.date()}-{cycle}-{action}", f"The {action} step failed. No success is recorded. Staff, goals, data completeness and delivery state must be valid before any delivery.", state_path)
         state_path.parent.mkdir(parents=True, exist_ok=True)
         _atomic_json(state_path, state)
         print(json.dumps({"cycle": cycle, "action": action, "status": state["status"], "date": str(local.date())}), flush=True)
@@ -185,7 +215,7 @@ def audit_missed_cycles(root: Path, env: dict, now: datetime) -> None:
             if pending and now < datetime.fromisoformat(pending["retryAt"]):
                 continue
             state["status"] = "missed_deadline"
-            alert(env, state, f"{day}-{cycle}-deadline", "A scheduled cycle did not complete before its deadline, including possible server downtime. No automatic late send will occur.")
+            alert(env, state, f"{day}-{cycle}-deadline", "A scheduled cycle did not complete before its deadline, including possible server downtime. No automatic late send will occur.", path)
             _atomic_json(path, state)
 
 
@@ -232,7 +262,7 @@ def main() -> int:
                     monitor = {"status": "healthy", "fetchedAt": directory["fetchedAt"], "checkedAt": now.isoformat()}
                 except Exception as error:
                     monitor.update(status="failed", errorType=type(error).__name__, checkedAt=now.isoformat())
-                    alert(env, monitor, "personnel-unavailable", "The central personnel directory is unavailable or older than one hour. Consumers block stale data. Check the API and personnel worker.")
+                    alert(env, monitor, "personnel-unavailable", "The central personnel directory is unavailable or older than one hour. Consumers block stale data. Check the API and personnel worker.", monitor_path)
                 audit_missed_cycles(root, env, now)
                 monitor_path.parent.mkdir(parents=True, exist_ok=True)
                 _atomic_json(monitor_path, monitor)

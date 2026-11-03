@@ -99,24 +99,54 @@ class HttpsMailTests(unittest.TestCase):
     def test_owner_alert_retry_uses_same_payload_and_stops_after_confirmation(self):
         env={**self.env,"EMAIL_FROM":"reports@example.com","PERFORMANCE_REPORT_ALERT_EMAIL":"owner@example.com"}
         state={}
-        self.opener.open.side_effect=urllib.error.URLError("connection lost")
-        with patch("time.sleep"):
-            report_server.alert(env,state,"source-unavailable","The source is unavailable.")
-        self.assertIn("pendingAlert",state)
-        self.assertNotIn("alertedKey",state)
-        first=self.opener.open.call_args.args[0]
-        self.opener.open.side_effect=None
-        self.opener.open.return_value=Response(b'{"id":"owner-confirmation"}')
-        report_server.alert(env,state,"source-unavailable","The source is unavailable.")
-        last=self.opener.open.call_args.args[0]
-        self.assertEqual(first.data,last.data)
-        self.assertEqual(first.get_header("Idempotency-key"),last.get_header("Idempotency-key"))
-        self.assertEqual(json.loads(last.data)["to"],["owner@example.com"])
-        self.assertNotIn("pendingAlert",state)
-        self.assertEqual(state["alertReceipt"]["providerMessageId"],"owner-confirmation")
-        calls=self.opener.open.call_count
-        report_server.alert(env,state,"source-unavailable","The source is unavailable.")
-        self.assertEqual(self.opener.open.call_count,calls)
+        self.opener.open.side_effect=[urllib.error.URLError("connection lost"),urllib.error.URLError("connection lost"),Response(b'{"id":"owner-confirmation"}')]
+        with tempfile.TemporaryDirectory() as folder, patch("time.sleep"):
+            path=Path(folder)/"state.json"
+            report_server.alert(env,state,"source-unavailable","The source is unavailable.",path)
+            first=self.opener.open.call_args_list[0].args[0]
+            last=self.opener.open.call_args.args[0]
+            self.assertEqual(first.data,last.data)
+            self.assertEqual(first.get_header("Idempotency-key"),last.get_header("Idempotency-key"))
+            self.assertEqual(json.loads(last.data)["to"],["owner@example.com"])
+            self.assertNotIn("pendingAlert",state)
+            self.assertEqual(state["alertReceipt"]["providerMessageId"],"owner-confirmation")
+            persisted=json.loads(path.read_text())
+            self.assertEqual(persisted["alertDeliveries"][last.get_header("Idempotency-key")]["status"],"accepted")
+            calls=self.opener.open.call_count
+            report_server.alert(env,persisted,"source-unavailable","The source is unavailable.",path)
+            self.assertEqual(self.opener.open.call_count,calls)
+
+    def test_owner_alert_reserves_before_request_and_never_replays_unknown_result_after_restart(self):
+        env={**self.env,"EMAIL_FROM":"reports@example.com","PERFORMANCE_REPORT_ALERT_EMAIL":"owner@example.com"}
+        with tempfile.TemporaryDirectory() as folder, patch("time.sleep"):
+            path=Path(folder)/"state.json"
+            def unknown(request, **_kwargs):
+                record=json.loads(path.read_text())["alertDeliveries"][request.get_header("Idempotency-key")]
+                self.assertEqual(record["status"],"sending")
+                self.assertEqual(record["owner"],"owner@example.com")
+                raise urllib.error.URLError("outcome unknown")
+            self.opener.open.side_effect=unknown
+            report_server.alert(env,{},"source-unavailable","The source is unavailable.",path)
+            state=json.loads(path.read_text())
+            self.assertIn("alertReconciliationRequired",state)
+            self.assertNotIn("pendingAlert",state)
+            calls=self.opener.open.call_count
+            # Even an old reservation survives provider idempotency-key expiry.
+            state["alertDeliveries"][state["alertReconciliationRequired"]]["startedAt"]="2020-01-01T00:00:00+00:00"
+            report_server.alert(env,state,"source-unavailable","The source is unavailable.",path)
+            self.assertEqual(self.opener.open.call_count,calls)
+
+    def test_owner_alert_retries_configuration_failure_before_any_request(self):
+        env={**self.env,"EMAIL_FROM":"reports@example.com","PERFORMANCE_REPORT_ALERT_EMAIL":"owner@example.com"}
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/"state.json";state={}
+            with patch("report_server._mailer",side_effect=ValueError("not configured")):
+                report_server.alert(env,state,"source-unavailable","The source is unavailable.",path)
+            self.assertIn("pendingAlert",json.loads(path.read_text()))
+            self.opener.open.assert_not_called()
+            self.opener.open.return_value=Response(b'{"id":"configured-owner"}')
+            report_server.alert(env,json.loads(path.read_text()),"source-unavailable","The source is unavailable.",path)
+            self.assertEqual(json.loads(path.read_text())["alertedKey"],"source-unavailable")
 
     def test_explicit_connection_test_only_sends_to_owner_once_without_attachments(self):
         with tempfile.TemporaryDirectory() as folder:
