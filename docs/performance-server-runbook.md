@@ -14,13 +14,18 @@ the template's original spacing exposed footer overlap in 10 of those 14 reports
 The owner authorized necessary minor fit corrections on November 3: only three
 report spacing values are reduced (grid gap, header bottom padding and block-title
 vertical padding). Fonts, colours, content and block structure are preserved.
-Rerender all 14 frozen inputs and verify the unchanged layout QA before accepting
-this correction. These non-sending runs do not prove scheduled delivery.
+The deployed correction `9f3d248` passed the unchanged layout QA for all 14 frozen
+inputs. All 98 primary printed values independently matched those inputs; actual
+Eduardo and Luis PDFs were visually reviewed. These non-sending runs do not prove
+scheduled delivery.
 The report service is configured for normal scheduling with
 `PERFORMANCE_REPORT_AUTO_SEND=true` after the owner confirmed the live connection
 test reached the inbox and the six legacy triggers were disabled. Verify the
-runtime flag after the activation release. First real scheduled Thursday and
-Friday delivery with the Mac off remains the final acceptance gate.
+runtime flag after a recovery release. The active release was verified with
+auto-send enabled, normal scheduling, the confirmed owner receipt and healthy
+personnel monitoring. On November 3 the owner removed waiting for the first real
+Thursday/Friday Mac-off cycles from the completion criteria; no actual scheduled
+staff delivery is claimed by these checks.
 
 The owner chose Railway Hobby and reuse of the existing IRBIS Resend connection
 from the marketing/recruiting service. Its existing sending-only credential has
@@ -134,10 +139,11 @@ before extraction. Smoke runs use the last closed Pacific day, live in a separat
 keeps the service available for inspection. Each package retains its own result;
 a passed PDF check does not override a failed mail preflight.
 
-Final acceptance additionally requires successful Thursday and Friday delivery
-records while the owner's Mac is switched off. Record the dates, deployment IDs,
-message/provider IDs, management packets and the owner's Mac-off confirmation before
-marking the priority complete. Initial rollout is not this final acceptance.
+The owner explicitly removed waiting for actual Thursday/Friday cycles with the
+Mac off from completion acceptance on November 3. The operational schedule remains
+enabled. For ongoing operations, retain each cycle's dates, deployment IDs,
+message/provider IDs, management packets and delivery state. Frozen render checks
+and an owner inbox test must not be described as actual staff delivery.
 
 ## Personnel and goals
 
