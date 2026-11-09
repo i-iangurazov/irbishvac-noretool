@@ -291,9 +291,24 @@ function normalizeText(value: unknown) {
   return String(value ?? "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+// Verified ServiceTitan aliases from the October 2026 Google Ads reconciliation.
+// Match complete names because bid-strategy labels also occur in unknown campaigns.
+const GOOGLE_ADS_CAMPAIGN_ALIASES = new Set([
+  "[Call] S || HVAC: [BIG] AC & HP & FUR (Install) || MaxClicks",
+  "[Call] S || HVAC: Heat Pump (Install/Replace) || tSIS-75%",
+  "[Call] S || HVAC: [BIG] AC & HP & FUR (Repair) || MaxClicks",
+  "[Call] S || HVAC: AC (Install/Replace) || tSIS-75%",
+  "[Call] S || HVAC: Furnace (Repair) || MaxClicks",
+  "[Call] S || HVAC: Heat Pump (Repair) || CPC",
+  "[Call] S || Plumbing: DSA || MaxClicks",
+  "[Call] S || Water Heater: Install/Replace || MaxClicks",
+  "S || (All) DSA || MaxClicks",
+].map(normalizeText));
+
 export function normalizeCampaignChannel(value: unknown) {
   const normalized = normalizeText(value);
   if (!normalized) return "Miscellaneous";
+  if (GOOGLE_ADS_CAMPAIGN_ALIASES.has(normalized)) return "Google Ads";
 
   const rules: Array<[string, string[]]> = [
     ["Yelp", ["yelp"]],
