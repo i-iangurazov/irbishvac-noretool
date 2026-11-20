@@ -47,7 +47,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 const render = () => act(() => root.render(<DashboardTvRuntime />));
-describe("single-page TV data updates", () => {
+describe("dashboard data updates", () => {
   it("enables recovery for the ordinary Kitchen page used on the physical TV", () => {
     state.tv = false;
     state.pathname = "/kitchen";
@@ -64,16 +64,29 @@ describe("single-page TV data updates", () => {
     act(() => vi.advanceTimersByTime(60000));
     expect(state.refresh).toHaveBeenCalledOnce();
   });
-  it("does not refresh a desktop view or an offline display", () => {
+  it("refreshes the ordinary Company-wide page and stops when leaving it", () => {
     state.tv = false;
     render();
     act(() => vi.advanceTimersByTime(60000));
-    expect(state.refresh).not.toHaveBeenCalled();
-    state.tv = true;
+    expect(state.refresh).toHaveBeenCalledOnce();
+    state.pathname = "/marketing";
+    render();
+    act(() => vi.advanceTimersByTime(60000));
+    expect(state.refresh).toHaveBeenCalledOnce();
+  });
+  it("skips offline and hidden tabs until they are online and visible", () => {
+    state.tv = false;
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     render();
     act(() => vi.advanceTimersByTime(60000));
     expect(state.refresh).not.toHaveBeenCalled();
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(true);
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    act(() => vi.advanceTimersByTime(60000));
+    expect(state.refresh).not.toHaveBeenCalled();
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+    act(() => vi.advanceTimersByTime(60000));
+    expect(state.refresh).toHaveBeenCalledOnce();
   });
   it("requests recovery if the client router is unavailable", () => {
     const recover = vi.fn();

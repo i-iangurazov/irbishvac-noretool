@@ -9,10 +9,12 @@ export function DashboardTvRuntime() {
   const query = useSearchParams();
   const router = useRouter();
   const tv = query.get("tv") === "1";
-  const kitchen = usePathname() === "/kitchen";
+  const pathname = usePathname();
+  const kitchen = pathname === "/kitchen";
+  const refreshData = tv || pathname === "/company-wide";
   const { getToken, isLoaded, isSignedIn } = useAuth();
   useEffect(() => {
-    if (!tv) return;
+    if (!refreshData) return;
     const timer = window.setInterval(() => {
       if (!navigator.onLine || document.visibilityState === "hidden") return;
       try {
@@ -22,7 +24,7 @@ export function DashboardTvRuntime() {
       }
     }, 60_000);
     return () => window.clearInterval(timer);
-  }, [tv, router]);
+  }, [refreshData, router]);
   return (
     <DashboardAutoRefreshRuntime
       enabled={tv || kitchen}
