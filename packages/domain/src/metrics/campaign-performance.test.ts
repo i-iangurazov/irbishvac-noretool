@@ -269,6 +269,105 @@ describe("campaign performance snapshot", () => {
     expect(inferCampaignCategory("Reserve with Google")).toBe("organic");
   });
 
+  it.each([
+    "[Call] S || HVAC: General || MaxValue",
+    "[Call] S || HVAC: DSA || MaxValue",
+    "[Call] S || HVAC: Install || MaxClicks",
+    "[Call] S || HVAC: Repair || CPC",
+    "[Call] S || HVAC: Install || tSIS-75%",
+    "[Call] S || Water Heater: Install/Replace || MaxClicks",
+    "S || (All) DSA || MaxClicks",
+    "  [CALL]   S  || HVAC: General || MaxValue  ",
+  ])("maps the Google Search naming convention: %s", (campaign) => {
+    expect(normalizeCampaignChannel(campaign)).toBe("Google Ads");
+  });
+
+  it.each([
+    ["Bing Search || HVAC || MaxClicks", "Other"],
+    ["Bing Ads CPC", "Other"],
+    ["Meta paid social || HVAC || CPC", "Facebook Ads"],
+    ["Facebook Ads MaxClicks", "Facebook Ads"],
+    ["Google LSA - HVAC CPC", "Google Local Services"],
+    ["[Call] S || Google LSA || CPC", "Google Local Services"],
+    ["Google Organic HVAC MaxValue", "Website"],
+    ["[Call] S || Google Organic || MaxClicks", "Website"],
+    ["Hatch S || HVAC || MaxClicks", "Hatch Campaigns"],
+    ["[Call] DEMAND || HVAC || MaxValue", "Other"],
+    ["Other S || HVAC || MaxClicks", "Other"],
+    ["Unknown campaign CPC", "Other"],
+    ["S | HVAC || MaxClicks", "Other"],
+    ["S ||", "Other"],
+  ])("preserves unrelated campaign attribution: %s", (campaign, channel) => {
+    expect(normalizeCampaignChannel(campaign)).toBe(channel);
+  });
+
+  it("groups Google Search costs, revenue, sales and leads without changing source totals", () => {
+    // Synthetic amounts: no production financial data belongs in this fixture.
+    const campaigns = [
+      { name: "[Call] S || HVAC: General || MaxValue", cost: 100, revenue: 600, sold: 900 },
+      { name: "S || (All) DSA || MaxClicks", cost: 50, revenue: 400, sold: 800 },
+      { name: "Google Ad Extension - Branded", cost: 25, revenue: 200, sold: 700 },
+      { name: "Facebook Ads", cost: 30, revenue: 150, sold: 600 },
+      { name: "Bing Search || HVAC || CPC", cost: 40, revenue: 50, sold: 500 },
+    ];
+    const result = buildCampaignPerformanceSnapshot({
+      month: "2026-08",
+      cutoff: "2026-08-10",
+      callCenterValues: [
+        ["Date Received", "Medium", "Lead Quality", "Stage", "Lead Source"],
+        ...campaigns.map(({ name }) => ["2026-08-05", "Call", "Good", "Booked", name]),
+      ],
+      campaignSummary: {
+        fields: [{ name: "Name" }, { name: "Cost" }],
+        data: campaigns.map(({ name, cost }) => [name, cost]),
+      },
+      revenueByCampaign: {
+        fields: [{ name: "Name" }, { name: "CompletedRevenue" }],
+        data: campaigns.map(({ name, revenue }) => [name, revenue]),
+      },
+      soldEstimates: {
+        fields: [{ name: "ParentJobCampaign" }, { name: "Total" }],
+        data: campaigns.map(({ name, sold }) => [name, sold]),
+      },
+      planRows: [],
+      commissionRows: [{ channel: "Google Ads", monthlyCommission: 10 }],
+      companyRevenueGoal: 100_000,
+      marketingBudgetRate: 0.07,
+      qualifiedLeadGoal: 20,
+      opportunityGoal: 10,
+      targetBookingRate: 0.5,
+      planStatus: "MODEL PLAN",
+      channelLeadGoalMethod: "Test",
+      channelBudgetGoalStatus: "Test",
+      sourceReportIds: { campaignSummary: "test-costs", soldEstimates: "test-sales", revenueByCampaign: "test-revenue" },
+    });
+
+    expect(result.rows.find((row) => row.channel === "Google Ads")?.actual).toMatchObject({
+      calls: 3,
+      qualifiedLeads: 3,
+      bookedJobs: 3,
+      soldJobs: 3,
+      spend: 175,
+      commissionCost: 10,
+      totalCost: 185,
+      soldAmount: 2_400,
+      completedRevenue: 1_200,
+    });
+    expect(result.rows.find((row) => row.channel === "Facebook Ads")?.actual.spend).toBe(30);
+    expect(result.rows.find((row) => row.channel === "Other")?.actual.spend).toBe(40);
+    expect(result.actual).toMatchObject({
+      calls: 5,
+      qualifiedLeads: 5,
+      bookedJobs: 5,
+      soldJobs: 5,
+      spend: 245,
+      commissionCost: 10,
+      totalCost: 255,
+      soldAmount: 3_500,
+      completedRevenue: 1_400,
+    });
+  });
+
   it("aggregates third-party website aliases without changing source totals", () => {
     const result = buildCampaignPerformanceSnapshot({
       month: "2026-08",

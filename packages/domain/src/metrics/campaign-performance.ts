@@ -294,6 +294,8 @@ function normalizeText(value: unknown) {
 export function normalizeCampaignChannel(value: unknown) {
   const normalized = normalizeText(value);
   if (!normalized) return "Miscellaneous";
+  // Verified Google Search naming convention; bid-strategy words alone are not a source.
+  const isGoogleSearchName = /^(?:\[call\]\s+)?s\s*\|\|\s*\S/.test(normalized);
 
   const rules: Array<[string, string[]]> = [
     ["Yelp", ["yelp"]],
@@ -322,7 +324,10 @@ export function normalizeCampaignChannel(value: unknown) {
     ["Miscellaneous", ["miscellaneous", "recall", "warranty"]]
   ];
 
-  return rules.find(([, markers]) => markers.some((marker) => normalized.includes(marker)))?.[0] ?? "Other";
+  return rules.find(([channel, markers]) =>
+    markers.some((marker) => normalized.includes(marker)) ||
+    (channel === "Google Ads" && isGoogleSearchName)
+  )?.[0] ?? "Other";
 }
 
 export function inferCampaignCategory(channel: string): CampaignChannelCategory {
